@@ -28,9 +28,13 @@
             <span class="material-symbols-outlined text-[18px]">add_photo_alternate</span>
             사진 업로드
           </label>
-          <button id="btn-download" disabled class="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md hover:bg-primary-container transition-colors flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+          <button id="btn-download" disabled class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
             <span class="material-symbols-outlined text-[18px]">download</span>
-            다운로드
+            현재 다운로드
+          </button>
+          <button id="btn-download-all" disabled class="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md hover:bg-primary-container transition-colors flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+            <span class="material-symbols-outlined text-[18px]">download_done</span>
+            <span id="download-all-label">전체 저장</span>
           </button>
         </div>
       </div>
@@ -67,9 +71,9 @@
                 <span class="material-symbols-outlined text-[18px]">add</span>
                 <span id="crosshair-label">십자선 끄기</span>
               </button>
-              <button id="btn-pick" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 min-w-[120px] justify-center">
+              <button id="btn-pick" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 min-w-[150px] justify-center" title="단축키: L">
                 <span class="material-symbols-outlined text-[18px]">touch_app</span>
-                <span id="pick-label">두 점으로 정렬</span>
+                <span id="pick-label">두 점으로 정렬 (L)</span>
               </button>
             </div>
             <div id="meta" class="font-label-sm text-secondary truncate min-w-0"></div>
@@ -155,6 +159,8 @@
     const bgColorInput = $('bg-color');
     const meta = $('meta');
     const btnDownload = $('btn-download');
+    const btnDownloadAll = $('btn-download-all');
+    const downloadAllLabel = $('download-all-label');
     const btnReset = $('btn-reset');
     const btnToggle = $('btn-toggle');
     const toggleLabel = $('toggle-label');
@@ -216,7 +222,9 @@
 
     function setEnabled() {
       const hasActive = state.activeIdx >= 0;
+      const has = state.items.length > 0;
       btnDownload.disabled = !hasActive;
+      btnDownloadAll.disabled = !has;
       btnReset.disabled = !hasActive;
       angleInput.disabled = !hasActive;
       angleSlider.disabled = !hasActive;
@@ -517,7 +525,15 @@
     });
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && state.pickMode) setPickMode(false);
+      if (e.key === 'Escape' && state.pickMode) { setPickMode(false); return; }
+      // L toggles two-point pick mode (skip when typing in an input/textarea)
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'l' || e.key === 'L' || e.key === 'ㅣ') {
+        if (state.activeIdx < 0) return;
+        e.preventDefault();
+        setPickMode(!state.pickMode);
+      }
     });
 
     async function saveBlobToFolder(blob, filename) {
@@ -540,18 +556,51 @@
       return false;
     }
 
-    btnDownload.addEventListener('click', async () => {
-      const it = state.items[state.activeIdx]; if (!it) return;
+    async function exportItem(it) {
       const cv = DrillAlign.exportRotated(it.image, it.angle, it.bg);
       const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
       const filename = it.name.replace(/\.[^.]+$/, '') + '_aligned.png';
+      return { blob, filename };
+    }
+
+    btnDownload.addEventListener('click', async () => {
+      const it = state.items[state.activeIdx]; if (!it) return;
+      const { blob, filename } = await exportItem(it);
       const savedToFolder = await saveBlobToFolder(blob, filename);
-      const original = btnDownload.querySelector('span:last-child')?.textContent;
-      btnDownload.querySelector('span:last-child').textContent = savedToFolder ? '저장됨!' : '다운로드됨';
+      const span = btnDownload.querySelector('span:last-child');
+      if (span) {
+        span.textContent = savedToFolder ? '저장됨!' : '다운로드됨';
+        setTimeout(() => { span.textContent = '현재 다운로드'; }, 1500);
+      }
+    });
+
+    btnDownloadAll.addEventListener('click', async () => {
+      if (state.items.length === 0) return;
+      btnDownloadAll.disabled = true;
+      let done = 0, failed = 0;
+      for (const it of state.items) {
+        downloadAllLabel.textContent = `저장 중… (${done + 1}/${state.items.length})`;
+        try {
+          const { blob, filename } = await exportItem(it);
+          const ok = await saveBlobToFolder(blob, filename);
+          if (!ok && !state.saveDir) {
+            // Space out browser-triggered downloads so the browser doesn't
+            // discard them or pop the "allow multiple downloads" prompt late.
+            await new Promise(r => setTimeout(r, 250));
+          }
+          done++;
+        } catch (err) {
+          console.warn('Export failed for', it.name, err);
+          failed++;
+        }
+      }
+      downloadAllLabel.textContent = failed
+        ? `완료: ${done}개 (실패 ${failed})`
+        : `완료: ${done}개`;
       setTimeout(() => {
-        const span = btnDownload.querySelector('span:last-child');
-        if (span) span.textContent = '다운로드';
-      }, 1500);
+        downloadAllLabel.textContent = '전체 저장';
+        setEnabled();
+      }, 2000);
     });
 
     btnPickFolder.addEventListener('click', async () => {
