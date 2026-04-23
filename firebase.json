@@ -1,0 +1,37 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "code_editor/**",
+      "corporate_integrity/**",
+      "dashboard/**",
+      "drill_code/**",
+      "drill_point/**",
+      "file_manager_1/**",
+      "file_manager_2/**",
+      "photo_editor/**",
+      "README.md",
+      "**/*.bat",
+      "**/*.exe",
+      "**/*.sh"
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|css)",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=3600" }
+        ]
+      },
+      {
+        "source": "**/*.@(jpg|jpeg|png|gif|webp|svg|ico)",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=86400" }
+        ]
+      }
+    ],
+    "cleanUrls": true
+  }
+}
