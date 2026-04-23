@@ -558,8 +558,13 @@
 
     async function exportItem(it) {
       const cv = DrillAlign.exportRotated(it.image, it.angle, it.bg);
-      const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
-      const filename = it.name.replace(/\.[^.]+$/, '') + '_aligned.png';
+      const ext = (it.name.match(/\.[^.]+$/) || ['.png'])[0];
+      const stem = it.name.slice(0, it.name.length - ext.length);
+      // Match input format: PNG for .png inputs, JPEG otherwise.
+      const isJpeg = /^\.jpe?g$/i.test(ext);
+      const mime = isJpeg ? 'image/jpeg' : 'image/png';
+      const blob = await new Promise(res => cv.toBlob(res, mime, isJpeg ? 0.95 : undefined));
+      const filename = stem + '@' + ext;
       return { blob, filename };
     }
 
