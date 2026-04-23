@@ -57,22 +57,22 @@
 
         <!-- Center: canvas -->
         <div class="col-span-6 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col">
-          <div class="flex justify-between items-center mb-md pb-md border-b border-outline-variant">
-            <div class="flex items-center gap-2">
-              <button id="btn-toggle" class="flex items-center gap-1 px-3 py-1.5 text-on-surface bg-secondary-container rounded font-label-sm">
+          <div class="flex justify-between items-center mb-md pb-md border-b border-outline-variant gap-md">
+            <div class="flex items-center gap-2 shrink-0">
+              <button id="btn-toggle" class="flex items-center gap-1 px-3 py-1.5 text-on-surface bg-secondary-container rounded font-label-sm whitespace-nowrap shrink-0 min-w-[92px] justify-center">
                 <span class="material-symbols-outlined text-[18px]">visibility</span>
                 <span id="toggle-label">정렬 후</span>
               </button>
-              <button id="btn-crosshair" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant">
+              <button id="btn-crosshair" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 min-w-[104px] justify-center">
                 <span class="material-symbols-outlined text-[18px]">add</span>
                 <span id="crosshair-label">십자선 끄기</span>
               </button>
-              <button id="btn-pick" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant">
+              <button id="btn-pick" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 min-w-[120px] justify-center">
                 <span class="material-symbols-outlined text-[18px]">touch_app</span>
                 <span id="pick-label">두 점으로 정렬</span>
               </button>
             </div>
-            <div id="meta" class="font-label-sm text-secondary"></div>
+            <div id="meta" class="font-label-sm text-secondary truncate min-w-0"></div>
           </div>
           <div class="flex-1 bg-surface-container-lowest rounded-lg border border-outline-variant overflow-hidden flex items-center justify-center relative">
             <canvas id="canvas" class="max-w-full max-h-full"></canvas>
