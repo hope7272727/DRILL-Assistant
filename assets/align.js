@@ -23,9 +23,11 @@
     return { r, g, b, css: `rgb(${r},${g},${b})` };
   }
 
-  // Detect the dominant bright-line angle (degrees) via PCA.
+  // Detect the dominant bright-line angle in degrees.
+  // The returned angle uses the same convention as our render code:
+  // assigning it to `state.angle` rotates the image so the bright line
+  // becomes horizontal (i.e., it already accounts for canvas y-flip).
   function detectAngle(data, w, h, threshold) {
-    // Stride-sample so very large images stay fast.
     const stride = Math.max(1, Math.floor(Math.sqrt((w * h) / 200000)));
     let mx = 0, my = 0, n = 0;
     for (let y = 0; y < h; y += stride) {
@@ -35,7 +37,7 @@
         if (lum > threshold) { mx += x; my += y; n++; }
       }
     }
-    if (n < 50) return { angle: 0, brightCount: n };
+    if (n < 50) return { angle: 0, brightCount: n, threshold };
     mx /= n; my /= n;
 
     let cxx = 0, cxy = 0, cyy = 0;
@@ -51,14 +53,41 @@
     }
     cxx /= n; cyy /= n; cxy /= n;
 
-    // Major-axis angle of the 2D covariance matrix.
+    // Major-axis angle of the 2D covariance matrix in image coords (y-down).
+    // Negate so that the returned value matches our positive-CCW rotation
+    // convention used by renderRotated/exportRotated.
     const angleRad = 0.5 * Math.atan2(2 * cxy, cxx - cyy);
-    const angleDeg = angleRad * 180 / Math.PI;
-    return { angle: angleDeg, brightCount: n };
+    const angleDeg = -angleRad * 180 / Math.PI;
+    return { angle: angleDeg, brightCount: n, threshold };
   }
 
-  // Render `image` rotated by `angleDeg` (CCW positive in math sense) onto `canvas`,
-  // sized to fit while preserving aspect ratio. Empty area filled with bgCss.
+  // Adaptive variant: pick a threshold that keeps the top ~1% brightest
+  // pixels (typically the specular highlight on the cutting edge), then
+  // run PCA. Floor the threshold at 180 so dim images don't pick up noise.
+  function detectAngleAuto(data, w, h) {
+    const stride = Math.max(1, Math.floor(Math.sqrt((w * h) / 300000)));
+    const hist = new Array(256).fill(0);
+    let total = 0;
+    for (let y = 0; y < h; y += stride) {
+      for (let x = 0; x < w; x += stride) {
+        const i = (y * w + x) * 4;
+        const lum = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+        hist[lum]++;
+        total++;
+      }
+    }
+    const target = Math.max(100, Math.floor(total * 0.01));
+    let cumul = 0, threshold = 255;
+    for (let v = 255; v >= 0; v--) {
+      cumul += hist[v];
+      if (cumul >= target) { threshold = Math.max(180, v); break; }
+    }
+    return detectAngle(data, w, h, threshold);
+  }
+
+  // Render `image` rotated by `angleDeg` onto `canvas`, sized to fit while
+  // preserving aspect ratio. Empty area filled with bgCss.
+  // Convention: positive angleDeg = visually counter-clockwise.
   function renderRotated(image, canvas, angleDeg, bgCss) {
     const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;
@@ -104,6 +133,7 @@
   window.DrillAlign = {
     sampleBg,
     detectAngle,
+    detectAngleAuto,
     renderRotated,
     exportRotated,
     imageData,
