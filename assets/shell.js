@@ -3,12 +3,9 @@
  */
 (function () {
   const NAV = [
-    { id: 'dashboard',   href: 'index.html',       label: '메인화면',     icon: 'home' },
-    { id: 'drill-point', href: 'drill-point.html', label: '드릴 포인트',  icon: 'precision_manufacturing' },
-    { id: 'drill-taper', href: 'drill-taper.html', label: '드릴 테이퍼',  icon: 'straighten' },
-    { id: 'drill-code',  href: 'drill-code.html',  label: '드릴 코드',    icon: 'terminal' },
-    { id: 'files',       href: 'files.html',       label: '파일',         icon: 'folder' },
-    { id: 'settings',    href: 'settings.html',    label: '설정',         icon: 'settings' },
+    { id: 'drill-point', href: 'drill-point.html', label: '드릴 포인트 수정', icon: 'precision_manufacturing' },
+    { id: 'drill-taper', href: 'drill-taper.html', label: '드릴 테이퍼 취합', icon: 'straighten' },
+    { id: 'drill-code',  href: 'drill-code.html',  label: '드릴 코드 생성',   icon: 'terminal' },
   ];
 
   function navItem(item, active) {
@@ -26,33 +23,18 @@
   function sidebar(activeId) {
     return `
       <aside class="fixed left-0 top-0 h-full w-[256px] border-r border-outline-variant bg-surface flex flex-col z-50">
-        <div class="p-lg border-b border-outline-variant">
-          <div class="flex items-center gap-sm mb-lg">
-            <div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-on-primary">
-              <span class="material-symbols-outlined">precision_manufacturing</span>
-            </div>
-            <div>
-              <h1 class="font-h3 text-[18px] text-primary tracking-tight">DRILL Assistant</h1>
-              <p class="font-body-sm text-label-sm text-secondary">Productivity Suite</p>
-            </div>
+        <a href="index.html" class="p-lg border-b border-outline-variant flex items-center gap-sm hover:bg-surface-container transition-colors">
+          <div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-on-primary">
+            <span class="material-symbols-outlined">precision_manufacturing</span>
           </div>
-          <button class="w-full py-md px-md bg-primary text-on-primary rounded-lg font-label-md text-label-md flex items-center justify-center gap-xs hover:bg-primary-container transition-colors shadow-sm">
-            <span class="material-symbols-outlined text-[18px]">add</span>
-            새 작업
-          </button>
-        </div>
+          <div>
+            <h1 class="font-h3 text-[18px] text-primary tracking-tight">DRILL Assistant</h1>
+            <p class="font-body-sm text-label-sm text-secondary">메인으로</p>
+          </div>
+        </a>
         <nav class="flex-1 overflow-y-auto p-md flex flex-col gap-xs">
           ${NAV.map(item => navItem(item, item.id === activeId)).join('')}
         </nav>
-        <div class="p-md border-t border-outline-variant">
-          <div class="flex items-center gap-sm">
-            <div class="w-10 h-10 rounded-full border border-outline-variant bg-secondary-container flex items-center justify-center text-on-secondary-container font-label-md">관</div>
-            <div>
-              <p class="font-label-md text-label-md text-on-surface">관리자</p>
-              <p class="font-body-sm text-label-sm text-secondary">admin@neotis.co.kr</p>
-            </div>
-          </div>
-        </div>
       </aside>`;
   }
 
