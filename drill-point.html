@@ -154,6 +154,10 @@
     const emptyList = $('empty-list');
     const canvas = $('canvas');
     const canvasEmpty = $('canvas-empty');
+
+    // Offscreen canvas caches the rendered rotated image so mousemove
+    // only redraws the overlay (points + dashed line), not the image.
+    const imageCache = document.createElement('canvas');
     const angleInput = $('angle');
     const angleSlider = $('angle-slider');
     const bgColorInput = $('bg-color');
@@ -237,10 +241,32 @@
       const parent = canvas.parentElement;
       const r = parent.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
+      const newW = Math.max(1, Math.floor(r.width * dpr));
+      const newH = Math.max(1, Math.floor(r.height * dpr));
       canvas.style.width = '100%';
       canvas.style.height = '100%';
-      canvas.width = Math.max(1, Math.floor(r.width * dpr));
-      canvas.height = Math.max(1, Math.floor(r.height * dpr));
+      // Only resize the buffer if dimensions actually changed — resizing
+      // clears and triggers a reflow, which caused image jitter on mousemove.
+      const changed = (canvas.width !== newW || canvas.height !== newH);
+      if (changed) {
+        canvas.width = newW; canvas.height = newH;
+        imageCache.width = newW; imageCache.height = newH;
+      }
+      return changed;
+    }
+
+    function renderImageCache() {
+      const it = state.items[state.activeIdx]; if (!it) return;
+      const angle = state.showOriginal ? 0 : it.angle;
+      DrillAlign.renderRotated(it.image, imageCache, angle, it.bg);
+    }
+
+    function blitAndOverlay() {
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(imageCache, 0, 0);
+      drawCrosshair();
+      drawPickedPoints();
     }
 
     function renderActive() {
@@ -253,10 +279,8 @@
       }
       canvasEmpty.style.display = 'none';
       fitCanvas();
-      const angle = state.showOriginal ? 0 : it.angle;
-      DrillAlign.renderRotated(it.image, canvas, angle, it.bg);
-      drawCrosshair();
-      drawPickedPoints();
+      renderImageCache();
+      blitAndOverlay();
       const picking = state.pickMode
         ? `· 두 점 선택 중 (${state.pickedPoints.length}/2)`
         : '';
@@ -476,7 +500,8 @@
     canvas.addEventListener('mousemove', (e) => {
       if (!state.pickMode || state.pickedPoints.length !== 1) return;
       state.lastMouse = getCanvasCoord(e);
-      renderActive();
+      // Only the overlay needs updating — image is cached and stays still.
+      blitAndOverlay();
     });
 
     canvas.addEventListener('click', (e) => {
