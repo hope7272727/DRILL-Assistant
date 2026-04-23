@@ -3,7 +3,7 @@
  */
 (function () {
   const NAV = [
-    { id: 'dashboard',   href: 'index.html',       label: '대시보드',     icon: 'dashboard' },
+    { id: 'dashboard',   href: 'index.html',       label: '메인화면',     icon: 'home' },
     { id: 'drill-point', href: 'drill-point.html', label: '드릴 포인트',  icon: 'precision_manufacturing' },
     { id: 'drill-taper', href: 'drill-taper.html', label: '드릴 테이퍼',  icon: 'straighten' },
     { id: 'drill-code',  href: 'drill-code.html',  label: '드릴 코드',    icon: 'terminal' },
