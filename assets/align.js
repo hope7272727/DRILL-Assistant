@@ -68,7 +68,7 @@
 
   // Adaptive variant: pick a threshold that keeps the top ~1% brightest
   // pixels (typically the specular highlight on the cutting edge), then
-  // run PCA. Floor the threshold at 180 so dim images don't pick up noise.
+  // run PCA. Kept for reference / other uses.
   function detectAngleAuto(data, w, h) {
     const stride = Math.max(1, Math.floor(Math.sqrt((w * h) / 300000)));
     const hist = new Array(256).fill(0);
@@ -88,6 +88,93 @@
       if (cumul >= target) { threshold = Math.max(180, v); break; }
     }
     return detectAngle(data, w, h, threshold);
+  }
+
+  // Drill-point alignment by horizontal brightness boundary:
+  // Reference photos show a crisp step between an upper half and a lower
+  // half of the drill silhouette. We find the rotation angle that
+  // maximises the row-average brightness step (a 1D Radon-style search).
+  // Returns angle in our state.angle convention (positive = visually CCW).
+  function detectAngleBoundary(data, w, h, opts) {
+    opts = opts || {};
+    const rangeDeg = opts.range || 30;   // ± search range
+    const stepDeg = opts.step || 0.5;    // search resolution
+    const stride = Math.max(1, Math.floor(Math.sqrt((w * h) / 120000)));
+    const halfW = w / 2, halfH = h / 2;
+
+    // Precompute luminance samples and their centred coords so we can
+    // re-project under each candidate angle without re-reading pixel data.
+    const N = Math.ceil(h / stride) * Math.ceil(w / stride);
+    const lum = new Float32Array(N);
+    const cx = new Float32Array(N);
+    const cy = new Float32Array(N);
+    let k = 0;
+    for (let y = 0; y < h; y += stride) {
+      for (let x = 0; x < w; x += stride) {
+        const i = (y * w + x) * 4;
+        lum[k] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        cx[k] = x - halfW;
+        cy[k] = y - halfH;
+        k++;
+      }
+    }
+    const M = k;
+
+    let bestAngle = 0, bestScore = -Infinity;
+
+    for (let aDeg = -rangeDeg; aDeg <= rangeDeg + 1e-6; aDeg += stepDeg) {
+      const rad = aDeg * Math.PI / 180;
+      const sinT = Math.sin(rad), cosT = Math.cos(rad);
+      // Range of projected y after rotation
+      const maxYp = halfW * Math.abs(sinT) + halfH * Math.abs(cosT);
+      const nBins = Math.max(16, Math.ceil(2 * maxYp) + 1);
+      const offset = maxYp;
+      const rowSum = new Float64Array(nBins);
+      const rowCnt = new Uint32Array(nBins);
+
+      for (let j = 0; j < M; j++) {
+        const yp = -cx[j] * sinT + cy[j] * cosT;
+        const bin = Math.floor(yp + offset);
+        if (bin >= 0 && bin < nBins) {
+          rowSum[bin] += lum[j];
+          rowCnt[bin]++;
+        }
+      }
+
+      // Row averages, only where we have enough samples
+      const minSamples = 5;
+      const avg = new Float64Array(nBins);
+      const has = new Uint8Array(nBins);
+      for (let b = 0; b < nBins; b++) {
+        if (rowCnt[b] >= minSamples) {
+          avg[b] = rowSum[b] / rowCnt[b];
+          has[b] = 1;
+        }
+      }
+
+      // Maximum step: difference of mean brightness in windows above/below
+      const win = 10;
+      const needed = Math.max(5, win - 3);
+      let maxStep = 0;
+      for (let b = win; b < nBins - win; b++) {
+        let above = 0, aboveN = 0, below = 0, belowN = 0;
+        for (let t = 1; t <= win; t++) {
+          if (has[b - t]) { above += avg[b - t]; aboveN++; }
+          if (has[b + t]) { below += avg[b + t]; belowN++; }
+        }
+        if (aboveN >= needed && belowN >= needed) {
+          const s = Math.abs(below / belowN - above / aboveN);
+          if (s > maxStep) maxStep = s;
+        }
+      }
+
+      if (maxStep > bestScore) {
+        bestScore = maxStep;
+        bestAngle = aDeg;
+      }
+    }
+
+    return { angle: bestAngle, score: bestScore };
   }
 
   // Render `image` rotated by `angleDeg` onto `canvas`, sized to fit while
@@ -139,6 +226,7 @@
     sampleBg,
     detectAngle,
     detectAngleAuto,
+    detectAngleBoundary,
     renderRotated,
     exportRotated,
     imageData,

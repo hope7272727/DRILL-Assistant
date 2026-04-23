@@ -376,11 +376,10 @@
     }
 
     function detectFor(it) {
-      const r = DrillAlign.detectAngleAuto(it.imageData.data, it.imageData.width, it.imageData.height);
+      const r = DrillAlign.detectAngleBoundary(it.imageData.data, it.imageData.width, it.imageData.height);
       it.autoAngle = r.angle;
       it.angle = r.angle;
-      it.brightCount = r.brightCount;
-      it.threshold = r.threshold;
+      it.detectScore = r.score;
     }
 
     // ---- Events ----
