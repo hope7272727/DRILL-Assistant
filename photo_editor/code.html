@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+
+<html lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BizPro - 포토 에디터</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-lowest": "#ffffff",
+                        "outline-variant": "#c2c6d4",
+                        "primary": "#003f87",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#454748",
+                        "on-tertiary": "#ffffff",
+                        "surface": "#fbf9f8",
+                        "secondary-container": "#d3e2ed",
+                        "inverse-surface": "#303030",
+                        "secondary-fixed": "#d6e5ef",
+                        "tertiary-fixed-dim": "#c5c7c8",
+                        "tertiary-fixed": "#e1e3e4",
+                        "on-surface-variant": "#424752",
+                        "on-error": "#ffffff",
+                        "inverse-primary": "#acc7ff",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed-variant": "#3b4951",
+                        "surface-bright": "#fbf9f8",
+                        "background": "#fbf9f8",
+                        "on-secondary-fixed": "#0f1d25",
+                        "error": "#ba1a1a",
+                        "on-background": "#1b1c1c",
+                        "primary-fixed": "#d7e2ff",
+                        "surface-tint": "#115cb9",
+                        "surface-variant": "#e4e2e1",
+                        "surface-container-low": "#f6f3f2",
+                        "outline": "#727784",
+                        "on-surface": "#1b1c1c",
+                        "error-container": "#ffdad6",
+                        "secondary": "#526069",
+                        "surface-container-highest": "#e4e2e1",
+                        "on-tertiary-fixed": "#191c1d",
+                        "surface-dim": "#dcd9d9",
+                        "primary-fixed-dim": "#acc7ff",
+                        "primary-container": "#0056b3",
+                        "on-error-container": "#93000a",
+                        "surface-container-high": "#eae8e7",
+                        "on-primary-fixed": "#001a40",
+                        "surface-container": "#f0eded",
+                        "inverse-on-surface": "#f3f0f0",
+                        "on-tertiary-container": "#ced0d1",
+                        "secondary-fixed-dim": "#bac9d3",
+                        "on-secondary-container": "#56656e",
+                        "on-primary-container": "#bbd0ff",
+                        "tertiary-container": "#57595a",
+                        "on-primary-fixed-variant": "#004491",
+                        "tertiary": "#3f4243"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "gutter": "24px",
+                        "lg": "24px",
+                        "xs": "4px",
+                        "margin": "48px",
+                        "max_width": "1440px",
+                        "xl": "32px",
+                        "unit": "4px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "h2": ["Manrope"],
+                        "body-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "h3": ["Manrope"],
+                        "h1": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "label-md": ["14px", { "lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "label-sm": ["12px", { "lineHeight": "1", "letterSpacing": "0.03em", "fontWeight": "500" }],
+                        "h2": ["32px", { "lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "1.5", "letterSpacing": "0", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400" }],
+                        "h3": ["24px", { "lineHeight": "1.4", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "h1": ["40px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md h-screen flex overflow-hidden">
+<!-- SideNavBar Component -->
+<aside class="fixed left-0 top-0 h-full w-64 border-r border-r border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-950 flat no shadows flex flex-col gap-2 p-4 w-64 h-screen z-50 hidden md:flex">
+<div class="px-4 py-6 mb-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary-container rounded-full flex items-center justify-center text-on-primary font-bold">BP</div>
+<div>
+<h1 class="font-black text-blue-800 dark:text-blue-300 font-manrope text-sm font-medium">BizPro Enterprise</h1>
+<p class="text-xs text-secondary">Productivity Suite</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 ease-in-out font-manrope text-sm font-medium text-blue-700 dark:text-blue-400" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                대시보드
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 rounded-lg shadow-sm border border-gray-100 dark:border-slate-800 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 ease-in-out font-manrope text-sm font-medium text-blue-700 dark:text-blue-400" href="#">
+<span class="material-symbols-outlined" data-icon="photo_filter">photo_filter</span>
+                포토 에디터
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 ease-in-out font-manrope text-sm font-medium text-blue-700 dark:text-blue-400" href="#">
+<span class="material-symbols-outlined" data-icon="code">code</span>
+                코드 에디터
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 ease-in-out font-manrope text-sm font-medium text-blue-700 dark:text-blue-400" href="#">
+<span class="material-symbols-outlined" data-icon="folder_open">folder_open</span>
+                파일
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 ease-in-out font-manrope text-sm font-medium text-blue-700 dark:text-blue-400" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                설정
+            </a>
+</nav>
+<div class="mt-auto pt-4 border-t border-outline-variant">
+<button class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary-container text-on-primary rounded-lg font-label-md hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+                New Project
+            </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-64 flex flex-col h-full bg-surface-container-lowest">
+<!-- TopNavBar Component -->
+<header class="bg-white dark:bg-slate-900 docked full-width top-0 z-40 border-b border-gray-200 dark:border-slate-800 shadow-sm dark:shadow-none flex justify-between items-center h-16 px-6 w-full hidden md:flex">
+<div class="flex items-center gap-4">
+<span class="text-xl font-bold text-blue-700 dark:text-blue-400 tracking-tight font-manrope text-sm antialiased text-blue-700 dark:text-blue-400">BizPro</span>
+<div class="relative ml-4">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline" data-icon="search">search</span>
+<input class="pl-10 pr-4 py-1.5 bg-surface-container-low border border-outline-variant rounded-full text-body-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container w-64" placeholder="검색..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-gray-600 dark:text-slate-400 hover:text-gray-900 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors rounded-full cursor-pointer active:opacity-80 font-manrope text-sm antialiased text-blue-700 dark:text-blue-400">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-gray-600 dark:text-slate-400 hover:text-gray-900 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors rounded-full cursor-pointer active:opacity-80 font-manrope text-sm antialiased text-blue-700 dark:text-blue-400">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<button class="p-2 text-gray-600 dark:text-slate-400 hover:text-gray-900 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors rounded-full cursor-pointer active:opacity-80 font-manrope text-sm antialiased text-blue-700 dark:text-blue-400">
+<span class="material-symbols-outlined" data-icon="apps">apps</span>
+</button>
+<button class="ml-2 px-4 py-1.5 border border-primary-container text-primary-container rounded-full font-label-md hover:bg-primary-container hover:text-on-primary transition-colors">
+                    Invite
+                </button>
+<img alt="User profile photo" class="w-8 h-8 rounded-full border border-outline-variant ml-2" data-alt="professional headshot of a man in a modern office setting, soft natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDyL01GKB5WdZPsKgG8SvBdWZJ36L5ieF-NErmJBgN4O7lsfUHj4G1IRZ4C0PnlfUjmb8SgKe5WQS1dXykk_U2WTW8P4ft7I9_7OSdR1iqXu18_a1qXIaJIDR3B92fpHStaqPLMA3qFJ-NZrm70TS8TF4izvVlWriooBNdYavIK6L6E12dRp42hBf1GDy5jutS-EKCxHoCD-1LXjNzkaltyKJHPB2uFTQSmObbY1UiFYZiQjyD47CyimcqLtkDTX6PiNJhIPx5K3Q"/>
+</div>
+</header>
+<!-- Editor Content -->
+<div class="flex-1 overflow-hidden flex flex-col p-lg gap-lg max-w-[1440px] mx-auto w-full">
+<!-- Top Controls Area -->
+<div class="flex justify-between items-center bg-surface p-md rounded-xl border border-outline-variant shadow-sm">
+<div class="flex items-center gap-md">
+<h2 class="font-h3 text-on-surface">자동 사진 편집</h2>
+<span class="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-sm">초안</span>
+</div>
+<div class="flex gap-sm">
+<button class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="cloud_upload">cloud_upload</span>
+                        클라우드 저장
+                    </button>
+<button class="px-4 py-2 bg-primary-container text-on-primary rounded-lg font-label-md hover:opacity-90 transition-opacity flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="download">download</span>
+                        다운로드
+                    </button>
+</div>
+</div>
+<!-- Main Editor Layout (Bento Grid) -->
+<div class="flex-1 grid grid-cols-12 gap-lg min-h-0">
+<!-- Left Panel: Presets & Controls -->
+<div class="col-span-3 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col gap-lg overflow-y-auto">
+<!-- Upload Area -->
+<div class="border-2 border-dashed border-primary-fixed-dim rounded-lg p-lg flex flex-col items-center justify-center text-center hover:bg-surface-variant transition-colors cursor-pointer">
+<div class="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center mb-sm">
+<span class="material-symbols-outlined text-primary-container" data-icon="add_photo_alternate">add_photo_alternate</span>
+</div>
+<p class="font-label-md text-on-surface mb-1">이미지 업로드</p>
+<p class="font-body-sm text-secondary">클릭하거나 드래그 앤 드롭</p>
+</div>
+<!-- Auto Presets -->
+<div>
+<h3 class="font-label-md text-on-surface-variant mb-md flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="auto_awesome">auto_awesome</span>
+                            자동 보정 프리셋
+                        </h3>
+<div class="grid grid-cols-2 gap-sm">
+<button class="p-sm bg-surface-container rounded-lg border border-transparent hover:border-primary-fixed-dim focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all flex flex-col items-center justify-center gap-2 aspect-square">
+<span class="material-symbols-outlined text-secondary text-[24px]" data-icon="brightness_6">brightness_6</span>
+<span class="font-label-sm text-on-surface">밝기 최적화</span>
+</button>
+<button class="p-sm bg-surface-container rounded-lg border border-transparent hover:border-primary-fixed-dim focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all flex flex-col items-center justify-center gap-2 aspect-square">
+<span class="material-symbols-outlined text-secondary text-[24px]" data-icon="contrast">contrast</span>
+<span class="font-label-sm text-on-surface">대비 강화</span>
+</button>
+<button class="p-sm bg-surface-container rounded-lg border border-transparent hover:border-primary-fixed-dim focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all flex flex-col items-center justify-center gap-2 aspect-square">
+<span class="material-symbols-outlined text-secondary text-[24px]" data-icon="crop">crop</span>
+<span class="font-label-sm text-on-surface">스마트 크롭</span>
+</button>
+<button class="p-sm bg-surface-container rounded-lg border border-transparent hover:border-primary-fixed-dim focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all flex flex-col items-center justify-center gap-2 aspect-square">
+<span class="material-symbols-outlined text-secondary text-[24px]" data-icon="palette">palette</span>
+<span class="font-label-sm text-on-surface">색상 균형</span>
+</button>
+</div>
+</div>
+<!-- Manual Adjustments -->
+<div class="mt-auto">
+<h3 class="font-label-md text-on-surface-variant mb-md flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="tune">tune</span>
+                            미세 조정
+                        </h3>
+<div class="space-y-4">
+<div>
+<div class="flex justify-between mb-1">
+<label class="font-label-sm text-on-surface">노출</label>
+<span class="font-label-sm text-secondary">0</span>
+</div>
+<input class="w-full h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary-container" type="range"/>
+</div>
+<div>
+<div class="flex justify-between mb-1">
+<label class="font-label-sm text-on-surface">채도</label>
+<span class="font-label-sm text-secondary">+12</span>
+</div>
+<input class="w-full h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary-container" type="range" value="60"/>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Panel: Preview Area -->
+<div class="col-span-9 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col">
+<!-- Preview Toolbar -->
+<div class="flex justify-between items-center mb-md pb-md border-b border-outline-variant">
+<div class="flex items-center gap-2">
+<button class="p-1.5 text-secondary hover:text-on-surface hover:bg-surface-variant rounded transition-colors" title="실행 취소">
+<span class="material-symbols-outlined" data-icon="undo">undo</span>
+</button>
+<button class="p-1.5 text-secondary hover:text-on-surface hover:bg-surface-variant rounded transition-colors" title="다시 실행">
+<span class="material-symbols-outlined" data-icon="redo">redo</span>
+</button>
+<div class="w-px h-6 bg-outline-variant mx-2"></div>
+<button class="flex items-center gap-1 px-2 py-1.5 text-secondary hover:text-on-surface hover:bg-surface-variant rounded transition-colors font-label-sm">
+<span class="material-symbols-outlined text-[18px]" data-icon="compare">compare</span>
+                                원본 비교
+                            </button>
+</div>
+<div class="flex items-center gap-2 text-secondary font-label-sm">
+<span>줌: 100%</span>
+<button class="p-1 hover:text-on-surface hover:bg-surface-variant rounded">
+<span class="material-symbols-outlined text-[18px]" data-icon="zoom_in">zoom_in</span>
+</button>
+<button class="p-1 hover:text-on-surface hover:bg-surface-variant rounded">
+<span class="material-symbols-outlined text-[18px]" data-icon="zoom_out">zoom_out</span>
+</button>
+</div>
+</div>
+<!-- Canvas -->
+<div class="flex-1 bg-surface-container-lowest rounded-lg border border-outline-variant border-dashed overflow-hidden flex items-center justify-center relative group">
+<!-- Simulated checkered background for transparency representation -->
+<div class="absolute inset-0 opacity-5" style="background-image: linear-gradient(45deg, #000 25%, transparent 25%), linear-gradient(-45deg, #000 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #000 75%), linear-gradient(-45deg, transparent 75%, #000 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;"></div>
+<!-- The Image being edited -->
+<img alt="Preview Image" class="max-w-full max-h-full object-contain relative z-10 shadow-lg" data-alt="modern corporate office interior with glass walls, bright natural light, sleek minimalist furniture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCOKQyA3s1HYbDf_3VEf6oZUgvMgNxrGPssKCxVz8AaVqAVEAMH3DFLEkCsDOez-i0DnQ--cerBJVP5GXpbkwZ9UwasDHWqjM7uqYq8HH6Iv1HTB52eGXkG_qUlvNCfLya-20SBl3OFI-1Isil6ra8x2DI7wPWWmXPrZbkYSuz8dpy9RWm-dGt1O7qYyKLNPdEGVm9XTCpTJG0Sro2Yegs5nPkaX51DFEnX-JUm0x7VbQIXCmAQ-rSRIWNokeYS7OvtfY1-hc-RNA"/>
+<!-- Overlay grid for 'crop' mode (hidden by default, shown for UI flavor) -->
+<div class="absolute inset-4 border border-primary-container z-20 pointer-events-none hidden group-hover:block opacity-50">
+<div class="absolute top-1/3 left-0 w-full h-px bg-primary-container"></div>
+<div class="absolute top-2/3 left-0 w-full h-px bg-primary-container"></div>
+<div class="absolute left-1/3 top-0 h-full w-px bg-primary-container"></div>
+<div class="absolute left-2/3 top-0 h-full w-px bg-primary-container"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

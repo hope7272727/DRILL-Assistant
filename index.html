@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>DRILL Assistant — 대시보드</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <link href="assets/styles.css" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="assets/theme.js"></script>
+</head>
+<body class="flex h-screen overflow-hidden antialiased text-on-surface">
+  <div id="app-shell"></div>
+
+  <main id="app-main">
+    <div class="p-margin max-w-max_width mx-auto">
+      <!-- Welcome Section -->
+      <div class="mb-xl flex justify-between items-end">
+        <div>
+          <h2 class="font-h2 text-h2 text-on-surface mb-xs">환영합니다, 관리자님</h2>
+          <p class="font-body-lg text-body-lg text-secondary">오늘의 작업 현황과 최근 업데이트를 확인하세요.</p>
+        </div>
+        <div class="text-right">
+          <p class="font-label-md text-label-md text-on-surface-variant" id="today-date"></p>
+        </div>
+      </div>
+
+      <!-- Key Statistics -->
+      <div class="grid grid-cols-4 gap-gutter mb-xl">
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col justify-between shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+          <div class="flex justify-between items-start mb-md">
+            <p class="font-label-md text-label-md text-secondary">오늘 분석한 드릴 포인트</p>
+            <span class="material-symbols-outlined text-primary bg-primary-fixed p-sm rounded">precision_manufacturing</span>
+          </div>
+          <div>
+            <p class="font-h1 text-h1 text-on-surface">24</p>
+            <p class="font-body-sm text-body-sm text-secondary mt-xs"><span class="text-success font-medium">+5</span> 어제 대비</p>
+          </div>
+        </div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col justify-between shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+          <div class="flex justify-between items-start mb-md">
+            <p class="font-label-md text-label-md text-secondary">테이퍼 측정 데이터</p>
+            <span class="material-symbols-outlined text-primary bg-primary-fixed p-sm rounded">straighten</span>
+          </div>
+          <div>
+            <p class="font-h1 text-h1 text-on-surface">148</p>
+            <p class="font-body-sm text-body-sm text-secondary mt-xs"><span class="text-success font-medium">+15%</span> 전월 대비</p>
+          </div>
+        </div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col justify-between shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+          <div class="flex justify-between items-start mb-md">
+            <p class="font-label-md text-label-md text-secondary">생성된 ERP 코드</p>
+            <span class="material-symbols-outlined text-primary bg-primary-fixed p-sm rounded">terminal</span>
+          </div>
+          <div>
+            <p class="font-h1 text-h1 text-on-surface">86</p>
+            <p class="font-body-sm text-body-sm text-secondary mt-xs"><span class="text-secondary font-medium">+12</span> 이번 주</p>
+          </div>
+        </div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col justify-between shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+          <div class="flex justify-between items-start mb-md">
+            <p class="font-label-md text-label-md text-secondary">DXF 일치율 평균</p>
+            <span class="material-symbols-outlined text-primary bg-primary-fixed p-sm rounded">verified</span>
+          </div>
+          <div>
+            <p class="font-h1 text-h1 text-on-surface">98.2<span class="text-h3">%</span></p>
+            <p class="font-body-sm text-body-sm text-secondary mt-xs">합격 기준 ≥ 95%</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions & Activity -->
+      <div class="grid grid-cols-12 gap-gutter">
+        <div class="col-span-8 flex flex-col gap-gutter">
+          <!-- Quick Actions -->
+          <div class="grid grid-cols-3 gap-gutter">
+            <a href="drill-point.html" class="group relative overflow-hidden bg-surface-container border border-outline-variant rounded-xl p-lg transition-all hover:shadow-[0_12px_32px_rgba(0,0,0,0.05)] hover:border-primary cursor-pointer flex flex-col h-44">
+              <div class="absolute -right-10 -top-10 w-40 h-40 bg-secondary-fixed rounded-full opacity-50 blur-2xl group-hover:bg-primary-fixed transition-colors"></div>
+              <div class="relative z-10 flex-1">
+                <div class="w-12 h-12 bg-surface-container-lowest rounded-lg border border-outline-variant flex items-center justify-center mb-md shadow-sm">
+                  <span class="material-symbols-outlined text-primary text-[28px]">precision_manufacturing</span>
+                </div>
+                <h3 class="font-h3 text-h3 text-on-surface mb-xs">드릴 포인트</h3>
+                <p class="font-body-sm text-body-sm text-secondary">사진 정렬 & DXF 비교</p>
+              </div>
+            </a>
+            <a href="drill-taper.html" class="group relative overflow-hidden bg-surface-container border border-outline-variant rounded-xl p-lg transition-all hover:shadow-[0_12px_32px_rgba(0,0,0,0.05)] hover:border-primary cursor-pointer flex flex-col h-44">
+              <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-secondary-fixed rounded-full opacity-50 blur-2xl group-hover:bg-primary-fixed transition-colors"></div>
+              <div class="relative z-10 flex-1">
+                <div class="w-12 h-12 bg-surface-container-lowest rounded-lg border border-outline-variant flex items-center justify-center mb-md shadow-sm">
+                  <span class="material-symbols-outlined text-primary text-[28px]">straighten</span>
+                </div>
+                <h3 class="font-h3 text-h3 text-on-surface mb-xs">드릴 테이퍼</h3>
+                <p class="font-body-sm text-body-sm text-secondary">엑셀 측정값 취합 & 분석</p>
+              </div>
+            </a>
+            <a href="drill-code.html" class="group relative overflow-hidden bg-surface-container border border-outline-variant rounded-xl p-lg transition-all hover:shadow-[0_12px_32px_rgba(0,0,0,0.05)] hover:border-primary cursor-pointer flex flex-col h-44">
+              <div class="absolute -right-10 -top-10 w-40 h-40 bg-secondary-fixed rounded-full opacity-50 blur-2xl group-hover:bg-primary-fixed transition-colors"></div>
+              <div class="relative z-10 flex-1">
+                <div class="w-12 h-12 bg-surface-container-lowest rounded-lg border border-outline-variant flex items-center justify-center mb-md shadow-sm">
+                  <span class="material-symbols-outlined text-primary text-[28px]">terminal</span>
+                </div>
+                <h3 class="font-h3 text-h3 text-on-surface mb-xs">드릴 코드</h3>
+                <p class="font-body-sm text-body-sm text-secondary">ERP 코드 자동 생성</p>
+              </div>
+            </a>
+          </div>
+
+          <!-- Recent Drill Point Jobs -->
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl flex flex-col">
+            <div class="p-lg border-b border-outline-variant flex justify-between items-center bg-surface-bright rounded-t-xl">
+              <h3 class="font-h3 text-[20px] text-on-surface flex items-center gap-2">
+                <span class="material-symbols-outlined text-secondary">history</span> 최근 드릴 포인트 작업
+              </h3>
+              <a href="drill-point.html" class="font-label-md text-label-sm text-primary hover:underline">모두 보기</a>
+            </div>
+            <div class="p-0">
+              <div class="flex items-center gap-md p-md border-b border-outline-variant hover:bg-surface transition-colors cursor-pointer">
+                <div class="w-16 h-12 rounded bg-surface-container shrink-0 border border-outline-variant flex items-center justify-center">
+                  <span class="material-symbols-outlined text-secondary">image</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="font-label-md text-body-md text-on-surface truncate">DP-2401-A12 / point_set_07.jpg</p>
+                  <p class="font-body-sm text-label-sm text-secondary truncate">DXF 일치 99.4% — 24개 포인트 검출</p>
+                </div>
+                <div class="text-right shrink-0">
+                  <span class="inline-block px-2 py-1 rounded bg-secondary-container text-on-secondary-container font-label-sm text-[11px] mb-1">합격</span>
+                  <p class="font-body-sm text-label-sm text-outline">10분 전</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-md p-md border-b border-outline-variant hover:bg-surface transition-colors cursor-pointer">
+                <div class="w-16 h-12 rounded bg-surface-container shrink-0 border border-outline-variant flex items-center justify-center">
+                  <span class="material-symbols-outlined text-secondary">image</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="font-label-md text-body-md text-on-surface truncate">DP-2401-A11 / point_set_06.jpg</p>
+                  <p class="font-body-sm text-label-sm text-secondary truncate">정렬 진행 중 (16/24)</p>
+                </div>
+                <div class="text-right shrink-0">
+                  <span class="inline-block px-2 py-1 rounded bg-surface-variant text-on-surface-variant font-label-sm text-[11px] mb-1">진행 중</span>
+                  <p class="font-body-sm text-label-sm text-outline">2시간 전</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-md p-md hover:bg-surface transition-colors cursor-pointer">
+                <div class="w-16 h-12 rounded bg-surface-container shrink-0 border border-outline-variant flex items-center justify-center">
+                  <span class="material-symbols-outlined text-secondary">image</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="font-label-md text-body-md text-on-surface truncate">DP-2312-B03 / point_set_22.jpg</p>
+                  <p class="font-body-sm text-label-sm text-secondary truncate">DXF 일치 92.1% — 재검 필요</p>
+                </div>
+                <div class="text-right shrink-0">
+                  <span class="inline-block px-2 py-1 rounded bg-error-container text-on-error-container font-label-sm text-[11px] mb-1">재검</span>
+                  <p class="font-body-sm text-label-sm text-outline">어제</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right column: Activity feed -->
+        <div class="col-span-4 flex flex-col gap-gutter">
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl flex flex-col h-full">
+            <div class="p-md border-b border-outline-variant bg-surface-bright rounded-t-xl">
+              <h3 class="font-h3 text-[18px] text-on-surface flex items-center gap-2">
+                <span class="material-symbols-outlined text-secondary text-[20px]">bolt</span> 최근 활동
+              </h3>
+            </div>
+            <div class="p-md flex flex-col gap-md flex-1 overflow-y-auto">
+              <div class="relative pl-md before:content-[''] before:absolute before:left-[7px] before:top-2 before:bottom-[-16px] before:w-[2px] before:bg-outline-variant last:before:hidden">
+                <div class="absolute left-0 top-1 w-4 h-4 rounded-full bg-primary-container border-2 border-surface-container-lowest z-10"></div>
+                <div class="bg-surface p-sm rounded border border-outline-variant">
+                  <p class="font-label-md text-label-md text-on-surface mb-1">ERP 코드 생성</p>
+                  <p class="font-body-sm text-body-sm text-secondary mb-2 line-clamp-2">DP-2401-A12 → ERP 자재코드 <code class="font-code text-[12px] bg-surface-container px-1 rounded">D24A12-T03</code></p>
+                  <p class="font-body-sm text-[11px] text-outline">관리자 · 오전 10:30</p>
+                </div>
+              </div>
+              <div class="relative pl-md before:content-[''] before:absolute before:left-[7px] before:top-2 before:bottom-[-16px] before:w-[2px] before:bg-outline-variant last:before:hidden">
+                <div class="absolute left-0 top-1 w-4 h-4 rounded-full bg-tertiary-fixed-dim border-2 border-surface-container-lowest z-10"></div>
+                <div class="bg-surface p-sm rounded border border-outline-variant">
+                  <p class="font-label-md text-label-md text-on-surface mb-1">테이퍼 측정 업로드</p>
+                  <p class="font-body-sm text-body-sm text-secondary mb-2 line-clamp-2">taper_lot_2024_04.xlsx — 36개 측정값 취합 완료</p>
+                  <p class="font-body-sm text-[11px] text-outline">관리자 · 어제 17:42</p>
+                </div>
+              </div>
+              <div class="relative pl-md before:content-[''] before:absolute before:left-[7px] before:top-2 before:bottom-[-16px] before:w-[2px] before:bg-outline-variant last:before:hidden">
+                <div class="absolute left-0 top-1 w-4 h-4 rounded-full bg-tertiary-fixed-dim border-2 border-surface-container-lowest z-10"></div>
+                <div class="bg-surface p-sm rounded border border-outline-variant">
+                  <p class="font-label-md text-label-md text-on-surface mb-1">드릴 포인트 정렬</p>
+                  <p class="font-body-sm text-body-sm text-secondary mb-2 line-clamp-2">point_set_22.jpg 자동 정렬 완료 — DXF 비교 결과 92.1%</p>
+                  <p class="font-body-sm text-[11px] text-outline">관리자 · 4월 22일</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/shell.js"></script>
+  <script>
+    renderShell('dashboard');
+    const d = new Date();
+    const wk = ['일','월','화','수','목','금','토'][d.getDay()];
+    document.getElementById('today-date').textContent =
+      `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${wk})`;
+  </script>
+</body>
+</html>

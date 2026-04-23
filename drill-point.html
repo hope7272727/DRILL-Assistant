@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>DRILL Assistant — 드릴 포인트</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <link href="assets/styles.css" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="assets/theme.js"></script>
+</head>
+<body class="flex h-screen overflow-hidden antialiased text-on-surface">
+  <div id="app-shell"></div>
+
+  <main id="app-main">
+    <div class="p-lg flex flex-col gap-lg max-w-[1440px] mx-auto h-full">
+
+      <!-- Top Controls -->
+      <div class="flex justify-between items-center bg-surface p-md rounded-xl border border-outline-variant shadow-sm">
+        <div class="flex items-center gap-md">
+          <h2 class="font-h3 text-on-surface">드릴 포인트 분석</h2>
+          <span class="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-sm">초안</span>
+          <span class="font-body-sm text-secondary">DP-2401-A12</span>
+        </div>
+        <div class="flex gap-sm">
+          <button class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">save</span>
+            저장
+          </button>
+          <button class="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md hover:bg-primary-container transition-colors flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">download</span>
+            결과 내보내기
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Editor Layout -->
+      <div class="flex-1 grid grid-cols-12 gap-lg min-h-0">
+
+        <!-- Left: Inputs & Analysis -->
+        <div class="col-span-3 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col gap-lg overflow-y-auto">
+
+          <!-- Photo Upload -->
+          <div>
+            <h3 class="font-label-md text-on-surface-variant mb-sm flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">add_photo_alternate</span>
+              드릴 포인트 사진
+            </h3>
+            <label class="border-2 border-dashed border-primary-fixed-dim rounded-lg p-md flex flex-col items-center justify-center text-center hover:bg-surface-variant transition-colors cursor-pointer">
+              <input type="file" accept="image/*" multiple class="hidden"/>
+              <div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center mb-xs">
+                <span class="material-symbols-outlined text-primary">image</span>
+              </div>
+              <p class="font-label-md text-on-surface text-[13px]">이미지 업로드</p>
+              <p class="font-body-sm text-secondary text-[12px]">클릭 또는 드래그</p>
+            </label>
+          </div>
+
+          <!-- DXF Upload -->
+          <div>
+            <h3 class="font-label-md text-on-surface-variant mb-sm flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">architecture</span>
+              참조 DXF 도면
+            </h3>
+            <label class="border-2 border-dashed border-primary-fixed-dim rounded-lg p-md flex flex-col items-center justify-center text-center hover:bg-surface-variant transition-colors cursor-pointer">
+              <input type="file" accept=".dxf" class="hidden"/>
+              <div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center mb-xs">
+                <span class="material-symbols-outlined text-primary">upload_file</span>
+              </div>
+              <p class="font-label-md text-on-surface text-[13px]">DXF 파일 선택</p>
+              <p class="font-body-sm text-secondary text-[12px]">.dxf만 허용</p>
+            </label>
+          </div>
+
+          <!-- Auto Actions -->
+          <div>
+            <h3 class="font-label-md text-on-surface-variant mb-sm flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+              자동 작업
+            </h3>
+            <div class="grid grid-cols-2 gap-sm">
+              <button class="p-sm bg-surface-container rounded-lg border border-transparent hover:border-primary-fixed-dim transition-all flex flex-col items-center justify-center gap-2 aspect-square">
+                <span class="material-symbols-outlined text-secondary text-[24px]">grid_on</span>
+                <span class="font-label-sm text-on-surface text-[12px]">포인트 정렬</span>
+              </button>
+              <button class="p-sm bg-surface-container rounded-lg border border-transparent hover:border-primary-fixed-dim transition-all flex flex-col items-center justify-center gap-2 aspect-square">
+                <span class="material-symbols-outlined text-secondary text-[24px]">compare_arrows</span>
+                <span class="font-label-sm text-on-surface text-[12px]">DXF 비교</span>
+              </button>
+              <button class="p-sm bg-surface-container rounded-lg border border-transparent hover:border-primary-fixed-dim transition-all flex flex-col items-center justify-center gap-2 aspect-square">
+                <span class="material-symbols-outlined text-secondary text-[24px]">tune</span>
+                <span class="font-label-sm text-on-surface text-[12px]">노출 보정</span>
+              </button>
+              <button class="p-sm bg-surface-container rounded-lg border border-transparent hover:border-primary-fixed-dim transition-all flex flex-col items-center justify-center gap-2 aspect-square">
+                <span class="material-symbols-outlined text-secondary text-[24px]">center_focus_strong</span>
+                <span class="font-label-sm text-on-surface text-[12px]">중심 정렬</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Analysis Result -->
+          <div class="mt-auto">
+            <h3 class="font-label-md text-on-surface-variant mb-sm flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">analytics</span>
+              비교 결과
+            </h3>
+            <div class="bg-surface-container rounded-lg p-md border border-outline-variant">
+              <div class="flex justify-between mb-2">
+                <span class="font-label-sm text-secondary">검출된 포인트</span>
+                <span class="font-label-md text-on-surface">24 / 24</span>
+              </div>
+              <div class="flex justify-between mb-2">
+                <span class="font-label-sm text-secondary">DXF 일치율</span>
+                <span class="font-label-md text-success">99.4%</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="font-label-sm text-secondary">평균 위치 오차</span>
+                <span class="font-label-md text-on-surface">0.12 mm</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center: Preview -->
+        <div class="col-span-6 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col">
+          <div class="flex justify-between items-center mb-md pb-md border-b border-outline-variant">
+            <div class="flex items-center gap-2">
+              <button class="p-1.5 text-secondary hover:text-on-surface hover:bg-surface-variant rounded transition-colors" title="실행 취소">
+                <span class="material-symbols-outlined">undo</span>
+              </button>
+              <button class="p-1.5 text-secondary hover:text-on-surface hover:bg-surface-variant rounded transition-colors" title="다시 실행">
+                <span class="material-symbols-outlined">redo</span>
+              </button>
+              <div class="w-px h-6 bg-outline-variant mx-2"></div>
+              <button class="flex items-center gap-1 px-2 py-1.5 text-on-surface hover:bg-surface-variant rounded transition-colors font-label-sm bg-secondary-container">
+                <span class="material-symbols-outlined text-[18px]">layers</span>
+                DXF 오버레이
+              </button>
+              <button class="flex items-center gap-1 px-2 py-1.5 text-secondary hover:text-on-surface hover:bg-surface-variant rounded transition-colors font-label-sm">
+                <span class="material-symbols-outlined text-[18px]">compare</span>
+                원본 비교
+              </button>
+            </div>
+            <div class="flex items-center gap-2 text-secondary font-label-sm">
+              <span>줌: 100%</span>
+              <button class="p-1 hover:text-on-surface hover:bg-surface-variant rounded">
+                <span class="material-symbols-outlined text-[18px]">zoom_in</span>
+              </button>
+              <button class="p-1 hover:text-on-surface hover:bg-surface-variant rounded">
+                <span class="material-symbols-outlined text-[18px]">zoom_out</span>
+              </button>
+            </div>
+          </div>
+          <div class="flex-1 bg-surface-container-lowest rounded-lg border border-outline-variant overflow-hidden flex items-center justify-center relative">
+            <div class="absolute inset-0 opacity-5"
+                 style="background-image: linear-gradient(45deg, #000 25%, transparent 25%), linear-gradient(-45deg, #000 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #000 75%), linear-gradient(-45deg, transparent 75%, #000 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;"></div>
+            <div class="relative z-10 text-center text-secondary">
+              <span class="material-symbols-outlined text-[64px] text-outline mb-2 block">image</span>
+              <p class="font-body-md">사진과 DXF를 업로드하면 미리보기가 나타납니다.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Point List -->
+        <div class="col-span-3 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col overflow-hidden">
+          <div class="flex justify-between items-center mb-sm">
+            <h3 class="font-label-md text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">format_list_numbered</span>
+              포인트 목록
+            </h3>
+            <span class="font-label-sm text-secondary">24 / 24</span>
+          </div>
+          <div class="flex-1 overflow-y-auto scrollbar-thin -mr-2 pr-2 flex flex-col gap-1">
+            <!-- Sample point items -->
+            <!-- Generated below -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/shell.js"></script>
+  <script>
+    renderShell('drill-point');
+
+    // Mock point list
+    const list = document.querySelector('.flex-1.overflow-y-auto.scrollbar-thin');
+    const pts = Array.from({length: 24}, (_, i) => {
+      const ok = Math.random() > 0.1;
+      const dx = (Math.random() * 0.2 - 0.1).toFixed(2);
+      const dy = (Math.random() * 0.2 - 0.1).toFixed(2);
+      return `
+        <div class="flex items-center justify-between px-sm py-2 rounded hover:bg-surface-container cursor-pointer border border-transparent hover:border-outline-variant">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full ${ok ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container'} flex items-center justify-center font-label-sm text-[11px]">${i+1}</span>
+            <span class="font-body-sm text-on-surface text-[13px]">P${(i+1).toString().padStart(2,'0')}</span>
+          </div>
+          <span class="font-code text-[11px] text-secondary">Δ${dx},${dy}</span>
+        </div>`;
+    }).join('');
+    list.innerHTML = pts;
+  </script>
+</body>
+</html>

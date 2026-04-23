@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>DRILL Assistant — 드릴 코드</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <link href="assets/styles.css" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="assets/theme.js"></script>
+</head>
+<body class="flex h-screen overflow-hidden antialiased text-on-surface">
+  <div id="app-shell"></div>
+
+  <main id="app-main">
+    <div class="p-lg flex flex-col gap-lg max-w-[1440px] mx-auto h-full">
+
+      <!-- Header -->
+      <div class="flex justify-between items-center bg-surface p-md rounded-xl border border-outline-variant shadow-sm">
+        <div class="flex items-center gap-md">
+          <h2 class="font-h3 text-on-surface">ERP 코드 생성기</h2>
+          <span class="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-sm">자동</span>
+        </div>
+        <div class="flex gap-sm">
+          <button class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">history</span>
+            이력
+          </button>
+          <button class="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md hover:bg-primary-container transition-colors flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">content_copy</span>
+            코드 복사
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Layout -->
+      <div class="flex-1 grid grid-cols-12 gap-lg min-h-0">
+
+        <!-- Left: Inputs -->
+        <div class="col-span-5 bg-surface p-lg rounded-xl border border-outline-variant shadow-sm flex flex-col gap-md overflow-y-auto">
+          <h3 class="font-h3 text-[18px] text-on-surface flex items-center gap-2">
+            <span class="material-symbols-outlined text-secondary">edit_note</span>
+            입력 항목
+          </h3>
+
+          <div>
+            <label class="font-label-md text-on-surface-variant block mb-1">제품 분류</label>
+            <select class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-sm focus:outline-none focus:border-primary">
+              <option>드릴 (D)</option>
+              <option>리머 (R)</option>
+              <option>밀 (M)</option>
+              <option>탭 (T)</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-md">
+            <div>
+              <label class="font-label-md text-on-surface-variant block mb-1">연도 (YY)</label>
+              <input type="text" value="24" maxlength="2" class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-sm font-code focus:outline-none focus:border-primary"/>
+            </div>
+            <div>
+              <label class="font-label-md text-on-surface-variant block mb-1">시리즈</label>
+              <input type="text" value="A12" maxlength="3" class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-sm font-code focus:outline-none focus:border-primary"/>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-md">
+            <div>
+              <label class="font-label-md text-on-surface-variant block mb-1">직경 (mm)</label>
+              <input type="number" value="12.00" step="0.01" class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-sm font-code focus:outline-none focus:border-primary"/>
+            </div>
+            <div>
+              <label class="font-label-md text-on-surface-variant block mb-1">길이 (mm)</label>
+              <input type="number" value="80" class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-sm font-code focus:outline-none focus:border-primary"/>
+            </div>
+          </div>
+
+          <div>
+            <label class="font-label-md text-on-surface-variant block mb-1">테이퍼 타입</label>
+            <div class="flex gap-2">
+              <button class="px-3 py-1.5 bg-secondary-container text-on-secondary-container rounded-lg font-label-sm">T03</button>
+              <button class="px-3 py-1.5 border border-outline-variant text-secondary rounded-lg font-label-sm hover:bg-surface-variant">T05</button>
+              <button class="px-3 py-1.5 border border-outline-variant text-secondary rounded-lg font-label-sm hover:bg-surface-variant">T07</button>
+              <button class="px-3 py-1.5 border border-outline-variant text-secondary rounded-lg font-label-sm hover:bg-surface-variant">기타</button>
+            </div>
+          </div>
+
+          <div>
+            <label class="font-label-md text-on-surface-variant block mb-1">코팅</label>
+            <select class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-sm focus:outline-none focus:border-primary">
+              <option>TiAlN</option>
+              <option>TiN</option>
+              <option>AlCrN</option>
+              <option>없음</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="font-label-md text-on-surface-variant block mb-1">메모 (선택)</label>
+            <textarea rows="3" placeholder="ERP 코드에 첨부할 메모..." class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-sm focus:outline-none focus:border-primary resize-none"></textarea>
+          </div>
+
+          <div class="mt-auto bg-surface-container rounded-lg p-md border border-outline-variant">
+            <p class="font-label-sm text-secondary mb-1">규칙</p>
+            <p class="font-code text-[12px] text-on-surface">[분류][YY][시리즈]-[테이퍼]</p>
+            <p class="font-body-sm text-secondary text-[12px] mt-1">예: D24A12-T03</p>
+          </div>
+        </div>
+
+        <!-- Right: Generated Code Preview -->
+        <div class="col-span-7 bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden flex flex-col">
+          <div class="flex justify-between items-center border-b border-outline-variant bg-surface-container-low h-10 px-md">
+            <div class="flex items-center gap-2 text-body-sm font-label-md text-on-surface">
+              <span class="material-symbols-outlined text-[18px] text-primary">data_object</span>
+              생성된 코드
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="flex items-center gap-1.5 px-3 py-1 bg-surface-container-highest hover:bg-surface-variant text-on-surface-variant rounded text-xs font-label-sm border border-outline-variant transition-colors">
+                <span class="material-symbols-outlined text-[16px]">download</span>
+                JSON 내보내기
+              </button>
+              <button class="flex items-center gap-1.5 px-3 py-1 bg-primary text-on-primary hover:bg-primary-container rounded text-xs font-label-sm transition-colors shadow-sm">
+                <span class="material-symbols-outlined text-[16px]">play_arrow</span>
+                ERP 전송
+              </button>
+            </div>
+          </div>
+
+          <div class="p-lg border-b border-outline-variant">
+            <p class="font-label-md text-secondary mb-2">자재 코드</p>
+            <div class="flex items-center gap-3">
+              <span class="font-code text-h2 text-primary tracking-tight">D24A12-T03</span>
+              <button class="p-1 text-secondary hover:text-on-surface" title="복사">
+                <span class="material-symbols-outlined">content_copy</span>
+              </button>
+            </div>
+            <p class="font-body-sm text-secondary mt-2">드릴 · 2024년 · A12 시리즈 · 테이퍼 T03</p>
+          </div>
+
+          <div class="flex-1 overflow-auto p-lg font-code text-[14px] leading-relaxed line-numbers bg-surface-container-lowest">
+            <div><span class="syntax-comment">// ERP material registration payload</span></div>
+            <div>{</div>
+            <div>  <span class="syntax-string">"materialCode"</span>: <span class="syntax-string">"D24A12-T03"</span>,</div>
+            <div>  <span class="syntax-string">"category"</span>: <span class="syntax-string">"DRILL"</span>,</div>
+            <div>  <span class="syntax-string">"year"</span>: <span class="syntax-number">2024</span>,</div>
+            <div>  <span class="syntax-string">"series"</span>: <span class="syntax-string">"A12"</span>,</div>
+            <div>  <span class="syntax-string">"specification"</span>: {</div>
+            <div>    <span class="syntax-string">"diameter_mm"</span>: <span class="syntax-number">12.00</span>,</div>
+            <div>    <span class="syntax-string">"length_mm"</span>: <span class="syntax-number">80</span>,</div>
+            <div>    <span class="syntax-string">"taperType"</span>: <span class="syntax-string">"T03"</span>,</div>
+            <div>    <span class="syntax-string">"coating"</span>: <span class="syntax-string">"TiAlN"</span></div>
+            <div>  },</div>
+            <div>  <span class="syntax-string">"createdBy"</span>: <span class="syntax-string">"admin@neotis.co.kr"</span>,</div>
+            <div>  <span class="syntax-string">"createdAt"</span>: <span class="syntax-string">"2024-04-23T15:00:00+09:00"</span></div>
+            <div>}</div>
+          </div>
+
+          <!-- Status bar -->
+          <div class="h-7 bg-primary text-on-primary flex justify-between items-center px-3 text-xs font-label-sm">
+            <div class="flex items-center gap-3">
+              <div class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">check_circle</span> 검증 통과</div>
+            </div>
+            <div class="flex items-center gap-4">
+              <span>UTF-8</span>
+              <span>JSON</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/shell.js"></script>
+  <script>renderShell('drill-code');</script>
+</body>
+</html>

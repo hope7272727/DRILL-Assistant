@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+
+<html lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BizPro - 메인 대시보드</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-lowest": "#ffffff",
+                        "outline-variant": "#c2c6d4",
+                        "primary": "#003f87",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#454748",
+                        "on-tertiary": "#ffffff",
+                        "surface": "#fbf9f8",
+                        "secondary-container": "#d3e2ed",
+                        "inverse-surface": "#303030",
+                        "secondary-fixed": "#d6e5ef",
+                        "tertiary-fixed-dim": "#c5c7c8",
+                        "tertiary-fixed": "#e1e3e4",
+                        "on-surface-variant": "#424752",
+                        "on-error": "#ffffff",
+                        "inverse-primary": "#acc7ff",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed-variant": "#3b4951",
+                        "surface-bright": "#fbf9f8",
+                        "background": "#fbf9f8",
+                        "on-secondary-fixed": "#0f1d25",
+                        "error": "#ba1a1a",
+                        "on-background": "#1b1c1c",
+                        "primary-fixed": "#d7e2ff",
+                        "surface-tint": "#115cb9",
+                        "surface-variant": "#e4e2e1",
+                        "surface-container-low": "#f6f3f2",
+                        "outline": "#727784",
+                        "on-surface": "#1b1c1c",
+                        "error-container": "#ffdad6",
+                        "secondary": "#526069",
+                        "surface-container-highest": "#e4e2e1",
+                        "on-tertiary-fixed": "#191c1d",
+                        "surface-dim": "#dcd9d9",
+                        "primary-fixed-dim": "#acc7ff",
+                        "primary-container": "#0056b3",
+                        "on-error-container": "#93000a",
+                        "surface-container-high": "#eae8e7",
+                        "on-primary-fixed": "#001a40",
+                        "surface-container": "#f0eded",
+                        "inverse-on-surface": "#f3f0f0",
+                        "on-tertiary-container": "#ced0d1",
+                        "secondary-fixed-dim": "#bac9d3",
+                        "on-secondary-container": "#56656e",
+                        "on-primary-container": "#bbd0ff",
+                        "tertiary-container": "#57595a",
+                        "on-primary-fixed-variant": "#004491",
+                        "tertiary": "#3f4243"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "gutter": "24px",
+                        "lg": "24px",
+                        "xs": "4px",
+                        "margin": "48px",
+                        "max_width": "1440px",
+                        "xl": "32px",
+                        "unit": "4px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "h2": ["Manrope"],
+                        "body-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "h3": ["Manrope"],
+                        "h1": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "label-md": ["14px", { "lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "label-sm": ["12px", { "lineHeight": "1", "letterSpacing": "0.03em", "fontWeight": "500" }],
+                        "h2": ["32px", { "lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "1.5", "letterSpacing": "0", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400" }],
+                        "h3": ["24px", { "lineHeight": "1.4", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "h1": ["40px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1;
+        }
+        body {
+            background-color: #fbf9f8; /* background */
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden antialiased text-on-surface">
+<!-- SideNavBar (From JSON) -->
+<aside class="fixed left-0 top-0 h-full w-[256px] border-r border-outline-variant bg-surface flex flex-col z-50">
+<!-- Header -->
+<div class="p-lg border-b border-outline-variant">
+<div class="flex items-center gap-sm mb-lg">
+<div class="w-8 h-8 rounded bg-primary flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-label-md">domain</span>
+</div>
+<div>
+<h1 class="font-h3 text-[18px] text-primary tracking-tight">BizPro Enterprise</h1>
+<p class="font-body-sm text-label-sm text-secondary">Productivity Suite</p>
+</div>
+</div>
+<button class="w-full py-md px-md bg-primary text-on-primary rounded-lg font-label-md text-label-md flex items-center justify-center gap-xs hover:bg-primary-container transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                New Project
+            </button>
+</div>
+<!-- Navigation Links -->
+<nav class="flex-1 overflow-y-auto p-md flex flex-col gap-xs">
+<!-- Active Tab: 대시보드 -->
+<a class="flex items-center gap-3 px-4 py-3 bg-surface-container-lowest text-primary rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.02)] border border-outline-variant transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined filled">dashboard</span>
+<span class="font-label-md text-label-md">대시보드</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary hover:text-on-surface hover:bg-surface-container rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">photo_filter</span>
+<span class="font-label-md text-label-md">포토 에디터</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary hover:text-on-surface hover:bg-surface-container rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">code</span>
+<span class="font-label-md text-label-md">코드 에디터</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary hover:text-on-surface hover:bg-surface-container rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">folder_open</span>
+<span class="font-label-md text-label-md">파일</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary hover:text-on-surface hover:bg-surface-container rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">설정</span>
+</a>
+</nav>
+<!-- User Profile (Bottom) -->
+<div class="p-md border-t border-outline-variant">
+<div class="flex items-center gap-sm">
+<img alt="User profile photo" class="w-10 h-10 rounded-full border border-outline-variant object-cover" data-alt="professional corporate headshot of a person looking at the camera with a neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAgFsEsTYa0oWDQ0L7mL0LIwth-rX4o-vTfGtbi1MWTll-BHTw4vWNFEFZ3Q--ugdjAtIh4LjYwot0NpBVMUZkt1iyCFAMK40pjZ-P4Qya8t-vx5wX6Gar0e6q2a_PYxcOTIzW0bk01ZnPNnA4SgE53w1ic_Oqsy5OjJUbTBqqJT4JYCK5VDZdwqvGew7HvzrJhDKu2ca_fuBEn4iiw2NI3WJgJcEeQTAuYE4HT8nXB9f8UXrz8YjORF4Fhdixk6OEtSHIeOVGLJA"/>
+<div>
+<p class="font-label-md text-label-md text-on-surface">김관리 매니저</p>
+<p class="font-body-sm text-label-sm text-secondary">admin@bizpro.kr</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-[256px] flex-1 overflow-y-auto bg-surface-container-lowest">
+<!-- Top App Bar (Simplified for Dashboard context, focusing on search/profile) -->
+<header class="h-16 px-margin flex justify-between items-center border-b border-outline-variant bg-surface-container-lowest sticky top-0 z-40">
+<div class="relative w-96">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface border border-outline-variant rounded-lg font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" placeholder="작업, 파일 또는 프로젝트 검색..." type="text"/>
+</div>
+<div class="flex items-center gap-md">
+<button class="text-secondary hover:text-primary transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined">help</span>
+</button>
+</div>
+</header>
+<div class="p-margin max-w-max_width mx-auto">
+<!-- Welcome Section -->
+<div class="mb-xl flex justify-between items-end">
+<div>
+<h2 class="font-h2 text-h2 text-on-surface mb-xs">환영합니다, 관리자님</h2>
+<p class="font-body-lg text-body-lg text-secondary">오늘의 작업 현황과 최근 업데이트를 확인하세요.</p>
+</div>
+<div class="text-right">
+<p class="font-label-md text-label-md text-on-surface-variant">2023년 10월 26일 (목)</p>
+</div>
+</div>
+<!-- Key Statistics (Bento Grid Top Row) -->
+<div class="grid grid-cols-4 gap-gutter mb-xl">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col justify-between shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+<div class="flex justify-between items-start mb-md">
+<p class="font-label-md text-label-md text-secondary">진행 중인 프로젝트</p>
+<span class="material-symbols-outlined text-primary bg-primary-fixed p-sm rounded">folder</span>
+</div>
+<div>
+<p class="font-h1 text-h1 text-on-surface">12</p>
+<p class="font-body-sm text-body-sm text-secondary mt-xs"><span class="text-[#2e7d32] font-medium">+2</span> 이번 주</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col justify-between shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+<div class="flex justify-between items-start mb-md">
+<p class="font-label-md text-label-md text-secondary">완료된 포토 에디팅</p>
+<span class="material-symbols-outlined text-primary bg-primary-fixed p-sm rounded">photo_library</span>
+</div>
+<div>
+<p class="font-h1 text-h1 text-on-surface">148</p>
+<p class="font-body-sm text-body-sm text-secondary mt-xs"><span class="text-[#2e7d32] font-medium">+15%</span> 전월 대비</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col justify-between shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+<div class="flex justify-between items-start mb-md">
+<p class="font-label-md text-label-md text-secondary">코드 커밋 횟수</p>
+<span class="material-symbols-outlined text-primary bg-primary-fixed p-sm rounded">terminal</span>
+</div>
+<div>
+<p class="font-h1 text-h1 text-on-surface">86</p>
+<p class="font-body-sm text-body-sm text-secondary mt-xs"><span class="text-error font-medium">-5%</span> 전월 대비</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col justify-between shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+<div class="flex justify-between items-start mb-md">
+<p class="font-label-md text-label-md text-secondary">시스템 응답률</p>
+<span class="material-symbols-outlined text-primary bg-primary-fixed p-sm rounded">speed</span>
+</div>
+<div>
+<p class="font-h1 text-h1 text-on-surface">99.9<span class="text-h3">%</span></p>
+<p class="font-body-sm text-body-sm text-secondary mt-xs">정상 가동 중</p>
+</div>
+</div>
+</div>
+<!-- Quick Actions & Main Content Area (Asymmetric Grid) -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Left Column (Wider - 8 cols) -->
+<div class="col-span-8 flex flex-col gap-gutter">
+<!-- Quick Actions Cards -->
+<div class="grid grid-cols-2 gap-gutter">
+<!-- Open Photo Editor Action -->
+<div class="group relative overflow-hidden bg-surface-container border border-outline-variant rounded-xl p-lg transition-all hover:shadow-[0_12px_32px_rgba(0,0,0,0.05)] hover:border-primary cursor-pointer flex flex-col h-48">
+<div class="absolute -right-10 -top-10 w-40 h-40 bg-secondary-fixed rounded-full opacity-50 blur-2xl group-hover:bg-primary-fixed transition-colors"></div>
+<div class="relative z-10 flex-1">
+<div class="w-12 h-12 bg-surface-container-lowest rounded-lg border border-outline-variant flex items-center justify-center mb-md shadow-sm">
+<span class="material-symbols-outlined text-primary text-[28px]">photo_filter</span>
+</div>
+<h3 class="font-h3 text-h3 text-on-surface mb-xs">포토 에디터 열기</h3>
+<p class="font-body-sm text-body-sm text-secondary">제품 이미지 보정 및 에셋 관리 도구 실행</p>
+</div>
+<div class="relative z-10 flex items-center justify-end mt-auto text-primary font-label-md text-label-md opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0 duration-300">
+                                시작하기 <span class="material-symbols-outlined ml-1 text-[18px]">arrow_forward</span>
+</div>
+</div>
+<!-- Launch Code Editor Action -->
+<div class="group relative overflow-hidden bg-surface-container border border-outline-variant rounded-xl p-lg transition-all hover:shadow-[0_12px_32px_rgba(0,0,0,0.05)] hover:border-primary cursor-pointer flex flex-col h-48">
+<div class="absolute -right-10 -bottom-10 w-40 h-40 bg-secondary-fixed rounded-full opacity-50 blur-2xl group-hover:bg-primary-fixed transition-colors"></div>
+<div class="relative z-10 flex-1">
+<div class="w-12 h-12 bg-surface-container-lowest rounded-lg border border-outline-variant flex items-center justify-center mb-md shadow-sm">
+<span class="material-symbols-outlined text-primary text-[28px]">code</span>
+</div>
+<h3 class="font-h3 text-h3 text-on-surface mb-xs">코드 에디터 실행</h3>
+<p class="font-body-sm text-body-sm text-secondary">웹 컴포넌트 수정 및 스니펫 관리 환경</p>
+</div>
+<div class="relative z-10 flex items-center justify-end mt-auto text-primary font-label-md text-label-md opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0 duration-300">
+                                시작하기 <span class="material-symbols-outlined ml-1 text-[18px]">arrow_forward</span>
+</div>
+</div>
+</div>
+<!-- Recent Photo Edits List -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl flex flex-col">
+<div class="p-lg border-b border-outline-variant flex justify-between items-center bg-surface-bright rounded-t-xl">
+<h3 class="font-h3 text-[20px] text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">history</span> 최근 포토 작업
+                            </h3>
+<button class="font-label-md text-label-sm text-primary hover:underline">모두 보기</button>
+</div>
+<div class="p-0">
+<!-- List Item 1 -->
+<div class="flex items-center gap-md p-md border-b border-outline-variant last:border-0 hover:bg-surface transition-colors cursor-pointer">
+<div class="w-16 h-12 rounded bg-surface-container overflow-hidden shrink-0 border border-outline-variant">
+<img alt="Office space" class="w-full h-full object-cover" data-alt="modern corporate office interior with glass walls and bright natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRNA5X9fIyQBQTgtpibV6cU04brDY9n00Jm8OoXj2o-aJ9YK5nRKhNfQf_NBJOKa7-QJT13SqpSSUAeeMtECAkEiQw9Nbmgic5BtoBl512MLCSuzl-wqNoN4TQlXeSv8DjJ38JbJLuU0Vz_W5DAxYqxMkNnRDPqsI-8yV41F8bFLBwDE4ZhmhABRrKYRl68TurbHhr316YV99ItliMtdfhdu8pZTKBYSuGQ_3J4vvzFHFdUt0jussOrtdv1xdg0Tc9hhu5FRn3Pw"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-md text-body-md text-on-surface truncate">hero_banner_corporate_v2.png</p>
+<p class="font-body-sm text-label-sm text-secondary truncate">해상도 최적화 및 색상 보정 완료</p>
+</div>
+<div class="text-right shrink-0">
+<span class="inline-block px-2 py-1 rounded bg-secondary-container text-on-secondary-container font-label-sm text-[11px] mb-1">완료됨</span>
+<p class="font-body-sm text-label-sm text-outline">10분 전</p>
+</div>
+</div>
+<!-- List Item 2 -->
+<div class="flex items-center gap-md p-md border-b border-outline-variant last:border-0 hover:bg-surface transition-colors cursor-pointer">
+<div class="w-16 h-12 rounded bg-surface-container overflow-hidden shrink-0 border border-outline-variant">
+<img alt="Team meeting" class="w-full h-full object-cover" data-alt="professional business team analyzing charts and graphs on a conference table top-down view" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiUlddV1UePo2YF6I62JrRHuP78t-dj2RrR3xl_0NK81exrLX7SKtesNN13FNSFG_SOKTM9C12h5-mp1VZ_s8kIcdNcpG3G4E00maDoCC0bI2NIu3X31j3WiaudGrWxsQet8ALSL1o8NJGrHqGr8B9Enwvo6Jfewdr1V-t9CMSCO9YqnXji3Q_uhiLHbRnmmPm2xrGqyUb-Ev5Kpj9Yc-JTmsIj6FA9C9Zv8tbZ_y2DKiPjy22QFzpg58tsQK4u6PY5v7XMn5d0g"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-md text-body-md text-on-surface truncate">team_collaboration_asset.jpg</p>
+<p class="font-body-sm text-label-sm text-secondary truncate">배경 제거 작업 중</p>
+</div>
+<div class="text-right shrink-0">
+<span class="inline-block px-2 py-1 rounded bg-surface-variant text-on-surface-variant font-label-sm text-[11px] mb-1">진행 중</span>
+<p class="font-body-sm text-label-sm text-outline">2시간 전</p>
+</div>
+</div>
+<!-- List Item 3 -->
+<div class="flex items-center gap-md p-md border-b border-outline-variant last:border-0 hover:bg-surface transition-colors cursor-pointer">
+<div class="w-16 h-12 rounded bg-surface-container overflow-hidden shrink-0 border border-outline-variant">
+<img alt="Data dashboard" class="w-full h-full object-cover" data-alt="close up of a computer screen displaying complex data visualization charts in dark mode" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEjlhnsqtwHe9sfZwma7ZsdnlH30K0UOfzu5J05oY3EtzxtkxTBk4VLQoBYoa5wwF9xwL6MnJs8ZxXBgcUWXk8O_HoTZ1mc4uIkaUVzdzpcL1SwdaQ5vN7n8jQF22SmCPsRdtZfXnCXsdKMIR9P44Sf8d6FGXRapuHu7w9WMzbrrM1RMykvtIlkkAp4STyI_JhnvGFgU7ZqutxOAg1R2i3W8ixvfE1vhVXNv6HHXyp8FM0nvSdJSXaaOzhZLiOcIZh5A9s2bC16g"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-md text-body-md text-on-surface truncate">dashboard_mockup_final.png</p>
+<p class="font-body-sm text-label-sm text-secondary truncate">워터마크 추가</p>
+</div>
+<div class="text-right shrink-0">
+<span class="inline-block px-2 py-1 rounded bg-secondary-container text-on-secondary-container font-label-sm text-[11px] mb-1">완료됨</span>
+<p class="font-body-sm text-label-sm text-outline">어제</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column (Narrower - 4 cols) -->
+<div class="col-span-4 flex flex-col gap-gutter">
+<!-- Recent Code Updates -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl flex flex-col h-full">
+<div class="p-md border-b border-outline-variant bg-surface-bright rounded-t-xl">
+<h3 class="font-h3 text-[18px] text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[20px]">code_blocks</span> 코드 업데이트
+                            </h3>
+</div>
+<div class="p-md flex flex-col gap-md flex-1 overflow-y-auto">
+<!-- Code Update Item -->
+<div class="relative pl-md before:content-[''] before:absolute before:left-[7px] before:top-2 before:bottom-[-16px] before:w-[2px] before:bg-outline-variant last:before:hidden">
+<div class="absolute left-0 top-1 w-4 h-4 rounded-full bg-primary-container border-2 border-surface-container-lowest z-10"></div>
+<div class="bg-surface p-sm rounded border border-outline-variant">
+<div class="flex justify-between items-start mb-1">
+<p class="font-label-md text-label-md text-on-surface">네비게이션 버그 수정</p>
+<span class="font-body-sm text-[10px] text-outline bg-surface-container px-1.5 py-0.5 rounded">v1.2.4</span>
+</div>
+<p class="font-body-sm text-body-sm text-secondary mb-2 line-clamp-2">모바일 환경에서 사이드바가 닫히지 않는 이슈를 해결했습니다.</p>
+<div class="flex items-center justify-between text-outline">
+<div class="flex items-center gap-1 font-body-sm text-[11px]">
+<span class="material-symbols-outlined text-[14px]">person</span>
+                                            이개발 선임
+                                        </div>
+<span class="font-body-sm text-[11px]">오전 10:30</span>
+</div>
+</div>
+</div>
+<!-- Code Update Item -->
+<div class="relative pl-md before:content-[''] before:absolute before:left-[7px] before:top-2 before:bottom-[-16px] before:w-[2px] before:bg-outline-variant last:before:hidden">
+<div class="absolute left-0 top-1 w-4 h-4 rounded-full bg-tertiary-fixed-dim border-2 border-surface-container-lowest z-10"></div>
+<div class="bg-surface p-sm rounded border border-outline-variant">
+<div class="flex justify-between items-start mb-1">
+<p class="font-label-md text-label-md text-on-surface">메인 테이블 컴포넌트 최적화</p>
+<span class="font-body-sm text-[10px] text-outline bg-surface-container px-1.5 py-0.5 rounded">v1.2.3</span>
+</div>
+<p class="font-body-sm text-body-sm text-secondary mb-2 line-clamp-2">대량의 데이터 렌더링 시 발생하는 성능 저하 문제를 개선하기 위해 가상 스크롤을 도입했습니다.</p>
+<div class="flex items-center justify-between text-outline">
+<div class="flex items-center gap-1 font-body-sm text-[11px]">
+<span class="material-symbols-outlined text-[14px]">person</span>
+                                            박프론트 연구원
+                                        </div>
+<span class="font-body-sm text-[11px]">어제 오후</span>
+</div>
+</div>
+</div>
+<!-- Code Update Item -->
+<div class="relative pl-md before:content-[''] before:absolute before:left-[7px] before:top-2 before:bottom-[-16px] before:w-[2px] before:bg-outline-variant last:before:hidden">
+<div class="absolute left-0 top-1 w-4 h-4 rounded-full bg-tertiary-fixed-dim border-2 border-surface-container-lowest z-10"></div>
+<div class="bg-surface p-sm rounded border border-outline-variant">
+<div class="flex justify-between items-start mb-1">
+<p class="font-label-md text-label-md text-on-surface">API 엔드포인트 업데이트</p>
+<span class="font-body-sm text-[10px] text-outline bg-surface-container px-1.5 py-0.5 rounded">v1.2.2</span>
+</div>
+<p class="font-body-sm text-body-sm text-secondary mb-2 line-clamp-2">새로운 인증 방식에 맞추어 API 호출 로직을 전면 수정했습니다.</p>
+<div class="flex items-center justify-between text-outline">
+<div class="flex items-center gap-1 font-body-sm text-[11px]">
+<span class="material-symbols-outlined text-[14px]">person</span>
+                                            김서버 파트장
+                                        </div>
+<span class="font-body-sm text-[11px]">10월 24일</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

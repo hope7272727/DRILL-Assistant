@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>DRILL Assistant — 파일</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <link href="assets/styles.css" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="assets/theme.js"></script>
+</head>
+<body class="flex h-screen overflow-hidden antialiased text-on-surface">
+  <div id="app-shell"></div>
+
+  <main id="app-main">
+    <div class="p-margin max-w-max_width mx-auto">
+      <div class="flex justify-between items-end mb-xl">
+        <div>
+          <h2 class="font-h2 text-h2 text-on-surface mb-xs">파일 관리</h2>
+          <p class="font-body-lg text-body-lg text-secondary">드릴 사진, DXF 도면, 측정 엑셀, ERP 코드 산출물을 관리합니다.</p>
+        </div>
+        <button class="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md hover:bg-primary-container transition-colors flex items-center gap-2">
+          <span class="material-symbols-outlined text-[18px]">upload</span>
+          새 업로드
+        </button>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="flex justify-between items-center mb-lg">
+        <div class="flex gap-2 bg-surface-container rounded-lg p-1">
+          <button class="px-3 py-1.5 bg-surface-container-lowest text-on-surface rounded font-label-sm shadow-sm">모든 파일</button>
+          <button class="px-3 py-1.5 text-secondary hover:text-on-surface rounded font-label-sm">사진</button>
+          <button class="px-3 py-1.5 text-secondary hover:text-on-surface rounded font-label-sm">DXF</button>
+          <button class="px-3 py-1.5 text-secondary hover:text-on-surface rounded font-label-sm">엑셀</button>
+          <button class="px-3 py-1.5 text-secondary hover:text-on-surface rounded font-label-sm">ERP 코드</button>
+        </div>
+        <div class="flex gap-2">
+          <button class="p-1.5 bg-surface-container-lowest border border-outline-variant rounded text-on-surface" title="격자 보기">
+            <span class="material-symbols-outlined text-[20px]">grid_view</span>
+          </button>
+          <button class="p-1.5 border border-outline-variant rounded text-secondary hover:text-on-surface" title="목록 보기">
+            <span class="material-symbols-outlined text-[20px]">view_list</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Folders -->
+      <h3 class="font-h3 text-[18px] text-on-surface mb-md">빠른 액세스 폴더</h3>
+      <div class="grid grid-cols-4 gap-gutter mb-xl">
+        <div class="bg-surface-container border border-outline-variant rounded-xl p-md flex justify-between items-start hover:border-primary hover:shadow-sm cursor-pointer transition-all">
+          <div>
+            <span class="material-symbols-outlined text-primary text-[28px] mb-2 block">folder</span>
+            <p class="font-label-md text-on-surface mb-1">드릴 포인트 사진</p>
+            <p class="font-body-sm text-secondary text-[12px]">142 항목 · 1.2 GB</p>
+          </div>
+          <button class="text-secondary hover:text-on-surface"><span class="material-symbols-outlined text-[18px]">more_vert</span></button>
+        </div>
+        <div class="bg-surface-container border border-outline-variant rounded-xl p-md flex justify-between items-start hover:border-primary hover:shadow-sm cursor-pointer transition-all">
+          <div>
+            <span class="material-symbols-outlined text-primary text-[28px] mb-2 block">folder</span>
+            <p class="font-label-md text-on-surface mb-1">DXF 도면</p>
+            <p class="font-body-sm text-secondary text-[12px]">84 항목 · 450 MB</p>
+          </div>
+          <button class="text-secondary hover:text-on-surface"><span class="material-symbols-outlined text-[18px]">more_vert</span></button>
+        </div>
+        <div class="bg-surface-container border border-outline-variant rounded-xl p-md flex justify-between items-start hover:border-primary hover:shadow-sm cursor-pointer transition-all">
+          <div>
+            <span class="material-symbols-outlined text-primary text-[28px] mb-2 block">folder</span>
+            <p class="font-label-md text-on-surface mb-1">테이퍼 측정 엑셀</p>
+            <p class="font-body-sm text-secondary text-[12px]">36 항목 · 85 MB</p>
+          </div>
+          <button class="text-secondary hover:text-on-surface"><span class="material-symbols-outlined text-[18px]">more_vert</span></button>
+        </div>
+        <button class="border-2 border-dashed border-outline-variant rounded-xl p-md flex flex-col items-center justify-center text-secondary hover:border-primary hover:text-primary transition-colors">
+          <span class="material-symbols-outlined text-[28px] mb-2">create_new_folder</span>
+          <span class="font-label-md">새 폴더 생성</span>
+        </button>
+      </div>
+
+      <!-- Recent Files -->
+      <div class="flex justify-between items-center mb-md">
+        <h3 class="font-h3 text-[18px] text-on-surface">최근 업로드</h3>
+        <a href="#" class="font-label-md text-label-sm text-primary hover:underline">모두 보기</a>
+      </div>
+      <div class="grid grid-cols-5 gap-gutter">
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden hover:shadow-md cursor-pointer transition-shadow">
+          <div class="aspect-[4/3] bg-surface-container flex items-center justify-center">
+            <span class="material-symbols-outlined text-[48px] text-secondary">image</span>
+          </div>
+          <div class="p-sm">
+            <p class="font-label-md text-body-sm text-on-surface truncate">point_set_07.jpg</p>
+            <p class="font-body-sm text-label-sm text-secondary">2.4 MB · 오늘 14:30</p>
+          </div>
+        </div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden hover:shadow-md cursor-pointer transition-shadow">
+          <div class="aspect-[4/3] bg-[#1a3a6c] flex items-center justify-center">
+            <span class="material-symbols-outlined text-[48px] text-white">architecture</span>
+          </div>
+          <div class="p-sm">
+            <p class="font-label-md text-body-sm text-on-surface truncate">D24A12_drawing.dxf</p>
+            <p class="font-body-sm text-label-sm text-secondary">340 KB · 오늘 09:15</p>
+          </div>
+        </div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden hover:shadow-md cursor-pointer transition-shadow">
+          <div class="aspect-[4/3] bg-[#1f7a3f] flex items-center justify-center">
+            <span class="material-symbols-outlined text-[48px] text-white">table_view</span>
+          </div>
+          <div class="p-sm">
+            <p class="font-label-md text-body-sm text-on-surface truncate">taper_lot_2024_04.xlsx</p>
+            <p class="font-body-sm text-label-sm text-secondary">1.2 MB · 어제</p>
+          </div>
+        </div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden hover:shadow-md cursor-pointer transition-shadow">
+          <div class="aspect-[4/3] bg-[#5a3a8c] flex items-center justify-center">
+            <span class="material-symbols-outlined text-[48px] text-white">data_object</span>
+          </div>
+          <div class="p-sm">
+            <p class="font-label-md text-body-sm text-on-surface truncate">erp_codes_240423.json</p>
+            <p class="font-body-sm text-label-sm text-secondary">18 KB · 어제</p>
+          </div>
+        </div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden hover:shadow-md cursor-pointer transition-shadow">
+          <div class="aspect-[4/3] bg-surface-container flex items-center justify-center">
+            <span class="material-symbols-outlined text-[48px] text-secondary">image</span>
+          </div>
+          <div class="p-sm">
+            <p class="font-label-md text-body-sm text-on-surface truncate">point_set_06.jpg</p>
+            <p class="font-body-sm text-label-sm text-secondary">2.1 MB · 4월 22일</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/shell.js"></script>
+  <script>renderShell('files');</script>
+</body>
+</html>

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>DRILL Assistant — 드릴 테이퍼</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <link href="assets/styles.css" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="assets/theme.js"></script>
+</head>
+<body class="flex h-screen overflow-hidden antialiased text-on-surface">
+  <div id="app-shell"></div>
+
+  <main id="app-main">
+    <div class="p-lg flex flex-col gap-lg max-w-[1440px] mx-auto">
+
+      <!-- Header -->
+      <div class="flex justify-between items-center bg-surface p-md rounded-xl border border-outline-variant shadow-sm">
+        <div class="flex items-center gap-md">
+          <h2 class="font-h3 text-on-surface">드릴 테이퍼 분석</h2>
+          <span class="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-sm">Lot 2024-04</span>
+        </div>
+        <div class="flex gap-sm">
+          <label class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2 cursor-pointer">
+            <input type="file" accept=".xlsx,.xls,.csv" multiple class="hidden"/>
+            <span class="material-symbols-outlined text-[18px]">upload_file</span>
+            엑셀 업로드
+          </label>
+          <button class="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md hover:bg-primary-container transition-colors flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">summarize</span>
+            보고서 생성
+          </button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="grid grid-cols-4 gap-gutter">
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md">
+          <p class="font-label-md text-secondary mb-1">측정 데이터 수</p>
+          <p class="font-h2 text-on-surface">148</p>
+        </div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md">
+          <p class="font-label-md text-secondary mb-1">평균 테이퍼각</p>
+          <p class="font-h2 text-on-surface">2.142<span class="text-h3 text-secondary">°</span></p>
+        </div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md">
+          <p class="font-label-md text-secondary mb-1">표준편차</p>
+          <p class="font-h2 text-on-surface">0.018<span class="text-h3 text-secondary">°</span></p>
+        </div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md">
+          <p class="font-label-md text-secondary mb-1">불합격 건수</p>
+          <p class="font-h2 text-error">3</p>
+        </div>
+      </div>
+
+      <!-- Chart + Filters -->
+      <div class="grid grid-cols-12 gap-gutter">
+        <div class="col-span-8 bg-surface-container-lowest border border-outline-variant rounded-xl p-lg">
+          <div class="flex justify-between items-center mb-md">
+            <h3 class="font-h3 text-[18px] text-on-surface">테이퍼각 분포</h3>
+            <div class="flex gap-2">
+              <button class="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-sm">히스토그램</button>
+              <button class="px-3 py-1 text-secondary hover:bg-surface-container rounded-full font-label-sm">시계열</button>
+              <button class="px-3 py-1 text-secondary hover:bg-surface-container rounded-full font-label-sm">상자그림</button>
+            </div>
+          </div>
+          <!-- Inline SVG histogram -->
+          <svg viewBox="0 0 600 240" class="w-full h-60">
+            <line x1="40" y1="200" x2="580" y2="200" stroke="#c2c6d4" stroke-width="1"/>
+            <line x1="40" y1="20" x2="40" y2="200" stroke="#c2c6d4" stroke-width="1"/>
+            <!-- Bars -->
+            <g fill="#0056b3">
+              <rect x="60"  y="180" width="30" height="20"/>
+              <rect x="100" y="160" width="30" height="40"/>
+              <rect x="140" y="120" width="30" height="80"/>
+              <rect x="180" y="80"  width="30" height="120"/>
+              <rect x="220" y="40"  width="30" height="160"/>
+              <rect x="260" y="60"  width="30" height="140"/>
+              <rect x="300" y="100" width="30" height="100"/>
+              <rect x="340" y="140" width="30" height="60"/>
+              <rect x="380" y="170" width="30" height="30"/>
+              <rect x="420" y="185" width="30" height="15"/>
+            </g>
+            <!-- Out-of-spec bars -->
+            <g fill="#ba1a1a" opacity="0.85">
+              <rect x="460" y="190" width="30" height="10"/>
+              <rect x="500" y="195" width="30" height="5"/>
+            </g>
+            <!-- X labels -->
+            <g font-family="Inter" font-size="11" fill="#727784">
+              <text x="75"  y="220" text-anchor="middle">2.10</text>
+              <text x="155" y="220" text-anchor="middle">2.12</text>
+              <text x="235" y="220" text-anchor="middle">2.14</text>
+              <text x="315" y="220" text-anchor="middle">2.16</text>
+              <text x="395" y="220" text-anchor="middle">2.18</text>
+              <text x="475" y="220" text-anchor="middle">2.20</text>
+            </g>
+            <!-- Spec lines -->
+            <line x1="220" y1="20" x2="220" y2="200" stroke="#2e7d32" stroke-dasharray="4 4"/>
+            <line x1="440" y1="20" x2="440" y2="200" stroke="#ba1a1a" stroke-dasharray="4 4"/>
+            <text x="220" y="14" font-family="Inter" font-size="10" fill="#2e7d32" text-anchor="middle">목표 2.14°</text>
+            <text x="440" y="14" font-family="Inter" font-size="10" fill="#ba1a1a" text-anchor="middle">상한 2.18°</text>
+          </svg>
+        </div>
+
+        <div class="col-span-4 bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col gap-md">
+          <h3 class="font-h3 text-[18px] text-on-surface">필터</h3>
+          <div>
+            <label class="font-label-md text-on-surface-variant block mb-1">제품 코드</label>
+            <select class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface text-body-sm focus:outline-none focus:border-primary">
+              <option>전체</option>
+              <option>D24A12</option>
+              <option>D24A11</option>
+              <option>D23B03</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-label-md text-on-surface-variant block mb-1">측정 기간</label>
+            <input type="date" class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface text-body-sm focus:outline-none focus:border-primary"/>
+          </div>
+          <div>
+            <label class="font-label-md text-on-surface-variant block mb-1">합격 여부</label>
+            <div class="flex gap-2">
+              <label class="flex items-center gap-1 font-body-sm text-on-surface"><input type="checkbox" checked class="rounded text-primary"/> 합격</label>
+              <label class="flex items-center gap-1 font-body-sm text-on-surface"><input type="checkbox" checked class="rounded text-primary"/> 불합격</label>
+            </div>
+          </div>
+          <button class="mt-auto px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md hover:bg-primary-container transition-colors">필터 적용</button>
+        </div>
+      </div>
+
+      <!-- Data Table -->
+      <div class="bg-surface-container-lowest border border-outline-variant rounded-xl">
+        <div class="flex justify-between items-center p-lg border-b border-outline-variant">
+          <h3 class="font-h3 text-[18px] text-on-surface">측정 데이터</h3>
+          <div class="flex gap-2">
+            <button class="px-3 py-1.5 border border-outline-variant rounded-lg font-label-sm text-on-surface hover:bg-surface-variant flex items-center gap-1">
+              <span class="material-symbols-outlined text-[16px]">download</span> CSV
+            </button>
+            <button class="px-3 py-1.5 border border-outline-variant rounded-lg font-label-sm text-on-surface hover:bg-surface-variant flex items-center gap-1">
+              <span class="material-symbols-outlined text-[16px]">filter_alt</span> 정렬
+            </button>
+          </div>
+        </div>
+        <table class="w-full text-body-sm">
+          <thead class="bg-surface-container-low">
+            <tr class="text-left text-on-surface-variant font-label-md">
+              <th class="px-lg py-2">측정 ID</th>
+              <th class="px-lg py-2">제품 코드</th>
+              <th class="px-lg py-2">테이퍼각 (°)</th>
+              <th class="px-lg py-2">상단 직경 (mm)</th>
+              <th class="px-lg py-2">하단 직경 (mm)</th>
+              <th class="px-lg py-2">측정일</th>
+              <th class="px-lg py-2">상태</th>
+            </tr>
+          </thead>
+          <tbody id="taper-rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/shell.js"></script>
+  <script>
+    renderShell('drill-taper');
+
+    // Mock rows
+    const tbody = document.getElementById('taper-rows');
+    const codes = ['D24A12', 'D24A11', 'D23B03', 'D24A12', 'D24A11'];
+    const rows = Array.from({length: 8}, (_, i) => {
+      const angle = (2.10 + Math.random() * 0.10).toFixed(3);
+      const top = (12.00 + Math.random() * 0.05).toFixed(3);
+      const bot = (8.00 + Math.random() * 0.05).toFixed(3);
+      const fail = parseFloat(angle) > 2.18;
+      const code = codes[i % codes.length];
+      return `
+        <tr class="border-t border-outline-variant hover:bg-surface transition-colors">
+          <td class="px-lg py-3 font-code text-[12px] text-on-surface">M${(2401 + i).toString()}</td>
+          <td class="px-lg py-3 text-on-surface">${code}</td>
+          <td class="px-lg py-3 ${fail ? 'text-error font-medium' : 'text-on-surface'}">${angle}</td>
+          <td class="px-lg py-3 text-on-surface">${top}</td>
+          <td class="px-lg py-3 text-on-surface">${bot}</td>
+          <td class="px-lg py-3 text-secondary">2024-04-${(15 + i).toString().padStart(2, '0')}</td>
+          <td class="px-lg py-3">
+            <span class="inline-block px-2 py-1 rounded ${fail ? 'bg-error-container text-on-error-container' : 'bg-secondary-container text-on-secondary-container'} font-label-sm text-[11px]">
+              ${fail ? '불합격' : '합격'}
+            </span>
+          </td>
+        </tr>`;
+    }).join('');
+    tbody.innerHTML = rows;
+  </script>
+</body>
+</html>
