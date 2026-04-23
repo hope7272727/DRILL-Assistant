@@ -71,9 +71,9 @@
                 <span class="material-symbols-outlined text-[18px]">add</span>
                 <span id="crosshair-label">십자선 끄기</span>
               </button>
-              <button id="btn-pick" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 min-w-[150px] justify-center" title="단축키: L">
+              <button id="btn-pick" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 min-w-[170px] justify-center" title="단축키: Space">
                 <span class="material-symbols-outlined text-[18px]">touch_app</span>
-                <span id="pick-label">두 점으로 정렬 (L)</span>
+                <span id="pick-label">두 점으로 정렬 (Space)</span>
               </button>
             </div>
             <div id="meta" class="font-label-sm text-secondary truncate min-w-0"></div>
@@ -96,7 +96,7 @@
 
           <div>
             <label class="font-label-sm text-on-surface block mb-1">회전 각도 (°)</label>
-            <input id="angle-slider" type="range" min="-45" max="45" step="0.05" value="0"
+            <input id="angle-slider" type="range" min="-45" max="45" step="0.1" value="0"
                    class="w-full h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary disabled:opacity-40" disabled/>
             <div class="flex items-center gap-1 mt-2">
               <input id="angle" type="number" step="0.05" value="0" placeholder="0.00"
@@ -526,10 +526,10 @@
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && state.pickMode) { setPickMode(false); return; }
-      // L toggles two-point pick mode (skip when typing in an input/textarea)
+      // Space toggles two-point pick mode (skip when typing in an input/textarea)
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      if (e.key === 'l' || e.key === 'L' || e.key === 'ㅣ') {
+      if (e.code === 'Space' || e.key === ' ') {
         if (state.activeIdx < 0) return;
         e.preventDefault();
         setPickMode(!state.pickMode);
