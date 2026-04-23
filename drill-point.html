@@ -96,18 +96,20 @@
 
           <div>
             <label class="font-label-sm text-on-surface block mb-1">회전 각도 (°)</label>
-            <div class="flex items-center gap-1">
-              <button id="btn-ang-minus" class="w-8 h-9 border border-outline-variant rounded text-on-surface hover:bg-surface-variant disabled:opacity-40" disabled title="-0.1°">−</button>
+            <input id="angle-slider" type="range" min="-45" max="45" step="0.05" value="0"
+                   class="w-full h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary disabled:opacity-40" disabled/>
+            <div class="flex items-center gap-1 mt-2">
               <input id="angle" type="number" step="0.05" value="0" placeholder="0.00"
                      class="flex-1 px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary disabled:opacity-40" disabled/>
-              <button id="btn-ang-plus" class="w-8 h-9 border border-outline-variant rounded text-on-surface hover:bg-surface-variant disabled:opacity-40" disabled title="+0.1°">+</button>
+              <button id="btn-reset" class="px-3 py-2 border border-outline-variant rounded text-secondary text-body-sm hover:bg-surface-variant disabled:opacity-40" disabled title="0°로 초기화">초기화</button>
             </div>
-            <button id="btn-reset" class="font-label-sm text-secondary hover:underline disabled:opacity-40 mt-1" disabled>각도 초기화</button>
+            <p class="font-body-sm text-secondary text-[11px] mt-1">슬라이더로 조절하거나 직접 입력 (Enter)</p>
           </div>
 
           <div>
             <label class="font-label-sm text-on-surface block mb-1">배경색 (빈 모서리)</label>
             <input id="bg-color" type="color" value="#000000" class="w-full h-9 rounded border border-outline-variant cursor-pointer disabled:opacity-40" disabled/>
+            <p class="font-body-sm text-secondary text-[11px] mt-1">기본은 사진 코너 색을 자동으로 따라갑니다</p>
           </div>
 
           <div>
@@ -147,14 +149,13 @@
     const canvas = $('canvas');
     const canvasEmpty = $('canvas-empty');
     const angleInput = $('angle');
+    const angleSlider = $('angle-slider');
     const bgColorInput = $('bg-color');
     const meta = $('meta');
     const btnAuto = $('btn-auto');
     const btnAutoAll = $('btn-auto-all');
     const btnDownload = $('btn-download');
     const btnReset = $('btn-reset');
-    const btnAngMinus = $('btn-ang-minus');
-    const btnAngPlus = $('btn-ang-plus');
     const btnToggle = $('btn-toggle');
     const toggleLabel = $('toggle-label');
     const btnCrosshair = $('btn-crosshair');
@@ -185,9 +186,8 @@
       btnAutoAll.disabled = !has;
       btnDownload.disabled = !hasActive;
       btnReset.disabled = !hasActive;
-      btnAngMinus.disabled = !hasActive;
-      btnAngPlus.disabled = !hasActive;
       angleInput.disabled = !hasActive;
+      angleSlider.disabled = !hasActive;
       bgColorInput.disabled = !hasActive;
     }
 
@@ -217,6 +217,7 @@
       drawCrosshair();
       meta.textContent = `${it.image.naturalWidth} × ${it.image.naturalHeight} · ${it.name}`;
       angleInput.value = it.angle.toFixed(2);
+      angleSlider.value = it.angle.toFixed(2);
       bgColorInput.value = rgbToHex(it.bg);
     }
 
@@ -286,6 +287,7 @@
           image.src = url;
         });
         const id = DrillAlign.imageData(image);
+        const bg = DrillAlign.sampleBg(id.data, id.width, id.height);
         state.items.push({
           name: f.name,
           image,
@@ -293,7 +295,7 @@
           threshold: 220,
           autoAngle: 0,
           angle: 0,
-          bg: 'rgb(0,0,0)',
+          bg: bg.css,
           brightCount: 0,
           thumb: makeThumb(image),
         });
@@ -324,22 +326,15 @@
       a = Math.max(-180, Math.min(180, a));
       it.angle = a;
       angleInput.value = a.toFixed(2);
+      angleSlider.value = a.toFixed(2);
       renderFileList();
       renderActive();
     }
 
+    angleSlider.addEventListener('input', (e) => commitAngle(e.target.value));
     angleInput.addEventListener('change', (e) => commitAngle(e.target.value));
     angleInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); commitAngle(e.target.value); }
-    });
-
-    btnAngMinus.addEventListener('click', () => {
-      const it = state.items[state.activeIdx]; if (!it) return;
-      commitAngle(it.angle - 0.1);
-    });
-    btnAngPlus.addEventListener('click', () => {
-      const it = state.items[state.activeIdx]; if (!it) return;
-      commitAngle(it.angle + 0.1);
     });
 
     bgColorInput.addEventListener('input', (e) => {
