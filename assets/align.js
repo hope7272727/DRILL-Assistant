@@ -54,11 +54,16 @@
     cxx /= n; cyy /= n; cxy /= n;
 
     // Major-axis angle of the 2D covariance matrix in image coords (y-down).
-    // Negate so that the returned value matches our positive-CCW rotation
-    // convention used by renderRotated/exportRotated.
+    // Negate to match our positive-CCW canvas convention.
     const angleRad = 0.5 * Math.atan2(2 * cxy, cxx - cyy);
-    const angleDeg = -angleRad * 180 / Math.PI;
-    return { angle: angleDeg, brightCount: n, threshold };
+    let result = -angleRad * 180 / Math.PI;
+    // For drill tips, the cutting-edge highlight runs PERPENDICULAR to the
+    // major axis of bright pixels (the flutes stack on both sides of the
+    // edge). So target the minor axis = add 90° and normalize to [-90, 90].
+    result += 90;
+    if (result > 90) result -= 180;
+    else if (result < -90) result += 180;
+    return { angle: result, brightCount: n, threshold };
   }
 
   // Adaptive variant: pick a threshold that keeps the top ~1% brightest
