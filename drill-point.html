@@ -95,40 +95,30 @@
           </h3>
 
           <div>
-            <div class="flex justify-between mb-1">
-              <label class="font-label-sm text-on-surface">밝기 임계값</label>
-              <span id="thr-val" class="font-label-sm text-secondary font-code">220</span>
+            <label class="font-label-sm text-on-surface block mb-1">회전 각도 (°)</label>
+            <div class="flex items-center gap-1">
+              <button id="btn-ang-minus" class="w-8 h-9 border border-outline-variant rounded text-on-surface hover:bg-surface-variant disabled:opacity-40" disabled title="-0.1°">−</button>
+              <input id="angle" type="number" step="0.05" value="0" placeholder="0.00"
+                     class="flex-1 px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary disabled:opacity-40" disabled/>
+              <button id="btn-ang-plus" class="w-8 h-9 border border-outline-variant rounded text-on-surface hover:bg-surface-variant disabled:opacity-40" disabled title="+0.1°">+</button>
             </div>
-            <input id="threshold" type="range" min="100" max="255" value="220"
-                   class="w-full h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary"/>
-            <p class="font-body-sm text-secondary text-[11px] mt-1">컷팅 에지(가장 밝은 부분)만 잡히도록 조절</p>
-          </div>
-
-          <div>
-            <div class="flex justify-between mb-1">
-              <label class="font-label-sm text-on-surface">회전 각도 (°)</label>
-              <span id="ang-val" class="font-label-sm text-secondary font-code">0.00</span>
-            </div>
-            <input id="angle" type="range" min="-45" max="45" step="0.05" value="0"
-                   class="w-full h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary"/>
-            <div class="flex justify-between mt-1">
-              <button id="btn-detect" class="font-label-sm text-primary hover:underline disabled:opacity-40" disabled>자동 감지</button>
-              <button id="btn-reset" class="font-label-sm text-secondary hover:underline disabled:opacity-40" disabled>초기화</button>
-            </div>
+            <button id="btn-reset" class="font-label-sm text-secondary hover:underline disabled:opacity-40 mt-1" disabled>각도 초기화</button>
           </div>
 
           <div>
             <label class="font-label-sm text-on-surface block mb-1">배경색 (빈 모서리)</label>
-            <div class="flex items-center gap-2">
-              <input id="bg-color" type="color" value="#000000" class="w-10 h-8 rounded border border-outline-variant cursor-pointer"/>
-              <button id="btn-pick-bg" class="font-label-sm text-primary hover:underline">코너에서 자동 추출</button>
-            </div>
-            <p class="font-body-sm text-secondary text-[11px] mt-1">회전 후 비는 모서리를 채울 색</p>
+            <input id="bg-color" type="color" value="#000000" class="w-full h-9 rounded border border-outline-variant cursor-pointer disabled:opacity-40" disabled/>
           </div>
 
-          <div class="mt-auto bg-surface-container rounded-lg p-md border border-outline-variant">
-            <p class="font-label-sm text-secondary mb-1">감지 결과</p>
-            <p id="detected-line" class="font-code text-[12px] text-on-surface">대기 중...</p>
+          <div>
+            <label class="font-label-sm text-on-surface block mb-1">저장 폴더</label>
+            <div class="flex flex-col gap-1">
+              <button id="btn-pick-folder" class="px-3 py-2 border border-outline-variant rounded text-on-surface text-body-sm hover:bg-surface-variant flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[18px]">folder_open</span>
+                <span id="folder-btn-label">폴더 선택</span>
+              </button>
+              <p id="folder-name" class="font-body-sm text-secondary text-[11px] truncate">미선택 — 다운로드 폴더로 저장됩니다</p>
+            </div>
           </div>
         </div>
       </div>
@@ -146,6 +136,7 @@
       activeIdx: -1,
       showOriginal: false,
       showCrosshair: true,
+      saveDir: null,     // FileSystemDirectoryHandle (Chromium only)
     };
 
     // DOM
@@ -155,23 +146,22 @@
     const emptyList = $('empty-list');
     const canvas = $('canvas');
     const canvasEmpty = $('canvas-empty');
-    const thresholdInput = $('threshold');
     const angleInput = $('angle');
     const bgColorInput = $('bg-color');
-    const thrVal = $('thr-val');
-    const angVal = $('ang-val');
     const meta = $('meta');
-    const detectedLine = $('detected-line');
     const btnAuto = $('btn-auto');
     const btnAutoAll = $('btn-auto-all');
     const btnDownload = $('btn-download');
-    const btnDetect = $('btn-detect');
     const btnReset = $('btn-reset');
-    const btnPickBg = $('btn-pick-bg');
+    const btnAngMinus = $('btn-ang-minus');
+    const btnAngPlus = $('btn-ang-plus');
     const btnToggle = $('btn-toggle');
     const toggleLabel = $('toggle-label');
     const btnCrosshair = $('btn-crosshair');
     const crosshairLabel = $('crosshair-label');
+    const btnPickFolder = $('btn-pick-folder');
+    const folderName = $('folder-name');
+    const folderBtnLabel = $('folder-btn-label');
     const fileCount = $('file-count');
 
     function drawCrosshair() {
@@ -194,9 +184,9 @@
       btnAuto.disabled = !hasActive;
       btnAutoAll.disabled = !has;
       btnDownload.disabled = !hasActive;
-      btnDetect.disabled = !hasActive;
       btnReset.disabled = !hasActive;
-      thresholdInput.disabled = !hasActive;
+      btnAngMinus.disabled = !hasActive;
+      btnAngPlus.disabled = !hasActive;
       angleInput.disabled = !hasActive;
       bgColorInput.disabled = !hasActive;
     }
@@ -226,15 +216,8 @@
       DrillAlign.renderRotated(it.image, canvas, angle, it.bg);
       drawCrosshair();
       meta.textContent = `${it.image.naturalWidth} × ${it.image.naturalHeight} · ${it.name}`;
-      thresholdInput.value = it.threshold;
       angleInput.value = it.angle.toFixed(2);
-      thrVal.textContent = it.threshold;
-      angVal.textContent = it.angle.toFixed(2);
       bgColorInput.value = rgbToHex(it.bg);
-      detectedLine.innerHTML =
-        `자동 감지 각도: <strong>${it.autoAngle.toFixed(2)}°</strong><br/>`
-        + `현재 회전: <strong>${it.angle.toFixed(2)}°</strong><br/>`
-        + `밝은 픽셀: ${it.brightCount.toLocaleString()}개`;
     }
 
     function rgbToHex(css) {
@@ -303,7 +286,6 @@
           image.src = url;
         });
         const id = DrillAlign.imageData(image);
-        const bg = DrillAlign.sampleBg(id.data, id.width, id.height);
         state.items.push({
           name: f.name,
           image,
@@ -311,7 +293,7 @@
           threshold: 220,
           autoAngle: 0,
           angle: 0,
-          bg: bg.css,
+          bg: 'rgb(0,0,0)',
           brightCount: 0,
           thumb: makeThumb(image),
         });
@@ -335,36 +317,34 @@
       fileInput.value = '';
     });
 
-    thresholdInput.addEventListener('input', (e) => {
+    function commitAngle(value) {
       const it = state.items[state.activeIdx]; if (!it) return;
-      it.threshold = parseInt(e.target.value, 10);
-      thrVal.textContent = it.threshold;
-    });
-    thresholdInput.addEventListener('change', () => {
-      const it = state.items[state.activeIdx]; if (!it) return;
-      detectFor(it);
+      let a = parseFloat(value);
+      if (isNaN(a)) a = 0;
+      a = Math.max(-180, Math.min(180, a));
+      it.angle = a;
+      angleInput.value = a.toFixed(2);
       renderFileList();
       renderActive();
+    }
+
+    angleInput.addEventListener('change', (e) => commitAngle(e.target.value));
+    angleInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); commitAngle(e.target.value); }
     });
 
-    angleInput.addEventListener('input', (e) => {
+    btnAngMinus.addEventListener('click', () => {
       const it = state.items[state.activeIdx]; if (!it) return;
-      it.angle = parseFloat(e.target.value);
-      angVal.textContent = it.angle.toFixed(2);
-      renderFileList();
-      renderActive();
+      commitAngle(it.angle - 0.1);
+    });
+    btnAngPlus.addEventListener('click', () => {
+      const it = state.items[state.activeIdx]; if (!it) return;
+      commitAngle(it.angle + 0.1);
     });
 
     bgColorInput.addEventListener('input', (e) => {
       const it = state.items[state.activeIdx]; if (!it) return;
       it.bg = hexToCss(e.target.value);
-      renderActive();
-    });
-
-    btnPickBg.addEventListener('click', () => {
-      const it = state.items[state.activeIdx]; if (!it) return;
-      const bg = DrillAlign.sampleBg(it.imageData.data, it.imageData.width, it.imageData.height);
-      it.bg = bg.css;
       renderActive();
     });
 
@@ -374,7 +354,6 @@
       renderFileList();
       renderActive();
     });
-    btnDetect.addEventListener('click', () => btnAuto.click());
 
     btnReset.addEventListener('click', () => {
       const it = state.items[state.activeIdx]; if (!it) return;
@@ -409,18 +388,57 @@
     btnCrosshair.classList.add('bg-secondary-container', 'text-on-surface');
     btnCrosshair.classList.remove('border', 'text-secondary');
 
-    btnDownload.addEventListener('click', () => {
+    async function saveBlobToFolder(blob, filename) {
+      if (state.saveDir) {
+        try {
+          const handle = await state.saveDir.getFileHandle(filename, { create: true });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          return true;
+        } catch (err) {
+          console.warn('Folder write failed, falling back to download:', err);
+        }
+      }
+      // Fallback: trigger browser download (lands in default Downloads folder)
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+      return false;
+    }
+
+    btnDownload.addEventListener('click', async () => {
       const it = state.items[state.activeIdx]; if (!it) return;
       const cv = DrillAlign.exportRotated(it.image, it.angle, it.bg);
-      cv.toBlob((blob) => {
-        const a = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        const ext = it.name.match(/\.[^.]+$/)?.[0] || '.png';
-        a.href = url;
-        a.download = it.name.replace(/\.[^.]+$/, '') + '_aligned' + ext;
-        a.click();
-        URL.revokeObjectURL(url);
-      }, 'image/png');
+      const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+      const filename = it.name.replace(/\.[^.]+$/, '') + '_aligned.png';
+      const savedToFolder = await saveBlobToFolder(blob, filename);
+      const original = btnDownload.querySelector('span:last-child')?.textContent;
+      btnDownload.querySelector('span:last-child').textContent = savedToFolder ? '저장됨!' : '다운로드됨';
+      setTimeout(() => {
+        const span = btnDownload.querySelector('span:last-child');
+        if (span) span.textContent = '다운로드';
+      }, 1500);
+    });
+
+    btnPickFolder.addEventListener('click', async () => {
+      if (!('showDirectoryPicker' in window)) {
+        folderName.textContent = '이 브라우저는 폴더 선택을 지원하지 않습니다 (Chrome/Edge 권장)';
+        folderName.classList.remove('text-secondary');
+        folderName.classList.add('text-error');
+        return;
+      }
+      try {
+        const dir = await window.showDirectoryPicker({ mode: 'readwrite' });
+        state.saveDir = dir;
+        folderName.textContent = '📁 ' + dir.name;
+        folderName.classList.remove('text-error', 'text-secondary');
+        folderName.classList.add('text-on-surface');
+        folderBtnLabel.textContent = '폴더 변경';
+      } catch (err) {
+        // User canceled — no-op
+      }
     });
 
     // Drag & drop
