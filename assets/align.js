@@ -90,42 +90,45 @@
     return detectAngle(data, w, h, threshold);
   }
 
-  // Drill-point alignment by horizontal brightness boundary:
-  // Reference photos show a crisp step between an upper half and a lower
-  // half of the drill silhouette. We find the rotation angle that
-  // maximises the row-average brightness step (a 1D Radon-style search).
+  // Drill-point alignment by horizontal brightness boundary.
+  // Searches rotation angles and maximises the row-average brightness
+  // step (1D Radon-style projection). Background (dark) pixels are
+  // excluded so the drill-to-background silhouette edge doesn't dominate.
   // Returns angle in our state.angle convention (positive = visually CCW).
   function detectAngleBoundary(data, w, h, opts) {
     opts = opts || {};
-    const rangeDeg = opts.range || 30;   // ± search range
-    const stepDeg = opts.step || 0.5;    // search resolution
-    const stride = Math.max(1, Math.floor(Math.sqrt((w * h) / 120000)));
+    const rangeDeg = opts.range || 30;
+    const stepDeg = opts.step || 0.25;
+    const bgThreshold = opts.bgThreshold != null ? opts.bgThreshold : 40;
+    const stride = Math.max(1, Math.floor(Math.sqrt((w * h) / 150000)));
     const halfW = w / 2, halfH = h / 2;
 
-    // Precompute luminance samples and their centred coords so we can
-    // re-project under each candidate angle without re-reading pixel data.
-    const N = Math.ceil(h / stride) * Math.ceil(w / stride);
-    const lum = new Float32Array(N);
-    const cx = new Float32Array(N);
-    const cy = new Float32Array(N);
-    let k = 0;
+    // Precompute luminance samples for pixels that are NOT background.
+    const keepLum = [];
+    const keepCx = [];
+    const keepCy = [];
     for (let y = 0; y < h; y += stride) {
       for (let x = 0; x < w; x += stride) {
         const i = (y * w + x) * 4;
-        lum[k] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-        cx[k] = x - halfW;
-        cy[k] = y - halfH;
-        k++;
+        const l = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        if (l < bgThreshold) continue;
+        keepLum.push(l);
+        keepCx.push(x - halfW);
+        keepCy.push(y - halfH);
       }
     }
-    const M = k;
+    const M = keepLum.length;
+    const lumA = new Float32Array(keepLum);
+    const cxA = new Float32Array(keepCx);
+    const cyA = new Float32Array(keepCy);
+
+    if (M < 200) return { angle: 0, score: 0, samples: M };
 
     let bestAngle = 0, bestScore = -Infinity;
 
     for (let aDeg = -rangeDeg; aDeg <= rangeDeg + 1e-6; aDeg += stepDeg) {
       const rad = aDeg * Math.PI / 180;
       const sinT = Math.sin(rad), cosT = Math.cos(rad);
-      // Range of projected y after rotation
       const maxYp = halfW * Math.abs(sinT) + halfH * Math.abs(cosT);
       const nBins = Math.max(16, Math.ceil(2 * maxYp) + 1);
       const offset = maxYp;
@@ -133,30 +136,37 @@
       const rowCnt = new Uint32Array(nBins);
 
       for (let j = 0; j < M; j++) {
-        const yp = -cx[j] * sinT + cy[j] * cosT;
+        const yp = -cxA[j] * sinT + cyA[j] * cosT;
         const bin = Math.floor(yp + offset);
         if (bin >= 0 && bin < nBins) {
-          rowSum[bin] += lum[j];
+          rowSum[bin] += lumA[j];
           rowCnt[bin]++;
         }
       }
 
-      // Row averages, only where we have enough samples
-      const minSamples = 5;
+      // Row averages, only where we have enough samples (drill is present)
+      const minSamples = 8;
       const avg = new Float64Array(nBins);
       const has = new Uint8Array(nBins);
+      let firstValid = -1, lastValid = -1;
       for (let b = 0; b < nBins; b++) {
         if (rowCnt[b] >= minSamples) {
           avg[b] = rowSum[b] / rowCnt[b];
           has[b] = 1;
+          if (firstValid < 0) firstValid = b;
+          lastValid = b;
         }
       }
+      if (firstValid < 0 || lastValid - firstValid < 20) continue;
 
-      // Maximum step: difference of mean brightness in windows above/below
-      const win = 10;
-      const needed = Math.max(5, win - 3);
+      // Search for brightness step only within the drill's central region
+      // (skip the outermost 15% on each side, where silhouette shape matters).
+      const span = lastValid - firstValid;
+      const inMargin = Math.max(5, Math.floor(span * 0.15));
+      const win = Math.max(5, Math.floor(span * 0.08));
+      const needed = Math.max(4, win - 3);
       let maxStep = 0;
-      for (let b = win; b < nBins - win; b++) {
+      for (let b = firstValid + inMargin; b <= lastValid - inMargin; b++) {
         let above = 0, aboveN = 0, below = 0, belowN = 0;
         for (let t = 1; t <= win; t++) {
           if (has[b - t]) { above += avg[b - t]; aboveN++; }
@@ -174,7 +184,7 @@
       }
     }
 
-    return { angle: bestAngle, score: bestScore };
+    return { angle: bestAngle, score: bestScore, samples: M };
   }
 
   // Render `image` rotated by `angleDeg` onto `canvas`, sized to fit while
