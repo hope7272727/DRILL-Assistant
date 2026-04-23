@@ -71,6 +71,10 @@
                 <span class="material-symbols-outlined text-[18px]">visibility</span>
                 <span id="toggle-label">정렬 후</span>
               </button>
+              <button id="btn-crosshair" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant">
+                <span class="material-symbols-outlined text-[18px]">add</span>
+                <span id="crosshair-label">십자선 끄기</span>
+              </button>
             </div>
             <div id="meta" class="font-label-sm text-secondary"></div>
           </div>
@@ -141,6 +145,7 @@
       items: [],         // [{name, image, threshold, autoAngle, angle, bg}]
       activeIdx: -1,
       showOriginal: false,
+      showCrosshair: true,
     };
 
     // DOM
@@ -165,7 +170,23 @@
     const btnPickBg = $('btn-pick-bg');
     const btnToggle = $('btn-toggle');
     const toggleLabel = $('toggle-label');
+    const btnCrosshair = $('btn-crosshair');
+    const crosshairLabel = $('crosshair-label');
     const fileCount = $('file-count');
+
+    function drawCrosshair() {
+      if (!state.showCrosshair) return;
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width, H = canvas.height;
+      ctx.save();
+      ctx.strokeStyle = '#e53935';
+      ctx.lineWidth = Math.max(1, Math.round((window.devicePixelRatio || 1) * 1.2));
+      ctx.beginPath();
+      ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2);
+      ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H);
+      ctx.stroke();
+      ctx.restore();
+    }
 
     function setEnabled() {
       const has = state.items.length > 0;
@@ -203,6 +224,7 @@
       fitCanvas();
       const angle = state.showOriginal ? 0 : it.angle;
       DrillAlign.renderRotated(it.image, canvas, angle, it.bg);
+      drawCrosshair();
       meta.textContent = `${it.image.naturalWidth} × ${it.image.naturalHeight} · ${it.name}`;
       thresholdInput.value = it.threshold;
       angleInput.value = it.angle.toFixed(2);
@@ -372,6 +394,20 @@
       toggleLabel.textContent = state.showOriginal ? '원본' : '정렬 후';
       renderActive();
     });
+
+    btnCrosshair.addEventListener('click', () => {
+      state.showCrosshair = !state.showCrosshair;
+      crosshairLabel.textContent = state.showCrosshair ? '십자선 끄기' : '십자선 켜기';
+      btnCrosshair.classList.toggle('bg-secondary-container', state.showCrosshair);
+      btnCrosshair.classList.toggle('text-on-surface', state.showCrosshair);
+      btnCrosshair.classList.toggle('border', !state.showCrosshair);
+      btnCrosshair.classList.toggle('text-secondary', !state.showCrosshair);
+      renderActive();
+    });
+
+    // Initialize crosshair button visual state to match showCrosshair = true
+    btnCrosshair.classList.add('bg-secondary-container', 'text-on-surface');
+    btnCrosshair.classList.remove('border', 'text-secondary');
 
     btnDownload.addEventListener('click', () => {
       const it = state.items[state.activeIdx]; if (!it) return;
