@@ -75,6 +75,10 @@
                 <span class="material-symbols-outlined text-[18px]">add</span>
                 <span id="crosshair-label">십자선 끄기</span>
               </button>
+              <button id="btn-pick" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant">
+                <span class="material-symbols-outlined text-[18px]">touch_app</span>
+                <span id="pick-label">두 점으로 정렬</span>
+              </button>
             </div>
             <div id="meta" class="font-label-sm text-secondary"></div>
           </div>
@@ -139,6 +143,8 @@
       showOriginal: false,
       showCrosshair: true,
       saveDir: null,     // FileSystemDirectoryHandle (Chromium only)
+      pickMode: false,
+      pickedPoints: [],  // up to 2 points in canvas pixel coords
     };
 
     // DOM
@@ -160,6 +166,8 @@
     const toggleLabel = $('toggle-label');
     const btnCrosshair = $('btn-crosshair');
     const crosshairLabel = $('crosshair-label');
+    const btnPick = $('btn-pick');
+    const pickLabel = $('pick-label');
     const btnPickFolder = $('btn-pick-folder');
     const folderName = $('folder-name');
     const folderBtnLabel = $('folder-btn-label');
@@ -176,6 +184,39 @@
       ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2);
       ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H);
       ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawPickedPoints() {
+      if (state.pickedPoints.length === 0) return;
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      ctx.save();
+      ctx.fillStyle = '#1976d2';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2 * dpr;
+      state.pickedPoints.forEach((p, i) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 7 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `${11 * dpr}px Inter, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(i + 1), p.x, p.y);
+        ctx.fillStyle = '#1976d2';
+      });
+      // Connecting line if 1 dot already placed
+      if (state.pickedPoints.length === 1 && state.lastMouse) {
+        const p = state.pickedPoints[0];
+        ctx.strokeStyle = '#1976d2';
+        ctx.setLineDash([4 * dpr, 4 * dpr]);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(state.lastMouse.x, state.lastMouse.y);
+        ctx.stroke();
+      }
       ctx.restore();
     }
 
@@ -215,7 +256,11 @@
       const angle = state.showOriginal ? 0 : it.angle;
       DrillAlign.renderRotated(it.image, canvas, angle, it.bg);
       drawCrosshair();
-      meta.textContent = `${it.image.naturalWidth} × ${it.image.naturalHeight} · ${it.name}`;
+      drawPickedPoints();
+      const picking = state.pickMode
+        ? `· 두 점 선택 중 (${state.pickedPoints.length}/2)`
+        : '';
+      meta.textContent = `${it.image.naturalWidth} × ${it.image.naturalHeight} · ${it.name} ${picking}`;
       angleInput.value = it.angle.toFixed(2);
       angleSlider.value = it.angle.toFixed(2);
       bgColorInput.value = rgbToHex(it.bg);
@@ -405,6 +450,59 @@
     // Initialize crosshair button visual state to match showCrosshair = true
     btnCrosshair.classList.add('bg-secondary-container', 'text-on-surface');
     btnCrosshair.classList.remove('border', 'text-secondary');
+
+    function setPickMode(on) {
+      state.pickMode = on;
+      state.pickedPoints = [];
+      pickLabel.textContent = on ? '취소' : '두 점으로 정렬';
+      btnPick.classList.toggle('bg-secondary-container', on);
+      btnPick.classList.toggle('text-on-surface', on);
+      btnPick.classList.toggle('border', !on);
+      btnPick.classList.toggle('text-secondary', !on);
+      canvas.style.cursor = on ? 'crosshair' : '';
+      renderActive();
+    }
+
+    btnPick.addEventListener('click', () => setPickMode(!state.pickMode));
+
+    function getCanvasCoord(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (e.clientX - rect.left) * (canvas.width / rect.width),
+        y: (e.clientY - rect.top) * (canvas.height / rect.height),
+      };
+    }
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (!state.pickMode || state.pickedPoints.length !== 1) return;
+      state.lastMouse = getCanvasCoord(e);
+      renderActive();
+    });
+
+    canvas.addEventListener('click', (e) => {
+      if (!state.pickMode) return;
+      const it = state.items[state.activeIdx]; if (!it) return;
+      const p = getCanvasCoord(e);
+      state.pickedPoints.push(p);
+      if (state.pickedPoints.length === 2) {
+        const [p1, p2] = state.pickedPoints;
+        const dx = p2.x - p1.x, dy = p2.y - p1.y;
+        if (Math.hypot(dx, dy) < 4) {
+          state.pickedPoints.pop(); // ignore double-click on same spot
+          renderActive();
+          return;
+        }
+        const deltaDeg = Math.atan2(dy, dx) * 180 / Math.PI;
+        commitAngle(it.angle + deltaDeg);
+        setPickMode(false);
+        return;
+      }
+      renderActive();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && state.pickMode) setPickMode(false);
+    });
 
     async function saveBlobToFolder(blob, filename) {
       if (state.saveDir) {
