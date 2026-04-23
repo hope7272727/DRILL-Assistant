@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title>DRILL Assistant — 드릴 포인트</title>
+  <title>DRILL Assistant — 드릴 포인트 수정</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
   <link href="assets/styles.css" rel="stylesheet"/>
@@ -16,164 +16,115 @@
   <main id="app-main">
     <div class="p-lg flex flex-col gap-lg max-w-[1440px] mx-auto h-full">
 
-      <!-- Top Controls -->
+      <!-- Top bar -->
       <div class="flex justify-between items-center bg-surface p-md rounded-xl border border-outline-variant shadow-sm">
         <div class="flex items-center gap-md">
-          <h2 class="font-h3 text-on-surface">드릴 포인트 분석</h2>
-          <span class="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-sm">초안</span>
-          <span class="font-body-sm text-secondary">DP-2401-A12</span>
+          <h2 class="font-h3 text-on-surface">드릴 포인트 수정</h2>
+          <span class="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-sm">자동 정렬</span>
         </div>
         <div class="flex gap-sm">
-          <button class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2">
-            <span class="material-symbols-outlined text-[18px]">save</span>
-            저장
+          <label class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2 cursor-pointer">
+            <input id="file-input" type="file" accept="image/*" multiple class="hidden"/>
+            <span class="material-symbols-outlined text-[18px]">add_photo_alternate</span>
+            사진 업로드
+          </label>
+          <button id="btn-auto" disabled class="px-4 py-2 bg-secondary-container text-on-secondary-container rounded-lg font-label-md hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+            <span class="material-symbols-outlined text-[18px]">auto_fix_high</span>
+            자동 정렬 (현재)
           </button>
-          <button class="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md hover:bg-primary-container transition-colors flex items-center gap-2">
+          <button id="btn-auto-all" disabled class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+            <span class="material-symbols-outlined text-[18px]">done_all</span>
+            전체 자동 정렬
+          </button>
+          <button id="btn-download" disabled class="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md hover:bg-primary-container transition-colors flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
             <span class="material-symbols-outlined text-[18px]">download</span>
-            결과 내보내기
+            다운로드
           </button>
         </div>
       </div>
 
-      <!-- Main Editor Layout -->
+      <!-- Main layout -->
       <div class="flex-1 grid grid-cols-12 gap-lg min-h-0">
 
-        <!-- Left: Inputs & Analysis -->
-        <div class="col-span-3 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col gap-lg overflow-y-auto">
-
-          <!-- Photo Upload -->
-          <div>
-            <h3 class="font-label-md text-on-surface-variant mb-sm flex items-center gap-2">
-              <span class="material-symbols-outlined text-[18px]">add_photo_alternate</span>
-              드릴 포인트 사진
-            </h3>
-            <label class="border-2 border-dashed border-primary-fixed-dim rounded-lg p-md flex flex-col items-center justify-center text-center hover:bg-surface-variant transition-colors cursor-pointer">
-              <input type="file" accept="image/*" multiple class="hidden"/>
-              <div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center mb-xs">
-                <span class="material-symbols-outlined text-primary">image</span>
-              </div>
-              <p class="font-label-md text-on-surface text-[13px]">이미지 업로드</p>
-              <p class="font-body-sm text-secondary text-[12px]">클릭 또는 드래그</p>
-            </label>
-          </div>
-
-          <!-- DXF Upload -->
-          <div>
-            <h3 class="font-label-md text-on-surface-variant mb-sm flex items-center gap-2">
-              <span class="material-symbols-outlined text-[18px]">architecture</span>
-              참조 DXF 도면
-            </h3>
-            <label class="border-2 border-dashed border-primary-fixed-dim rounded-lg p-md flex flex-col items-center justify-center text-center hover:bg-surface-variant transition-colors cursor-pointer">
-              <input type="file" accept=".dxf" class="hidden"/>
-              <div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center mb-xs">
-                <span class="material-symbols-outlined text-primary">upload_file</span>
-              </div>
-              <p class="font-label-md text-on-surface text-[13px]">DXF 파일 선택</p>
-              <p class="font-body-sm text-secondary text-[12px]">.dxf만 허용</p>
-            </label>
-          </div>
-
-          <!-- Auto Actions -->
-          <div>
-            <h3 class="font-label-md text-on-surface-variant mb-sm flex items-center gap-2">
-              <span class="material-symbols-outlined text-[18px]">auto_awesome</span>
-              자동 작업
-            </h3>
-            <div class="grid grid-cols-2 gap-sm">
-              <button class="p-sm bg-surface-container rounded-lg border border-transparent hover:border-primary-fixed-dim transition-all flex flex-col items-center justify-center gap-2 aspect-square">
-                <span class="material-symbols-outlined text-secondary text-[24px]">grid_on</span>
-                <span class="font-label-sm text-on-surface text-[12px]">포인트 정렬</span>
-              </button>
-              <button class="p-sm bg-surface-container rounded-lg border border-transparent hover:border-primary-fixed-dim transition-all flex flex-col items-center justify-center gap-2 aspect-square">
-                <span class="material-symbols-outlined text-secondary text-[24px]">compare_arrows</span>
-                <span class="font-label-sm text-on-surface text-[12px]">DXF 비교</span>
-              </button>
-              <button class="p-sm bg-surface-container rounded-lg border border-transparent hover:border-primary-fixed-dim transition-all flex flex-col items-center justify-center gap-2 aspect-square">
-                <span class="material-symbols-outlined text-secondary text-[24px]">tune</span>
-                <span class="font-label-sm text-on-surface text-[12px]">노출 보정</span>
-              </button>
-              <button class="p-sm bg-surface-container rounded-lg border border-transparent hover:border-primary-fixed-dim transition-all flex flex-col items-center justify-center gap-2 aspect-square">
-                <span class="material-symbols-outlined text-secondary text-[24px]">center_focus_strong</span>
-                <span class="font-label-sm text-on-surface text-[12px]">중심 정렬</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Analysis Result -->
-          <div class="mt-auto">
-            <h3 class="font-label-md text-on-surface-variant mb-sm flex items-center gap-2">
-              <span class="material-symbols-outlined text-[18px]">analytics</span>
-              비교 결과
-            </h3>
-            <div class="bg-surface-container rounded-lg p-md border border-outline-variant">
-              <div class="flex justify-between mb-2">
-                <span class="font-label-sm text-secondary">검출된 포인트</span>
-                <span class="font-label-md text-on-surface">24 / 24</span>
-              </div>
-              <div class="flex justify-between mb-2">
-                <span class="font-label-sm text-secondary">DXF 일치율</span>
-                <span class="font-label-md text-success">99.4%</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="font-label-sm text-secondary">평균 위치 오차</span>
-                <span class="font-label-md text-on-surface">0.12 mm</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Center: Preview -->
-        <div class="col-span-6 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col">
-          <div class="flex justify-between items-center mb-md pb-md border-b border-outline-variant">
-            <div class="flex items-center gap-2">
-              <button class="p-1.5 text-secondary hover:text-on-surface hover:bg-surface-variant rounded transition-colors" title="실행 취소">
-                <span class="material-symbols-outlined">undo</span>
-              </button>
-              <button class="p-1.5 text-secondary hover:text-on-surface hover:bg-surface-variant rounded transition-colors" title="다시 실행">
-                <span class="material-symbols-outlined">redo</span>
-              </button>
-              <div class="w-px h-6 bg-outline-variant mx-2"></div>
-              <button class="flex items-center gap-1 px-2 py-1.5 text-on-surface hover:bg-surface-variant rounded transition-colors font-label-sm bg-secondary-container">
-                <span class="material-symbols-outlined text-[18px]">layers</span>
-                DXF 오버레이
-              </button>
-              <button class="flex items-center gap-1 px-2 py-1.5 text-secondary hover:text-on-surface hover:bg-surface-variant rounded transition-colors font-label-sm">
-                <span class="material-symbols-outlined text-[18px]">compare</span>
-                원본 비교
-              </button>
-            </div>
-            <div class="flex items-center gap-2 text-secondary font-label-sm">
-              <span>줌: 100%</span>
-              <button class="p-1 hover:text-on-surface hover:bg-surface-variant rounded">
-                <span class="material-symbols-outlined text-[18px]">zoom_in</span>
-              </button>
-              <button class="p-1 hover:text-on-surface hover:bg-surface-variant rounded">
-                <span class="material-symbols-outlined text-[18px]">zoom_out</span>
-              </button>
-            </div>
-          </div>
-          <div class="flex-1 bg-surface-container-lowest rounded-lg border border-outline-variant overflow-hidden flex items-center justify-center relative">
-            <div class="absolute inset-0 opacity-5"
-                 style="background-image: linear-gradient(45deg, #000 25%, transparent 25%), linear-gradient(-45deg, #000 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #000 75%), linear-gradient(-45deg, transparent 75%, #000 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;"></div>
-            <div class="relative z-10 text-center text-secondary">
-              <span class="material-symbols-outlined text-[64px] text-outline mb-2 block">image</span>
-              <p class="font-body-md">사진과 DXF를 업로드하면 미리보기가 나타납니다.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right: Point List -->
+        <!-- Left: file list -->
         <div class="col-span-3 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col overflow-hidden">
           <div class="flex justify-between items-center mb-sm">
             <h3 class="font-label-md text-on-surface flex items-center gap-2">
-              <span class="material-symbols-outlined text-[18px]">format_list_numbered</span>
-              포인트 목록
+              <span class="material-symbols-outlined text-[18px]">photo_library</span>
+              사진 목록
             </h3>
-            <span class="font-label-sm text-secondary">24 / 24</span>
+            <span id="file-count" class="font-label-sm text-secondary">0</span>
           </div>
-          <div class="flex-1 overflow-y-auto scrollbar-thin -mr-2 pr-2 flex flex-col gap-1">
-            <!-- Sample point items -->
-            <!-- Generated below -->
+          <div id="file-list" class="flex-1 overflow-y-auto scrollbar-thin -mr-2 pr-2 flex flex-col gap-2">
+            <div id="empty-list" class="text-center text-secondary text-body-sm p-lg">
+              <span class="material-symbols-outlined text-[48px] text-outline mb-2 block">image</span>
+              사진을 업로드하세요.<br/>여러 장 한번에 가능합니다.
+            </div>
+          </div>
+        </div>
+
+        <!-- Center: canvas -->
+        <div class="col-span-6 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col">
+          <div class="flex justify-between items-center mb-md pb-md border-b border-outline-variant">
+            <div class="flex items-center gap-2">
+              <button id="btn-toggle" class="flex items-center gap-1 px-3 py-1.5 text-on-surface bg-secondary-container rounded font-label-sm">
+                <span class="material-symbols-outlined text-[18px]">visibility</span>
+                <span id="toggle-label">정렬 후</span>
+              </button>
+            </div>
+            <div id="meta" class="font-label-sm text-secondary"></div>
+          </div>
+          <div class="flex-1 bg-surface-container-lowest rounded-lg border border-outline-variant overflow-hidden flex items-center justify-center relative">
+            <canvas id="canvas" class="max-w-full max-h-full"></canvas>
+            <div id="canvas-empty" class="absolute inset-0 flex flex-col items-center justify-center text-secondary pointer-events-none">
+              <span class="material-symbols-outlined text-[64px] text-outline mb-2">image</span>
+              <p class="font-body-md">사진을 업로드하면 미리보기가 표시됩니다.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: settings -->
+        <div class="col-span-3 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col gap-lg overflow-y-auto">
+          <h3 class="font-label-md text-on-surface flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">tune</span>
+            정렬 설정
+          </h3>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="font-label-sm text-on-surface">밝기 임계값</label>
+              <span id="thr-val" class="font-label-sm text-secondary font-code">220</span>
+            </div>
+            <input id="threshold" type="range" min="100" max="255" value="220"
+                   class="w-full h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary"/>
+            <p class="font-body-sm text-secondary text-[11px] mt-1">컷팅 에지(가장 밝은 부분)만 잡히도록 조절</p>
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <label class="font-label-sm text-on-surface">회전 각도 (°)</label>
+              <span id="ang-val" class="font-label-sm text-secondary font-code">0.00</span>
+            </div>
+            <input id="angle" type="range" min="-45" max="45" step="0.05" value="0"
+                   class="w-full h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary"/>
+            <div class="flex justify-between mt-1">
+              <button id="btn-detect" class="font-label-sm text-primary hover:underline disabled:opacity-40" disabled>자동 감지</button>
+              <button id="btn-reset" class="font-label-sm text-secondary hover:underline disabled:opacity-40" disabled>초기화</button>
+            </div>
+          </div>
+
+          <div>
+            <label class="font-label-sm text-on-surface block mb-1">배경색 (빈 모서리)</label>
+            <div class="flex items-center gap-2">
+              <input id="bg-color" type="color" value="#000000" class="w-10 h-8 rounded border border-outline-variant cursor-pointer"/>
+              <button id="btn-pick-bg" class="font-label-sm text-primary hover:underline">코너에서 자동 추출</button>
+            </div>
+            <p class="font-body-sm text-secondary text-[11px] mt-1">회전 후 비는 모서리를 채울 색</p>
+          </div>
+
+          <div class="mt-auto bg-surface-container rounded-lg p-md border border-outline-variant">
+            <p class="font-label-sm text-secondary mb-1">감지 결과</p>
+            <p id="detected-line" class="font-code text-[12px] text-on-surface">대기 중...</p>
           </div>
         </div>
       </div>
@@ -181,25 +132,271 @@
   </main>
 
   <script src="assets/shell.js"></script>
+  <script src="assets/align.js"></script>
   <script>
     renderShell('drill-point');
 
-    // Mock point list
-    const list = document.querySelector('.flex-1.overflow-y-auto.scrollbar-thin');
-    const pts = Array.from({length: 24}, (_, i) => {
-      const ok = Math.random() > 0.1;
-      const dx = (Math.random() * 0.2 - 0.1).toFixed(2);
-      const dy = (Math.random() * 0.2 - 0.1).toFixed(2);
-      return `
-        <div class="flex items-center justify-between px-sm py-2 rounded hover:bg-surface-container cursor-pointer border border-transparent hover:border-outline-variant">
-          <div class="flex items-center gap-2">
-            <span class="w-6 h-6 rounded-full ${ok ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container'} flex items-center justify-center font-label-sm text-[11px]">${i+1}</span>
-            <span class="font-body-sm text-on-surface text-[13px]">P${(i+1).toString().padStart(2,'0')}</span>
+    // App state
+    const state = {
+      items: [],         // [{name, image, threshold, autoAngle, angle, bg}]
+      activeIdx: -1,
+      showOriginal: false,
+    };
+
+    // DOM
+    const $ = (id) => document.getElementById(id);
+    const fileInput = $('file-input');
+    const fileList = $('file-list');
+    const emptyList = $('empty-list');
+    const canvas = $('canvas');
+    const canvasEmpty = $('canvas-empty');
+    const thresholdInput = $('threshold');
+    const angleInput = $('angle');
+    const bgColorInput = $('bg-color');
+    const thrVal = $('thr-val');
+    const angVal = $('ang-val');
+    const meta = $('meta');
+    const detectedLine = $('detected-line');
+    const btnAuto = $('btn-auto');
+    const btnAutoAll = $('btn-auto-all');
+    const btnDownload = $('btn-download');
+    const btnDetect = $('btn-detect');
+    const btnReset = $('btn-reset');
+    const btnPickBg = $('btn-pick-bg');
+    const btnToggle = $('btn-toggle');
+    const toggleLabel = $('toggle-label');
+    const fileCount = $('file-count');
+
+    function setEnabled() {
+      const has = state.items.length > 0;
+      const hasActive = state.activeIdx >= 0;
+      btnAuto.disabled = !hasActive;
+      btnAutoAll.disabled = !has;
+      btnDownload.disabled = !hasActive;
+      btnDetect.disabled = !hasActive;
+      btnReset.disabled = !hasActive;
+      thresholdInput.disabled = !hasActive;
+      angleInput.disabled = !hasActive;
+      bgColorInput.disabled = !hasActive;
+    }
+
+    function fitCanvas() {
+      // Match canvas pixel size to its parent display size for crisp rendering.
+      const parent = canvas.parentElement;
+      const r = parent.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.width = Math.max(1, Math.floor(r.width * dpr));
+      canvas.height = Math.max(1, Math.floor(r.height * dpr));
+    }
+
+    function renderActive() {
+      const it = state.items[state.activeIdx];
+      if (!it) {
+        canvasEmpty.style.display = 'flex';
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+        meta.textContent = '';
+        return;
+      }
+      canvasEmpty.style.display = 'none';
+      fitCanvas();
+      const angle = state.showOriginal ? 0 : it.angle;
+      DrillAlign.renderRotated(it.image, canvas, angle, it.bg);
+      meta.textContent = `${it.image.naturalWidth} × ${it.image.naturalHeight} · ${it.name}`;
+      thresholdInput.value = it.threshold;
+      angleInput.value = it.angle.toFixed(2);
+      thrVal.textContent = it.threshold;
+      angVal.textContent = it.angle.toFixed(2);
+      bgColorInput.value = rgbToHex(it.bg);
+      detectedLine.innerHTML =
+        `자동 감지 각도: <strong>${it.autoAngle.toFixed(2)}°</strong><br/>`
+        + `현재 회전: <strong>${it.angle.toFixed(2)}°</strong><br/>`
+        + `밝은 픽셀: ${it.brightCount.toLocaleString()}개`;
+    }
+
+    function rgbToHex(css) {
+      const m = css.match(/\d+/g);
+      if (!m) return '#000000';
+      const [r, g, b] = m.map(Number);
+      return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+    }
+    function hexToCss(hex) {
+      const m = hex.replace('#', '').match(/../g);
+      if (!m) return 'rgb(0,0,0)';
+      const [r, g, b] = m.map(h => parseInt(h, 16));
+      return `rgb(${r},${g},${b})`;
+    }
+
+    function renderFileList() {
+      emptyList.style.display = state.items.length ? 'none' : 'block';
+      // Remove all but the empty state element
+      Array.from(fileList.children).forEach(c => { if (c !== emptyList) c.remove(); });
+      state.items.forEach((it, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'flex items-center gap-2 p-2 rounded-lg border transition-colors text-left '
+          + (i === state.activeIdx
+            ? 'border-primary bg-primary-fixed'
+            : 'border-outline-variant hover:bg-surface-container');
+        btn.innerHTML = `
+          <div class="w-12 h-12 rounded bg-surface-container border border-outline-variant overflow-hidden flex items-center justify-center shrink-0">
+            <img src="${it.thumb}" class="w-full h-full object-cover"/>
           </div>
-          <span class="font-code text-[11px] text-secondary">Δ${dx},${dy}</span>
-        </div>`;
-    }).join('');
-    list.innerHTML = pts;
+          <div class="flex-1 min-w-0">
+            <p class="font-label-sm text-on-surface text-[12px] truncate">${it.name}</p>
+            <p class="font-code text-[11px] ${it.angle === 0 && it.autoAngle === 0 ? 'text-secondary' : 'text-primary'}">${it.angle.toFixed(2)}°</p>
+          </div>`;
+        btn.addEventListener('click', () => {
+          state.activeIdx = i;
+          renderFileList();
+          renderActive();
+        });
+        fileList.appendChild(btn);
+      });
+      fileCount.textContent = state.items.length;
+    }
+
+    function makeThumb(image) {
+      const w = 96, h = 96;
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, w, h);
+      const iw = image.naturalWidth, ih = image.naturalHeight;
+      const scale = Math.min(w / iw, h / ih);
+      const dw = iw * scale, dh = ih * scale;
+      ctx.drawImage(image, (w - dw) / 2, (h - dh) / 2, dw, dh);
+      return cv.toDataURL('image/jpeg', 0.6);
+    }
+
+    async function loadFiles(fileList) {
+      const arr = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+      for (const f of arr) {
+        const url = URL.createObjectURL(f);
+        const image = new Image();
+        await new Promise((res, rej) => {
+          image.onload = res;
+          image.onerror = rej;
+          image.src = url;
+        });
+        const id = DrillAlign.imageData(image);
+        const bg = DrillAlign.sampleBg(id.data, id.width, id.height);
+        state.items.push({
+          name: f.name,
+          image,
+          imageData: id,
+          threshold: 220,
+          autoAngle: 0,
+          angle: 0,
+          bg: bg.css,
+          brightCount: 0,
+          thumb: makeThumb(image),
+        });
+      }
+      if (state.activeIdx < 0 && state.items.length > 0) state.activeIdx = 0;
+      setEnabled();
+      renderFileList();
+      renderActive();
+    }
+
+    function detectFor(it) {
+      const r = DrillAlign.detectAngle(it.imageData.data, it.imageData.width, it.imageData.height, it.threshold);
+      it.autoAngle = r.angle;
+      it.angle = r.angle;
+      it.brightCount = r.brightCount;
+    }
+
+    // ---- Events ----
+    fileInput.addEventListener('change', (e) => {
+      loadFiles(e.target.files);
+      fileInput.value = '';
+    });
+
+    thresholdInput.addEventListener('input', (e) => {
+      const it = state.items[state.activeIdx]; if (!it) return;
+      it.threshold = parseInt(e.target.value, 10);
+      thrVal.textContent = it.threshold;
+    });
+    thresholdInput.addEventListener('change', () => {
+      const it = state.items[state.activeIdx]; if (!it) return;
+      detectFor(it);
+      renderFileList();
+      renderActive();
+    });
+
+    angleInput.addEventListener('input', (e) => {
+      const it = state.items[state.activeIdx]; if (!it) return;
+      it.angle = parseFloat(e.target.value);
+      angVal.textContent = it.angle.toFixed(2);
+      renderFileList();
+      renderActive();
+    });
+
+    bgColorInput.addEventListener('input', (e) => {
+      const it = state.items[state.activeIdx]; if (!it) return;
+      it.bg = hexToCss(e.target.value);
+      renderActive();
+    });
+
+    btnPickBg.addEventListener('click', () => {
+      const it = state.items[state.activeIdx]; if (!it) return;
+      const bg = DrillAlign.sampleBg(it.imageData.data, it.imageData.width, it.imageData.height);
+      it.bg = bg.css;
+      renderActive();
+    });
+
+    btnAuto.addEventListener('click', () => {
+      const it = state.items[state.activeIdx]; if (!it) return;
+      detectFor(it);
+      renderFileList();
+      renderActive();
+    });
+    btnDetect.addEventListener('click', () => btnAuto.click());
+
+    btnReset.addEventListener('click', () => {
+      const it = state.items[state.activeIdx]; if (!it) return;
+      it.angle = 0;
+      renderFileList();
+      renderActive();
+    });
+
+    btnAutoAll.addEventListener('click', () => {
+      state.items.forEach(it => detectFor(it));
+      renderFileList();
+      renderActive();
+    });
+
+    btnToggle.addEventListener('click', () => {
+      state.showOriginal = !state.showOriginal;
+      toggleLabel.textContent = state.showOriginal ? '원본' : '정렬 후';
+      renderActive();
+    });
+
+    btnDownload.addEventListener('click', () => {
+      const it = state.items[state.activeIdx]; if (!it) return;
+      const cv = DrillAlign.exportRotated(it.image, it.angle, it.bg);
+      cv.toBlob((blob) => {
+        const a = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        const ext = it.name.match(/\.[^.]+$/)?.[0] || '.png';
+        a.href = url;
+        a.download = it.name.replace(/\.[^.]+$/, '') + '_aligned' + ext;
+        a.click();
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    });
+
+    // Drag & drop
+    document.addEventListener('dragover', (e) => { e.preventDefault(); });
+    document.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (e.dataTransfer?.files?.length) loadFiles(e.dataTransfer.files);
+    });
+
+    window.addEventListener('resize', renderActive);
+    setEnabled();
+    fitCanvas();
   </script>
 </body>
 </html>
