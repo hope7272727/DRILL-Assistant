@@ -32,7 +32,21 @@ body {
 .scrollbar-thin::-webkit-scrollbar-thumb { background: #c2c6d4; border-radius: 3px; }
 
 /* D-pad for photo positioning */
-.dpad { display: block; margin: 0 auto 8px; width: 140px; height: 140px; }
+.dpad {
+  display: block;
+  margin: 0 auto 8px;
+  width: 140px;
+  height: 140px;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.dpad *, .dpad text {
+  user-select: none;
+  -webkit-user-select: none;
+}
 .dpad-wedge { cursor: pointer; transition: fill 120ms ease; }
 .dpad-wedge:hover { fill: rgba(0, 86, 179, 0.10); }
 .dpad-wedge:active { fill: rgba(0, 86, 179, 0.20); }

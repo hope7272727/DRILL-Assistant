@@ -912,6 +912,14 @@
     dpadLeft.addEventListener('click', (e) => nudgePhoto(-stepPx(e.shiftKey), 0));
     dpadRight.addEventListener('click', (e) => nudgePhoto(+stepPx(e.shiftKey), 0));
 
+    // Prevent text-selection / context popups when rapidly clicking the pad.
+    const dpadTargets = [dpad, dpadUp, dpadDown, dpadLeft, dpadRight, dpadCenter];
+    for (const el of dpadTargets) {
+      el.addEventListener('mousedown', (e) => e.preventDefault());
+      el.addEventListener('dblclick', (e) => e.preventDefault());
+      el.addEventListener('selectstart', (e) => e.preventDefault());
+    }
+
     async function saveBlobToFolder(blob, filename) {
       if (state.saveDir) {
         try {
