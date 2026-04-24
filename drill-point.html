@@ -22,7 +22,16 @@
           <h2 class="font-h3 text-on-surface">드릴 포인트 수정</h2>
           <span class="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-sm">자동 정렬</span>
         </div>
-        <div class="flex gap-sm">
+        <div class="flex gap-sm flex-wrap justify-end">
+          <label class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2 cursor-pointer">
+            <input id="dxf-input" type="file" accept=".dxf" class="hidden"/>
+            <span class="material-symbols-outlined text-[18px]">architecture</span>
+            <span id="dxf-file-btn">DXF 파일</span>
+          </label>
+          <button id="btn-pick-folder" class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2 max-w-[220px]">
+            <span class="material-symbols-outlined text-[18px]">folder_open</span>
+            <span id="folder-btn-label" class="truncate">저장 폴더</span>
+          </button>
           <label class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2 cursor-pointer">
             <input id="file-input" type="file" accept="image/*" multiple class="hidden"/>
             <span class="material-symbols-outlined text-[18px]">add_photo_alternate</span>
@@ -136,28 +145,13 @@
           </div>
 
 
-          <div>
-            <label class="font-label-sm text-on-surface block mb-1">저장 폴더</label>
-            <div class="flex flex-col gap-1">
-              <button id="btn-pick-folder" class="px-3 py-2 border border-outline-variant rounded text-on-surface text-body-sm hover:bg-surface-variant flex items-center justify-center gap-1">
-                <span class="material-symbols-outlined text-[18px]">folder_open</span>
-                <span id="folder-btn-label">폴더 선택</span>
-              </button>
-              <p id="folder-name" class="font-body-sm text-secondary text-[11px] truncate">미선택 — 다운로드 폴더로 저장됩니다</p>
-            </div>
-          </div>
-
           <div class="border-t border-outline-variant pt-md">
             <h3 class="font-label-md text-on-surface flex items-center gap-2 mb-sm">
               <span class="material-symbols-outlined text-[18px]">architecture</span>
               DXF 비교
             </h3>
-            <label class="px-3 py-2 border border-outline-variant rounded text-on-surface text-body-sm hover:bg-surface-variant flex items-center justify-center gap-1 cursor-pointer mb-1">
-              <input id="dxf-input" type="file" accept=".dxf" class="hidden"/>
-              <span class="material-symbols-outlined text-[18px]">upload_file</span>
-              <span id="dxf-file-btn">DXF 파일 선택</span>
-            </label>
             <p id="dxf-file-name" class="font-body-sm text-secondary text-[11px] truncate mb-2">파일 없음</p>
+            <p id="folder-name" class="hidden"></p>
 
             <label class="font-label-sm text-on-surface block mb-1">자주쓰는 DXF</label>
             <select id="dxf-lib-select" class="w-full px-2 py-1.5 border border-outline-variant rounded bg-surface-container-lowest text-body-sm focus:outline-none focus:border-primary mb-1">
@@ -1020,18 +1014,14 @@
 
     btnPickFolder.addEventListener('click', async () => {
       if (!('showDirectoryPicker' in window)) {
-        folderName.textContent = '이 브라우저는 폴더 선택을 지원하지 않습니다 (Chrome/Edge 권장)';
-        folderName.classList.remove('text-secondary');
-        folderName.classList.add('text-error');
+        alert('이 브라우저는 폴더 선택을 지원하지 않습니다 (Chrome/Edge 권장)');
         return;
       }
       try {
         const dir = await window.showDirectoryPicker({ mode: 'readwrite' });
         state.saveDir = dir;
-        folderName.textContent = '📁 ' + dir.name;
-        folderName.classList.remove('text-error', 'text-secondary');
-        folderName.classList.add('text-on-surface');
-        folderBtnLabel.textContent = '폴더 변경';
+        folderBtnLabel.textContent = '📁 ' + dir.name;
+        btnPickFolder.title = '저장 폴더: ' + dir.name + ' (클릭하여 변경)';
       } catch (err) {
         // User canceled — no-op
       }
