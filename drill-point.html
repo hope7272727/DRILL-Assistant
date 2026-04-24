@@ -111,11 +111,8 @@
             <label class="font-label-sm text-on-surface block mb-1">회전 각도 (°)</label>
             <input id="angle-slider" type="range" min="-45" max="45" step="0.1" value="0"
                    class="w-full h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary disabled:opacity-40" disabled/>
-            <div class="flex items-center gap-1 mt-2">
-              <input id="angle" type="number" step="0.05" value="0" placeholder="0.00"
-                     class="flex-1 px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary disabled:opacity-40" disabled/>
-              <button id="btn-reset" class="px-3 py-2 border border-outline-variant rounded text-secondary text-body-sm hover:bg-surface-variant disabled:opacity-40" disabled title="0°로 초기화">초기화</button>
-            </div>
+            <input id="angle" type="number" step="0.05" value="0" placeholder="0.00"
+                   class="w-full mt-2 px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary disabled:opacity-40" disabled/>
             <p class="font-body-sm text-secondary text-[11px] mt-1">슬라이더로 조절하거나 직접 입력 (Enter)</p>
           </div>
 
@@ -173,14 +170,15 @@
             </div>
             <input id="dxf-scale" type="range" min="0.1" max="100" step="0.1" value="1" disabled
                    class="w-full h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary disabled:opacity-40"/>
+            <input id="dxf-scale-num" type="number" step="0.1" min="0.1" max="100" value="1" placeholder="1.00" disabled
+                   class="w-full mt-2 px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary disabled:opacity-40"/>
 
             <div class="flex items-center justify-between mt-2 gap-2">
               <label class="font-label-sm text-on-surface">색상</label>
               <input id="dxf-color" type="color" value="#ff0000" class="w-16 h-7 rounded border border-outline-variant cursor-pointer"/>
             </div>
 
-            <button id="btn-dxf-reset" disabled class="mt-2 px-3 py-1.5 border border-outline-variant rounded text-secondary text-body-sm hover:bg-surface-variant disabled:opacity-40 w-full">위치/크기 초기화</button>
-            <p class="font-body-sm text-secondary text-[11px] mt-1">슬라이더로 크기 조절</p>
+            <p class="font-body-sm text-secondary text-[11px] mt-2">슬라이더로 조절하거나 직접 입력 (Enter) · 방향키 0.1</p>
           </div>
         </div>
       </div>
@@ -228,7 +226,6 @@
     const btnDownload = $('btn-download');
     const btnDownloadAll = $('btn-download-all');
     const downloadAllLabel = $('download-all-label');
-    const btnReset = $('btn-reset');
     const btnPhotoCenter = $('btn-photo-center');
     const dpad = $('dpad');
     const dpadUp = $('dpad-up');
@@ -256,7 +253,7 @@
     const dxfScaleInput = $('dxf-scale');
     const dxfScaleVal = $('dxf-scale-val');
     const dxfColorInput = $('dxf-color');
-    const btnDxfReset = $('btn-dxf-reset');
+    const dxfScaleNumInput = $('dxf-scale-num');
     const dxfLibSelect = $('dxf-lib-select');
     const btnDxfLibSave = $('btn-dxf-lib-save');
     const btnDxfLibDel = $('btn-dxf-lib-del');
@@ -313,7 +310,6 @@
       const has = state.items.length > 0;
       btnDownload.disabled = !hasActive;
       btnDownloadAll.disabled = !has;
-      btnReset.disabled = !hasActive;
       btnPhotoCenter.disabled = !hasActive;
       dpad.classList.toggle('dpad-disabled', !hasActive);
       angleInput.disabled = !hasActive;
@@ -576,13 +572,6 @@
     });
 
 
-    btnReset.addEventListener('click', () => {
-      const it = state.items[state.activeIdx]; if (!it) return;
-      it.angle = 0;
-      resetPhotoOffset();
-      renderFileList();
-      renderActive();
-    });
 
     btnToggle.addEventListener('click', () => {
       state.showOriginal = !state.showOriginal;
@@ -698,13 +687,15 @@
       const has = !!(it && it.dxf);
       btnDxfToggle.disabled = !has;
       dxfScaleInput.disabled = !has;
-      btnDxfReset.disabled = !has;
+      dxfScaleNumInput.disabled = !has;
       btnDxfLibSave.disabled = !(it && it.dxfText);
       if (it) {
         dxfScaleInput.value = it.dxfScaleUser;
+        dxfScaleNumInput.value = it.dxfScaleUser.toFixed(2);
         dxfScaleVal.textContent = it.dxfScaleUser.toFixed(2) + 'x';
       } else {
         dxfScaleInput.value = 1;
+        dxfScaleNumInput.value = 1;
         dxfScaleVal.textContent = '1.00x';
       }
       dxfColorInput.value = state.dxfColor;
@@ -885,22 +876,36 @@
       setDxfVisible(!it.dxfVisible);
     });
 
-    dxfScaleInput.addEventListener('input', (e) => {
+    function commitDxfScale(v) {
       const it = activeItem(); if (!it) return;
-      it.dxfScaleUser = parseFloat(e.target.value);
-      dxfScaleVal.textContent = it.dxfScaleUser.toFixed(2) + 'x';
+      let s = parseFloat(v);
+      if (isNaN(s)) s = 1;
+      s = Math.max(0.1, Math.min(100, s));
+      it.dxfScaleUser = s;
+      dxfScaleInput.value = s;
+      dxfScaleNumInput.value = s.toFixed(2);
+      dxfScaleVal.textContent = s.toFixed(2) + 'x';
       blitAndOverlay();
+    }
+
+    dxfScaleInput.addEventListener('input', (e) => commitDxfScale(e.target.value));
+    dxfScaleNumInput.addEventListener('change', (e) => commitDxfScale(e.target.value));
+    dxfScaleNumInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); commitDxfScale(e.target.value); }
+    });
+
+    // Slider-focused arrows: force 0.1 step regardless of platform default.
+    dxfScaleInput.addEventListener('keydown', (e) => {
+      const it = activeItem(); if (!it) return;
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+        e.preventDefault(); commitDxfScale(it.dxfScaleUser - 0.1);
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+        e.preventDefault(); commitDxfScale(it.dxfScaleUser + 0.1);
+      }
     });
 
     dxfColorInput.addEventListener('input', (e) => {
       state.dxfColor = e.target.value;
-      blitAndOverlay();
-    });
-
-    btnDxfReset.addEventListener('click', () => {
-      const it = activeItem(); if (!it) return;
-      it.dxfScaleUser = it.dxf ? 100 : 1;
-      refreshDxfControls();
       blitAndOverlay();
     });
 
