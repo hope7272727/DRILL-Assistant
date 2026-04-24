@@ -3,161 +3,123 @@
 <head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title>DRILL Assistant — 드릴 테이퍼</title>
+  <title>DRILL Assistant — 드릴 테이퍼 취합</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
   <link href="assets/styles.css" rel="stylesheet"/>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <script src="assets/theme.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body class="flex h-screen overflow-hidden antialiased text-on-surface">
   <div id="app-shell"></div>
 
   <main id="app-main">
-    <div class="p-lg flex flex-col gap-lg max-w-[1440px] mx-auto">
+    <div class="p-lg flex flex-col gap-lg max-w-[1800px] mx-auto h-full w-full">
 
-      <!-- Header -->
+      <!-- Top bar -->
       <div class="flex justify-between items-center bg-surface p-md rounded-xl border border-outline-variant shadow-sm">
         <div class="flex items-center gap-md">
-          <h2 class="font-h3 text-on-surface">드릴 테이퍼 분석</h2>
-          <span class="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-sm">Lot 2024-04</span>
+          <h2 class="font-h3 text-on-surface">드릴 테이퍼 취합</h2>
+          <span class="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-sm">시트 통합</span>
         </div>
         <div class="flex gap-sm">
           <label class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2 cursor-pointer">
-            <input type="file" accept=".xlsx,.xls,.csv" multiple class="hidden"/>
+            <input id="file-input" type="file" accept=".xlsx,.xls,.csv" class="hidden"/>
             <span class="material-symbols-outlined text-[18px]">upload_file</span>
             엑셀 업로드
           </label>
-          <button class="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md hover:bg-primary-container transition-colors flex items-center gap-2">
-            <span class="material-symbols-outlined text-[18px]">summarize</span>
-            보고서 생성
+          <button id="btn-download" disabled class="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md hover:bg-primary-container transition-colors flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+            <span class="material-symbols-outlined text-[18px]">download</span>
+            통합 엑셀 다운로드
           </button>
         </div>
       </div>
 
-      <!-- KPIs -->
-      <div class="grid grid-cols-4 gap-gutter">
-        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md">
-          <p class="font-label-md text-secondary mb-1">측정 데이터 수</p>
-          <p class="font-h2 text-on-surface">148</p>
-        </div>
-        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md">
-          <p class="font-label-md text-secondary mb-1">평균 테이퍼각</p>
-          <p class="font-h2 text-on-surface">2.142<span class="text-h3 text-secondary">°</span></p>
-        </div>
-        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md">
-          <p class="font-label-md text-secondary mb-1">표준편차</p>
-          <p class="font-h2 text-on-surface">0.018<span class="text-h3 text-secondary">°</span></p>
-        </div>
-        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md">
-          <p class="font-label-md text-secondary mb-1">불합격 건수</p>
-          <p class="font-h2 text-error">3</p>
-        </div>
-      </div>
+      <!-- Main layout -->
+      <div class="flex-1 grid grid-cols-12 gap-lg min-h-0">
 
-      <!-- Chart + Filters -->
-      <div class="grid grid-cols-12 gap-gutter">
-        <div class="col-span-8 bg-surface-container-lowest border border-outline-variant rounded-xl p-lg">
-          <div class="flex justify-between items-center mb-md">
-            <h3 class="font-h3 text-[18px] text-on-surface">테이퍼각 분포</h3>
-            <div class="flex gap-2">
-              <button class="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-sm">히스토그램</button>
-              <button class="px-3 py-1 text-secondary hover:bg-surface-container rounded-full font-label-sm">시계열</button>
-              <button class="px-3 py-1 text-secondary hover:bg-surface-container rounded-full font-label-sm">상자그림</button>
+        <!-- Left: sheet selection -->
+        <div class="col-span-3 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col overflow-hidden">
+          <div class="flex justify-between items-center mb-sm">
+            <h3 class="font-label-md text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">tab</span>
+              시트 선택
+            </h3>
+            <span id="sheet-count" class="font-label-sm text-secondary">0</span>
+          </div>
+          <div id="sheet-list" class="flex-1 overflow-y-auto scrollbar-thin -mr-2 pr-2 flex flex-col gap-1">
+            <div id="empty-sheets" class="text-center text-secondary text-body-sm p-lg">
+              <span class="material-symbols-outlined text-[48px] text-outline mb-2 block">description</span>
+              엑셀 파일을 업로드하세요.
             </div>
           </div>
-          <!-- Inline SVG histogram -->
-          <svg viewBox="0 0 600 240" class="w-full h-60">
-            <line x1="40" y1="200" x2="580" y2="200" stroke="#c2c6d4" stroke-width="1"/>
-            <line x1="40" y1="20" x2="40" y2="200" stroke="#c2c6d4" stroke-width="1"/>
-            <!-- Bars -->
-            <g fill="#0056b3">
-              <rect x="60"  y="180" width="30" height="20"/>
-              <rect x="100" y="160" width="30" height="40"/>
-              <rect x="140" y="120" width="30" height="80"/>
-              <rect x="180" y="80"  width="30" height="120"/>
-              <rect x="220" y="40"  width="30" height="160"/>
-              <rect x="260" y="60"  width="30" height="140"/>
-              <rect x="300" y="100" width="30" height="100"/>
-              <rect x="340" y="140" width="30" height="60"/>
-              <rect x="380" y="170" width="30" height="30"/>
-              <rect x="420" y="185" width="30" height="15"/>
-            </g>
-            <!-- Out-of-spec bars -->
-            <g fill="#ba1a1a" opacity="0.85">
-              <rect x="460" y="190" width="30" height="10"/>
-              <rect x="500" y="195" width="30" height="5"/>
-            </g>
-            <!-- X labels -->
-            <g font-family="Inter" font-size="11" fill="#727784">
-              <text x="75"  y="220" text-anchor="middle">2.10</text>
-              <text x="155" y="220" text-anchor="middle">2.12</text>
-              <text x="235" y="220" text-anchor="middle">2.14</text>
-              <text x="315" y="220" text-anchor="middle">2.16</text>
-              <text x="395" y="220" text-anchor="middle">2.18</text>
-              <text x="475" y="220" text-anchor="middle">2.20</text>
-            </g>
-            <!-- Spec lines -->
-            <line x1="220" y1="20" x2="220" y2="200" stroke="#2e7d32" stroke-dasharray="4 4"/>
-            <line x1="440" y1="20" x2="440" y2="200" stroke="#ba1a1a" stroke-dasharray="4 4"/>
-            <text x="220" y="14" font-family="Inter" font-size="10" fill="#2e7d32" text-anchor="middle">목표 2.14°</text>
-            <text x="440" y="14" font-family="Inter" font-size="10" fill="#ba1a1a" text-anchor="middle">상한 2.18°</text>
-          </svg>
+          <div id="sheet-actions" class="hidden mt-2 flex gap-1">
+            <button id="btn-select-all" class="flex-1 px-2 py-1 border border-outline-variant rounded text-body-sm text-secondary hover:bg-surface-variant">전체 선택</button>
+            <button id="btn-select-none" class="flex-1 px-2 py-1 border border-outline-variant rounded text-body-sm text-secondary hover:bg-surface-variant">해제</button>
+          </div>
         </div>
 
-        <div class="col-span-4 bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col gap-md">
-          <h3 class="font-h3 text-[18px] text-on-surface">필터</h3>
-          <div>
-            <label class="font-label-md text-on-surface-variant block mb-1">제품 코드</label>
-            <select class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface text-body-sm focus:outline-none focus:border-primary">
-              <option>전체</option>
-              <option>D24A12</option>
-              <option>D24A11</option>
-              <option>D23B03</option>
-            </select>
+        <!-- Center: consolidated preview -->
+        <div class="col-span-7 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col">
+          <div class="flex justify-between items-center mb-md pb-md border-b border-outline-variant">
+            <h3 class="font-label-md text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">table_view</span>
+              통합 미리보기
+            </h3>
+            <div id="preview-meta" class="font-label-sm text-secondary"></div>
           </div>
-          <div>
-            <label class="font-label-md text-on-surface-variant block mb-1">측정 기간</label>
-            <input type="date" class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface text-body-sm focus:outline-none focus:border-primary"/>
-          </div>
-          <div>
-            <label class="font-label-md text-on-surface-variant block mb-1">합격 여부</label>
-            <div class="flex gap-2">
-              <label class="flex items-center gap-1 font-body-sm text-on-surface"><input type="checkbox" checked class="rounded text-primary"/> 합격</label>
-              <label class="flex items-center gap-1 font-body-sm text-on-surface"><input type="checkbox" checked class="rounded text-primary"/> 불합격</label>
+          <div id="preview-wrapper" class="flex-1 overflow-auto scrollbar-thin border border-outline-variant rounded-lg bg-surface-container-lowest">
+            <div id="preview-empty" class="absolute inset-0 flex flex-col items-center justify-center text-secondary pointer-events-none" style="position:relative;padding:48px;">
+              <span class="material-symbols-outlined text-[64px] text-outline mb-2">table_view</span>
+              <p class="font-body-md">엑셀을 업로드하면 여기에 통합 결과가 표시됩니다.</p>
             </div>
+            <table id="preview-table" class="w-full text-body-sm font-code hidden">
+              <thead id="preview-thead" class="sticky top-0 bg-surface-container z-10"></thead>
+              <tbody id="preview-tbody"></tbody>
+            </table>
           </div>
-          <button class="mt-auto px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md hover:bg-primary-container transition-colors">필터 적용</button>
         </div>
-      </div>
 
-      <!-- Data Table -->
-      <div class="bg-surface-container-lowest border border-outline-variant rounded-xl">
-        <div class="flex justify-between items-center p-lg border-b border-outline-variant">
-          <h3 class="font-h3 text-[18px] text-on-surface">측정 데이터</h3>
-          <div class="flex gap-2">
-            <button class="px-3 py-1.5 border border-outline-variant rounded-lg font-label-sm text-on-surface hover:bg-surface-variant flex items-center gap-1">
-              <span class="material-symbols-outlined text-[16px]">download</span> CSV
-            </button>
-            <button class="px-3 py-1.5 border border-outline-variant rounded-lg font-label-sm text-on-surface hover:bg-surface-variant flex items-center gap-1">
-              <span class="material-symbols-outlined text-[16px]">filter_alt</span> 정렬
-            </button>
+        <!-- Right: settings -->
+        <div class="col-span-2 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col gap-lg overflow-y-auto">
+          <h3 class="font-label-md text-on-surface flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">settings</span>
+            설정
+          </h3>
+
+          <div>
+            <label class="font-label-sm text-on-surface block mb-1">통합 시트 이름</label>
+            <input id="out-sheet-name" type="text" value="최하" class="w-full px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-sm focus:outline-none focus:border-primary"/>
+          </div>
+
+          <div>
+            <label class="font-label-sm text-on-surface block mb-1">저장 파일명</label>
+            <input id="out-file-name" type="text" value="consolidated.xlsx" class="w-full px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code focus:outline-none focus:border-primary"/>
+          </div>
+
+          <div>
+            <label class="font-label-sm text-on-surface block mb-1">헤더 방식</label>
+            <label class="flex items-center gap-2 font-body-sm text-on-surface mb-1">
+              <input type="radio" name="header-mode" value="simple" checked class="accent-primary"/> MAX · MIN 반복
+            </label>
+            <label class="flex items-center gap-2 font-body-sm text-on-surface">
+              <input type="radio" name="header-mode" value="prefixed" class="accent-primary"/> 시트명 포함 (A_MAX 등)
+            </label>
+          </div>
+
+          <div>
+            <label class="flex items-center gap-2 font-body-sm text-on-surface mt-2">
+              <input id="include-sheet-row" type="checkbox" checked class="accent-primary rounded"/>
+              시트명 상단 행 포함
+            </label>
+          </div>
+
+          <div class="mt-auto bg-surface-container rounded-lg p-md border border-outline-variant">
+            <p class="font-label-sm text-secondary mb-1">감지된 시트</p>
+            <p id="detected-summary" class="font-body-sm text-on-surface text-[12px]">대기 중...</p>
           </div>
         </div>
-        <table class="w-full text-body-sm">
-          <thead class="bg-surface-container-low">
-            <tr class="text-left text-on-surface-variant font-label-md">
-              <th class="px-lg py-2">측정 ID</th>
-              <th class="px-lg py-2">제품 코드</th>
-              <th class="px-lg py-2">테이퍼각 (°)</th>
-              <th class="px-lg py-2">상단 직경 (mm)</th>
-              <th class="px-lg py-2">하단 직경 (mm)</th>
-              <th class="px-lg py-2">측정일</th>
-              <th class="px-lg py-2">상태</th>
-            </tr>
-          </thead>
-          <tbody id="taper-rows"></tbody>
-        </table>
       </div>
     </div>
   </main>
@@ -166,31 +128,253 @@
   <script>
     renderShell('drill-taper');
 
-    // Mock rows
-    const tbody = document.getElementById('taper-rows');
-    const codes = ['D24A12', 'D24A11', 'D23B03', 'D24A12', 'D24A11'];
-    const rows = Array.from({length: 8}, (_, i) => {
-      const angle = (2.10 + Math.random() * 0.10).toFixed(3);
-      const top = (12.00 + Math.random() * 0.05).toFixed(3);
-      const bot = (8.00 + Math.random() * 0.05).toFixed(3);
-      const fail = parseFloat(angle) > 2.18;
-      const code = codes[i % codes.length];
-      return `
-        <tr class="border-t border-outline-variant hover:bg-surface transition-colors">
-          <td class="px-lg py-3 font-code text-[12px] text-on-surface">M${(2401 + i).toString()}</td>
-          <td class="px-lg py-3 text-on-surface">${code}</td>
-          <td class="px-lg py-3 ${fail ? 'text-error font-medium' : 'text-on-surface'}">${angle}</td>
-          <td class="px-lg py-3 text-on-surface">${top}</td>
-          <td class="px-lg py-3 text-on-surface">${bot}</td>
-          <td class="px-lg py-3 text-secondary">2024-04-${(15 + i).toString().padStart(2, '0')}</td>
-          <td class="px-lg py-3">
-            <span class="inline-block px-2 py-1 rounded ${fail ? 'bg-error-container text-on-error-container' : 'bg-secondary-container text-on-secondary-container'} font-label-sm text-[11px]">
-              ${fail ? '불합격' : '합격'}
-            </span>
-          </td>
-        </tr>`;
-    }).join('');
-    tbody.innerHTML = rows;
+    // --- State ---
+    const state = {
+      workbook: null,
+      fileName: '',
+      // Detected data sheets: [{ name, rows: [[...]] , distCol, maxCol, minCol, startRow, numRows }]
+      sheets: [],
+      selected: new Set(), // sheet names
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const fileInput = $('file-input');
+    const sheetList = $('sheet-list');
+    const emptySheets = $('empty-sheets');
+    const sheetCount = $('sheet-count');
+    const sheetActions = $('sheet-actions');
+    const btnSelectAll = $('btn-select-all');
+    const btnSelectNone = $('btn-select-none');
+    const previewTable = $('preview-table');
+    const previewThead = $('preview-thead');
+    const previewTbody = $('preview-tbody');
+    const previewEmpty = $('preview-empty');
+    const previewMeta = $('preview-meta');
+    const btnDownload = $('btn-download');
+    const outSheetName = $('out-sheet-name');
+    const outFileName = $('out-file-name');
+    const includeSheetRow = $('include-sheet-row');
+    const detectedSummary = $('detected-summary');
+
+    // --- File handling ---
+    fileInput.addEventListener('change', async (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      state.fileName = f.name;
+      outFileName.value = f.name.replace(/\.[^.]+$/, '') + '_통합.xlsx';
+      try {
+        const buf = await f.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        state.workbook = wb;
+        analyzeSheets();
+        renderSheetList();
+        buildPreview();
+      } catch (err) {
+        console.warn(err);
+        alert('엑셀 파일을 읽을 수 없습니다: ' + err.message);
+      }
+      fileInput.value = '';
+    });
+
+    // Find DISTANCE/MAX/MIN columns in the first row of each sheet.
+    function analyzeSheets() {
+      const wb = state.workbook;
+      state.sheets = [];
+      state.selected = new Set();
+      for (const name of wb.SheetNames) {
+        const ws = wb.Sheets[name];
+        if (!ws) continue;
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+        if (!rows.length) continue;
+        const header = rows[0] || [];
+        const distCol = header.findIndex(v => String(v).trim().toUpperCase() === 'DISTANCE');
+        const maxCol = header.findIndex(v => String(v).trim().toUpperCase() === 'MAX');
+        const minCol = header.findIndex(v => String(v).trim().toUpperCase() === 'MIN');
+        if (distCol < 0 || maxCol < 0 || minCol < 0) continue;
+        // Collect numeric data from row 1 onward
+        const data = [];
+        for (let r = 1; r < rows.length; r++) {
+          const row = rows[r] || [];
+          const d = toNum(row[distCol]);
+          if (d === null) continue; // skip blank rows
+          const mx = toNum(row[maxCol]);
+          const mn = toNum(row[minCol]);
+          data.push({ d, mx, mn });
+        }
+        if (!data.length) continue;
+        state.sheets.push({ name, distCol, maxCol, minCol, data });
+        state.selected.add(name);
+      }
+      detectedSummary.textContent = state.sheets.length
+        ? `${state.sheets.length}개 시트 감지: ${state.sheets.map(s => s.name).join(', ')}`
+        : '적합한 시트를 찾지 못했습니다. (1행 헤더에 DISTANCE/MAX/MIN 필요)';
+    }
+
+    function toNum(v) {
+      if (v === null || v === undefined || v === '') return null;
+      const n = typeof v === 'number' ? v : parseFloat(v);
+      return isNaN(n) ? null : n;
+    }
+
+    function renderSheetList() {
+      // Wipe old children except empty state
+      Array.from(sheetList.children).forEach(c => { if (c !== emptySheets) c.remove(); });
+      const has = state.sheets.length > 0;
+      emptySheets.style.display = has ? 'none' : 'block';
+      sheetActions.classList.toggle('hidden', !has);
+      sheetCount.textContent = state.sheets.length;
+      if (!has) return;
+      for (const s of state.sheets) {
+        const row = document.createElement('label');
+        row.className = 'flex items-center gap-2 p-2 rounded-lg border border-outline-variant hover:bg-surface-container cursor-pointer';
+        const checked = state.selected.has(s.name);
+        row.innerHTML = `
+          <input type="checkbox" class="accent-primary rounded" ${checked ? 'checked' : ''}/>
+          <div class="flex-1 min-w-0">
+            <p class="font-label-md text-on-surface text-[13px] truncate">${s.name}</p>
+            <p class="font-body-sm text-[11px] text-secondary">${s.data.length}개 행</p>
+          </div>`;
+        const cb = row.querySelector('input');
+        cb.addEventListener('change', () => {
+          if (cb.checked) state.selected.add(s.name); else state.selected.delete(s.name);
+          buildPreview();
+        });
+        sheetList.appendChild(row);
+      }
+    }
+
+    btnSelectAll.addEventListener('click', () => {
+      state.sheets.forEach(s => state.selected.add(s.name));
+      renderSheetList();
+      buildPreview();
+    });
+    btnSelectNone.addEventListener('click', () => {
+      state.selected.clear();
+      renderSheetList();
+      buildPreview();
+    });
+
+    // --- Build consolidated data ---
+    function consolidate() {
+      // Pick sheets in workbook order that are selected
+      const sel = state.sheets.filter(s => state.selected.has(s.name));
+      if (!sel.length) return null;
+      // Union of DISTANCE values across selected sheets, sorted ascending.
+      const set = new Set();
+      for (const s of sel) for (const r of s.data) set.add(r.d);
+      const distances = Array.from(set).sort((a, b) => a - b);
+      // Per-sheet lookup for fast access
+      const lookup = new Map();
+      for (const s of sel) {
+        const m = new Map();
+        for (const r of s.data) m.set(r.d, r);
+        lookup.set(s.name, m);
+      }
+      const mode = document.querySelector('input[name="header-mode"]:checked').value;
+      const headers = ['DISTANCE'];
+      const sheetRow = ['']; // shown above headers if enabled
+      for (const s of sel) {
+        if (mode === 'prefixed') {
+          headers.push(s.name + '_MAX', s.name + '_MIN');
+        } else {
+          headers.push('MAX', 'MIN');
+        }
+        sheetRow.push(s.name, '');
+      }
+      const rows = [];
+      if (includeSheetRow.checked) rows.push(sheetRow);
+      rows.push(headers);
+      for (const d of distances) {
+        const out = [d];
+        for (const s of sel) {
+          const r = lookup.get(s.name).get(d);
+          out.push(r ? r.mx : null, r ? r.mn : null);
+        }
+        rows.push(out);
+      }
+      return { rows, sheets: sel };
+    }
+
+    function buildPreview() {
+      const result = consolidate();
+      if (!result) {
+        previewTable.classList.add('hidden');
+        previewEmpty.style.display = 'flex';
+        previewMeta.textContent = '';
+        btnDownload.disabled = true;
+        return;
+      }
+      previewEmpty.style.display = 'none';
+      previewTable.classList.remove('hidden');
+      btnDownload.disabled = false;
+      previewMeta.textContent = `${result.sheets.length}개 시트 · ${result.rows.length - (includeSheetRow.checked ? 2 : 1)}행 데이터`;
+
+      // Render as HTML table (cap preview rows for performance)
+      const maxRows = 300;
+      const headerRowCount = includeSheetRow.checked ? 2 : 1;
+      previewThead.innerHTML = '';
+      previewTbody.innerHTML = '';
+      for (let i = 0; i < headerRowCount; i++) {
+        const tr = document.createElement('tr');
+        for (const cell of result.rows[i]) {
+          const th = document.createElement('th');
+          th.textContent = cell == null ? '' : cell;
+          th.className = 'px-3 py-1.5 text-left border-b border-outline-variant font-label-md text-on-surface-variant bg-surface-container';
+          tr.appendChild(th);
+        }
+        previewThead.appendChild(tr);
+      }
+      const dataRows = result.rows.slice(headerRowCount);
+      const shownRows = dataRows.slice(0, maxRows);
+      for (const r of shownRows) {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-surface-container';
+        for (const v of r) {
+          const td = document.createElement('td');
+          td.textContent = v == null ? '' : (typeof v === 'number' ? (Math.round(v * 10000) / 10000) : v);
+          td.className = 'px-3 py-1 border-b border-outline-variant text-on-surface';
+          tr.appendChild(td);
+        }
+        previewTbody.appendChild(tr);
+      }
+      if (dataRows.length > maxRows) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = result.rows[0].length;
+        td.className = 'px-3 py-2 text-center text-secondary text-body-sm';
+        td.textContent = `… 나머지 ${dataRows.length - maxRows}행은 다운로드 파일에 포함됩니다.`;
+        tr.appendChild(td);
+        previewTbody.appendChild(tr);
+      }
+    }
+
+    document.querySelectorAll('input[name="header-mode"]').forEach(el => el.addEventListener('change', buildPreview));
+    includeSheetRow.addEventListener('change', buildPreview);
+
+    btnDownload.addEventListener('click', () => {
+      const result = consolidate();
+      if (!result) return;
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(result.rows);
+      // Merge the per-sheet name cells on the top row (e.g., A over its MAX/MIN pair)
+      if (includeSheetRow.checked) {
+        const merges = [];
+        let c = 1;
+        for (const s of result.sheets) {
+          merges.push({ s: { r: 0, c }, e: { r: 0, c: c + 1 } });
+          c += 2;
+        }
+        ws['!merges'] = merges;
+      }
+      // Column widths
+      const cols = [{ wch: 10 }];
+      for (let i = 0; i < result.sheets.length; i++) cols.push({ wch: 9 }, { wch: 9 });
+      ws['!cols'] = cols;
+      const sheetName = (outSheetName.value || '통합').slice(0, 31);
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      const filename = (outFileName.value || 'consolidated.xlsx').replace(/\.xlsx?$/i, '') + '.xlsx';
+      XLSX.writeFile(wb, filename);
+    });
   </script>
 </body>
 </html>
