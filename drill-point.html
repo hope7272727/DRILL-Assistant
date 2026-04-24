@@ -586,12 +586,12 @@
     function setPickMode(on) {
       state.pickMode = on;
       state.pickedPoints = [];
-      pickLabel.textContent = on ? '취소' : '두 점으로 정렬';
+      pickLabel.textContent = on ? '취소' : '두 점으로 정렬 (Space)';
       btnPick.classList.toggle('bg-secondary-container', on);
       btnPick.classList.toggle('text-on-surface', on);
       btnPick.classList.toggle('border', !on);
       btnPick.classList.toggle('text-secondary', !on);
-      canvas.style.cursor = on ? 'crosshair' : '';
+      canvas.style.cursor = on ? 'crosshair' : (state.activeIdx >= 0 ? 'grab' : '');
       renderActive();
     }
 
