@@ -67,9 +67,9 @@
                 <span class="material-symbols-outlined text-[18px]">visibility</span>
                 <span id="toggle-label">정렬 후</span>
               </button>
-              <button id="btn-crosshair" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 min-w-[104px] justify-center">
+              <button id="btn-crosshair" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 min-w-[124px] justify-center" title="단축키: X">
                 <span class="material-symbols-outlined text-[18px]">add</span>
-                <span id="crosshair-label">십자선 끄기</span>
+                <span id="crosshair-label">십자선 끄기 (X)</span>
               </button>
               <button id="btn-dxf-toggle" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 min-w-[104px] justify-center disabled:opacity-40 disabled:cursor-not-allowed" disabled title="단축키: D">
                 <span class="material-symbols-outlined text-[18px]">architecture</span>
@@ -119,11 +119,6 @@
             <p class="font-body-sm text-secondary text-[11px] mt-1">캔버스 드래그로 사진 이동 (DXF/십자선은 고정)</p>
           </div>
 
-          <div>
-            <label class="font-label-sm text-on-surface block mb-1">배경색 (빈 모서리)</label>
-            <input id="bg-color" type="color" value="#000000" class="w-full h-9 rounded border border-outline-variant cursor-pointer disabled:opacity-40" disabled/>
-            <p class="font-body-sm text-secondary text-[11px] mt-1">기본은 사진 코너 색을 자동으로 따라갑니다</p>
-          </div>
 
           <div>
             <label class="font-label-sm text-on-surface block mb-1">저장 폴더</label>
@@ -153,13 +148,6 @@
               <span id="dxf-scale-val" class="font-code text-label-sm text-secondary">1.00x</span>
             </div>
             <input id="dxf-scale" type="range" min="0.1" max="100" step="0.1" value="1" disabled
-                   class="w-full h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary disabled:opacity-40"/>
-
-            <div class="flex items-center justify-between mb-1 mt-2">
-              <label class="font-label-sm text-on-surface">회전 (°)</label>
-              <span id="dxf-rot-val" class="font-code text-label-sm text-secondary">0.0</span>
-            </div>
-            <input id="dxf-rot" type="range" min="-180" max="180" step="0.1" value="0" disabled
                    class="w-full h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary disabled:opacity-40"/>
 
             <div class="flex items-center justify-between mt-2 gap-2">
@@ -194,7 +182,6 @@
       dxfName: '',
       dxfVisible: false,
       dxfScaleUser: 1,   // multiplier on top of fit-scale
-      dxfRotationDeg: 0,
       dxfColor: '#e53935',
       dxfFitScale: 1,    // computed on load + canvas resize
       // Photo offset from canvas center (display-only, not baked into export)
@@ -217,7 +204,6 @@
     const imageCache = document.createElement('canvas');
     const angleInput = $('angle');
     const angleSlider = $('angle-slider');
-    const bgColorInput = $('bg-color');
     const meta = $('meta');
     const btnDownload = $('btn-download');
     const btnDownloadAll = $('btn-download-all');
@@ -243,8 +229,6 @@
     const dxfToggleLabel = $('dxf-toggle-label');
     const dxfScaleInput = $('dxf-scale');
     const dxfScaleVal = $('dxf-scale-val');
-    const dxfRotInput = $('dxf-rot');
-    const dxfRotVal = $('dxf-rot-val');
     const dxfColorInput = $('dxf-color');
     const btnDxfReset = $('btn-dxf-reset');
 
@@ -304,7 +288,6 @@
       btnPhotoCenter.disabled = !hasActive;
       angleInput.disabled = !hasActive;
       angleSlider.disabled = !hasActive;
-      bgColorInput.disabled = !hasActive;
     }
 
     function fitCanvas() {
@@ -354,7 +337,7 @@
         cx: canvas.width / 2,
         cy: canvas.height / 2,
         scale: state.dxfFitScale * state.dxfScaleUser,
-        rotationRad: state.dxfRotationDeg * Math.PI / 180,
+        rotationRad: 0,
         color: state.dxfColor,
         lineWidth: Math.max(1, 1.5 * dpr),
         alpha: 0.9,
@@ -389,7 +372,6 @@
       meta.textContent = `${it.image.naturalWidth} × ${it.image.naturalHeight} · ${it.name} ${picking}`;
       angleInput.value = it.angle.toFixed(2);
       angleSlider.value = it.angle.toFixed(2);
-      bgColorInput.value = rgbToHex(it.bg);
     }
 
     function rgbToHex(css) {
@@ -549,11 +531,6 @@
       }
     });
 
-    bgColorInput.addEventListener('input', (e) => {
-      const it = state.items[state.activeIdx]; if (!it) return;
-      it.bg = hexToCss(e.target.value);
-      renderActive();
-    });
 
     btnReset.addEventListener('click', () => {
       const it = state.items[state.activeIdx]; if (!it) return;
@@ -569,15 +546,17 @@
       renderActive();
     });
 
-    btnCrosshair.addEventListener('click', () => {
-      state.showCrosshair = !state.showCrosshair;
-      crosshairLabel.textContent = state.showCrosshair ? '십자선 끄기' : '십자선 켜기';
-      btnCrosshair.classList.toggle('bg-secondary-container', state.showCrosshair);
-      btnCrosshair.classList.toggle('text-on-surface', state.showCrosshair);
-      btnCrosshair.classList.toggle('border', !state.showCrosshair);
-      btnCrosshair.classList.toggle('text-secondary', !state.showCrosshair);
-      renderActive();
-    });
+    function setCrosshair(on) {
+      state.showCrosshair = on;
+      crosshairLabel.textContent = on ? '십자선 끄기 (X)' : '십자선 켜기 (X)';
+      btnCrosshair.classList.toggle('bg-secondary-container', on);
+      btnCrosshair.classList.toggle('text-on-surface', on);
+      btnCrosshair.classList.toggle('border', !on);
+      btnCrosshair.classList.toggle('text-secondary', !on);
+      blitAndOverlay();
+    }
+
+    btnCrosshair.addEventListener('click', () => setCrosshair(!state.showCrosshair));
 
     // Initialize crosshair button visual state to match showCrosshair = true
     btnCrosshair.classList.add('bg-secondary-container', 'text-on-surface');
@@ -649,6 +628,12 @@
         if (!state.dxf) return;
         e.preventDefault();
         setDxfVisible(!state.dxfVisible);
+        return;
+      }
+      // X toggles crosshair
+      if (e.key === 'x' || e.key === 'X' || e.key === 'ㅌ') {
+        e.preventDefault();
+        setCrosshair(!state.showCrosshair);
       }
     });
 
@@ -667,12 +652,9 @@
       const has = !!state.dxf;
       btnDxfToggle.disabled = !has;
       dxfScaleInput.disabled = !has;
-      dxfRotInput.disabled = !has;
       btnDxfReset.disabled = !has;
       dxfScaleInput.value = state.dxfScaleUser;
       dxfScaleVal.textContent = state.dxfScaleUser.toFixed(2) + 'x';
-      dxfRotInput.value = state.dxfRotationDeg;
-      dxfRotVal.textContent = state.dxfRotationDeg.toFixed(1);
       dxfColorInput.value = state.dxfColor;
     }
 
@@ -689,10 +671,7 @@
         } else {
           state.dxf = dxf;
           state.dxfName = f.name;
-          state.dxfOffsetX = 0;
-          state.dxfOffsetY = 0;
           state.dxfScaleUser = 1;
-          state.dxfRotationDeg = 0;
           computeDxfFitScale();
           dxfFileName.textContent = `${f.name} (${dxf.entities.length}개 엔티티)`;
           dxfFileName.classList.remove('text-error');
@@ -719,12 +698,6 @@
       blitAndOverlay();
     });
 
-    dxfRotInput.addEventListener('input', (e) => {
-      state.dxfRotationDeg = parseFloat(e.target.value);
-      dxfRotVal.textContent = state.dxfRotationDeg.toFixed(1);
-      blitAndOverlay();
-    });
-
     dxfColorInput.addEventListener('input', (e) => {
       state.dxfColor = e.target.value;
       blitAndOverlay();
@@ -732,7 +705,6 @@
 
     btnDxfReset.addEventListener('click', () => {
       state.dxfScaleUser = 1;
-      state.dxfRotationDeg = 0;
       refreshDxfControls();
       blitAndOverlay();
     });
@@ -825,7 +797,7 @@
             cx: cxExport,
             cy: cyExport,
             scale: dxfScaleExport,
-            rotationRad: state.dxfRotationDeg * Math.PI / 180,
+            rotationRad: 0,
             color: state.dxfColor,
             lineWidth: Math.max(1.5, 1.5 * dpr / sDisp),
             alpha: 0.9,
