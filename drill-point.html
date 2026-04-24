@@ -71,6 +71,10 @@
                 <span class="material-symbols-outlined text-[18px]">add</span>
                 <span id="crosshair-label">십자선 끄기</span>
               </button>
+              <button id="btn-dxf-toggle" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 min-w-[104px] justify-center disabled:opacity-40 disabled:cursor-not-allowed" disabled title="단축키: D">
+                <span class="material-symbols-outlined text-[18px]">architecture</span>
+                <span id="dxf-toggle-label">DXF (D)</span>
+              </button>
               <button id="btn-pick" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 min-w-[170px] justify-center" title="단축키: Space">
                 <span class="material-symbols-outlined text-[18px]">touch_app</span>
                 <span id="pick-label">두 점으로 정렬 (Space)</span>
@@ -122,6 +126,41 @@
               <p id="folder-name" class="font-body-sm text-secondary text-[11px] truncate">미선택 — 다운로드 폴더로 저장됩니다</p>
             </div>
           </div>
+
+          <div class="border-t border-outline-variant pt-md">
+            <h3 class="font-label-md text-on-surface flex items-center gap-2 mb-sm">
+              <span class="material-symbols-outlined text-[18px]">architecture</span>
+              DXF 비교
+            </h3>
+            <label class="px-3 py-2 border border-outline-variant rounded text-on-surface text-body-sm hover:bg-surface-variant flex items-center justify-center gap-1 cursor-pointer mb-1">
+              <input id="dxf-input" type="file" accept=".dxf" class="hidden"/>
+              <span class="material-symbols-outlined text-[18px]">upload_file</span>
+              <span id="dxf-file-btn">DXF 파일 선택</span>
+            </label>
+            <p id="dxf-file-name" class="font-body-sm text-secondary text-[11px] truncate mb-2">파일 없음</p>
+
+            <div class="flex items-center justify-between mb-1">
+              <label class="font-label-sm text-on-surface">크기</label>
+              <span id="dxf-scale-val" class="font-code text-label-sm text-secondary">1.00x</span>
+            </div>
+            <input id="dxf-scale" type="range" min="0.1" max="5" step="0.01" value="1" disabled
+                   class="w-full h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary disabled:opacity-40"/>
+
+            <div class="flex items-center justify-between mb-1 mt-2">
+              <label class="font-label-sm text-on-surface">회전 (°)</label>
+              <span id="dxf-rot-val" class="font-code text-label-sm text-secondary">0.0</span>
+            </div>
+            <input id="dxf-rot" type="range" min="-180" max="180" step="0.1" value="0" disabled
+                   class="w-full h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary disabled:opacity-40"/>
+
+            <div class="flex items-center justify-between mt-2 gap-2">
+              <label class="font-label-sm text-on-surface">색상</label>
+              <input id="dxf-color" type="color" value="#e53935" class="w-16 h-7 rounded border border-outline-variant cursor-pointer"/>
+            </div>
+
+            <button id="btn-dxf-reset" disabled class="mt-2 px-3 py-1.5 border border-outline-variant rounded text-secondary text-body-sm hover:bg-surface-variant disabled:opacity-40 w-full">위치/크기 초기화</button>
+            <p class="font-body-sm text-secondary text-[11px] mt-1">캔버스 드래그로 이동, 휠로 크기 조절</p>
+          </div>
         </div>
       </div>
     </div>
@@ -129,6 +168,7 @@
 
   <script src="assets/shell.js"></script>
   <script src="assets/align.js"></script>
+  <script src="assets/dxf.js"></script>
   <script>
     renderShell('drill-point');
 
@@ -141,6 +181,17 @@
       saveDir: null,     // FileSystemDirectoryHandle (Chromium only)
       pickMode: false,
       pickedPoints: [],  // up to 2 points in canvas pixel coords
+      dxf: null,         // parsed { entities, bbox }
+      dxfName: '',
+      dxfVisible: false,
+      dxfScaleUser: 1,   // multiplier on top of fit-scale
+      dxfOffsetX: 0,     // canvas pixels from center
+      dxfOffsetY: 0,
+      dxfRotationDeg: 0,
+      dxfColor: '#e53935',
+      dxfFitScale: 1,    // computed on load + canvas resize
+      dxfDragging: false,
+      dxfDragStart: null,
     };
 
     // DOM
@@ -172,6 +223,19 @@
     const folderName = $('folder-name');
     const folderBtnLabel = $('folder-btn-label');
     const fileCount = $('file-count');
+
+    // DXF
+    const dxfInput = $('dxf-input');
+    const dxfFileName = $('dxf-file-name');
+    const dxfFileBtn = $('dxf-file-btn');
+    const btnDxfToggle = $('btn-dxf-toggle');
+    const dxfToggleLabel = $('dxf-toggle-label');
+    const dxfScaleInput = $('dxf-scale');
+    const dxfScaleVal = $('dxf-scale-val');
+    const dxfRotInput = $('dxf-rot');
+    const dxfRotVal = $('dxf-rot-val');
+    const dxfColorInput = $('dxf-color');
+    const btnDxfReset = $('btn-dxf-reset');
 
     function drawCrosshair() {
       if (!state.showCrosshair) return;
@@ -246,6 +310,7 @@
       if (changed) {
         canvas.width = newW; canvas.height = newH;
         imageCache.width = newW; imageCache.height = newH;
+        computeDxfFitScale();
       }
       return changed;
     }
@@ -256,11 +321,37 @@
       DrillAlign.renderRotated(it.image, imageCache, angle, it.bg);
     }
 
+    function computeDxfFitScale() {
+      if (!state.dxf || !state.dxf.bbox) { state.dxfFitScale = 1; return; }
+      const { w: bw, h: bh } = state.dxf.bbox;
+      const W = canvas.width, H = canvas.height;
+      // Fit DXF bbox to 70% of the smaller canvas dimension
+      const fit = 0.7 * Math.min(W / bw, H / bh);
+      state.dxfFitScale = isFinite(fit) && fit > 0 ? fit : 1;
+    }
+
+    function drawDxfOverlay() {
+      if (!state.dxf || !state.dxfVisible) return;
+      const dpr = window.devicePixelRatio || 1;
+      const ctx = canvas.getContext('2d');
+      const placement = {
+        cx: canvas.width / 2 + state.dxfOffsetX,
+        cy: canvas.height / 2 + state.dxfOffsetY,
+        scale: state.dxfFitScale * state.dxfScaleUser,
+        rotationRad: state.dxfRotationDeg * Math.PI / 180,
+        color: state.dxfColor,
+        lineWidth: Math.max(1, 1.5 * dpr),
+        alpha: 0.9,
+      };
+      DrillDXF.drawDXF(ctx, state.dxf, placement);
+    }
+
     function blitAndOverlay() {
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(imageCache, 0, 0);
       drawCrosshair();
+      drawDxfOverlay();
       drawPickedPoints();
     }
 
@@ -526,15 +617,140 @@
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && state.pickMode) { setPickMode(false); return; }
-      // Space toggles two-point pick mode (skip when typing in an input/textarea)
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      // Space toggles two-point pick mode
       if (e.code === 'Space' || e.key === ' ') {
         if (state.activeIdx < 0) return;
         e.preventDefault();
         setPickMode(!state.pickMode);
+        return;
+      }
+      // D toggles DXF overlay
+      if (e.key === 'd' || e.key === 'D' || e.key === 'ㅇ') {
+        if (!state.dxf) return;
+        e.preventDefault();
+        setDxfVisible(!state.dxfVisible);
       }
     });
+
+    // ===== DXF integration =====
+    function setDxfVisible(on) {
+      state.dxfVisible = on;
+      dxfToggleLabel.textContent = on ? 'DXF 켜짐 (D)' : 'DXF (D)';
+      btnDxfToggle.classList.toggle('bg-secondary-container', on);
+      btnDxfToggle.classList.toggle('text-on-surface', on);
+      btnDxfToggle.classList.toggle('border', !on);
+      btnDxfToggle.classList.toggle('text-secondary', !on);
+      blitAndOverlay();
+    }
+
+    function refreshDxfControls() {
+      const has = !!state.dxf;
+      btnDxfToggle.disabled = !has;
+      dxfScaleInput.disabled = !has;
+      dxfRotInput.disabled = !has;
+      btnDxfReset.disabled = !has;
+      dxfScaleInput.value = state.dxfScaleUser;
+      dxfScaleVal.textContent = state.dxfScaleUser.toFixed(2) + 'x';
+      dxfRotInput.value = state.dxfRotationDeg;
+      dxfRotVal.textContent = state.dxfRotationDeg.toFixed(1);
+      dxfColorInput.value = state.dxfColor;
+    }
+
+    dxfInput.addEventListener('change', async (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const text = await f.text();
+      try {
+        const dxf = DrillDXF.parseDXF(text);
+        if (!dxf.entities.length || !dxf.bbox) {
+          dxfFileName.textContent = '읽을 수 있는 엔티티가 없습니다';
+          dxfFileName.classList.add('text-error');
+          state.dxf = null;
+        } else {
+          state.dxf = dxf;
+          state.dxfName = f.name;
+          state.dxfOffsetX = 0;
+          state.dxfOffsetY = 0;
+          state.dxfScaleUser = 1;
+          state.dxfRotationDeg = 0;
+          computeDxfFitScale();
+          dxfFileName.textContent = `${f.name} (${dxf.entities.length}개 엔티티)`;
+          dxfFileName.classList.remove('text-error');
+          setDxfVisible(true);
+        }
+      } catch (err) {
+        console.warn(err);
+        dxfFileName.textContent = '파싱 실패: ' + err.message;
+        dxfFileName.classList.add('text-error');
+      }
+      dxfInput.value = '';
+      refreshDxfControls();
+      blitAndOverlay();
+    });
+
+    btnDxfToggle.addEventListener('click', () => {
+      if (!state.dxf) return;
+      setDxfVisible(!state.dxfVisible);
+    });
+
+    dxfScaleInput.addEventListener('input', (e) => {
+      state.dxfScaleUser = parseFloat(e.target.value);
+      dxfScaleVal.textContent = state.dxfScaleUser.toFixed(2) + 'x';
+      blitAndOverlay();
+    });
+
+    dxfRotInput.addEventListener('input', (e) => {
+      state.dxfRotationDeg = parseFloat(e.target.value);
+      dxfRotVal.textContent = state.dxfRotationDeg.toFixed(1);
+      blitAndOverlay();
+    });
+
+    dxfColorInput.addEventListener('input', (e) => {
+      state.dxfColor = e.target.value;
+      blitAndOverlay();
+    });
+
+    btnDxfReset.addEventListener('click', () => {
+      state.dxfOffsetX = 0;
+      state.dxfOffsetY = 0;
+      state.dxfScaleUser = 1;
+      state.dxfRotationDeg = 0;
+      refreshDxfControls();
+      blitAndOverlay();
+    });
+
+    // Drag DXF with mouse when overlay is visible and pick mode is off
+    canvas.addEventListener('mousedown', (e) => {
+      if (state.pickMode || !state.dxfVisible || !state.dxf) return;
+      const p = getCanvasCoord(e);
+      state.dxfDragging = true;
+      state.dxfDragStart = { x: p.x, y: p.y, ox: state.dxfOffsetX, oy: state.dxfOffsetY };
+      canvas.style.cursor = 'grabbing';
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!state.dxfDragging) return;
+      const p = getCanvasCoord(e);
+      state.dxfOffsetX = state.dxfDragStart.ox + (p.x - state.dxfDragStart.x);
+      state.dxfOffsetY = state.dxfDragStart.oy + (p.y - state.dxfDragStart.y);
+      blitAndOverlay();
+    });
+    window.addEventListener('mouseup', () => {
+      if (!state.dxfDragging) return;
+      state.dxfDragging = false;
+      canvas.style.cursor = state.pickMode ? 'crosshair' : '';
+    });
+
+    // Wheel to scale DXF (only when visible and pick mode off)
+    canvas.addEventListener('wheel', (e) => {
+      if (state.pickMode || !state.dxfVisible || !state.dxf) return;
+      e.preventDefault();
+      const factor = Math.exp(-e.deltaY * 0.001);
+      state.dxfScaleUser = Math.max(0.05, Math.min(10, state.dxfScaleUser * factor));
+      refreshDxfControls();
+      blitAndOverlay();
+    }, { passive: false });
 
     async function saveBlobToFolder(blob, filename) {
       if (state.saveDir) {
