@@ -133,9 +133,9 @@
               DXF 비교
             </h3>
             <label class="px-3 py-2 border border-outline-variant rounded text-on-surface text-body-sm hover:bg-surface-variant flex items-center justify-center gap-1 cursor-pointer mb-1">
-              <input id="dxf-input" type="file" accept=".dxf" class="hidden"/>
+              <input id="dxf-input" type="file" accept=".dxf,.dwg" class="hidden"/>
               <span class="material-symbols-outlined text-[18px]">upload_file</span>
-              <span id="dxf-file-btn">DXF 파일 선택</span>
+              <span id="dxf-file-btn">DXF / DWG 파일 선택</span>
             </label>
             <p id="dxf-file-name" class="font-body-sm text-secondary text-[11px] truncate mb-2">파일 없음</p>
 
@@ -143,7 +143,7 @@
               <label class="font-label-sm text-on-surface">크기</label>
               <span id="dxf-scale-val" class="font-code text-label-sm text-secondary">1.00x</span>
             </div>
-            <input id="dxf-scale" type="range" min="0.1" max="5" step="0.01" value="1" disabled
+            <input id="dxf-scale" type="range" min="0.1" max="50" step="0.05" value="1" disabled
                    class="w-full h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary disabled:opacity-40"/>
 
             <div class="flex items-center justify-between mb-1 mt-2">
@@ -658,9 +658,30 @@
       dxfColorInput.value = state.dxfColor;
     }
 
+    function isBinaryDWG(buf) {
+      // DWG files start with "AC" + 4-char version code (e.g., AC1027)
+      if (buf.length < 6) return false;
+      return buf[0] === 0x41 && buf[1] === 0x43; // 'A','C'
+    }
+
     dxfInput.addEventListener('change', async (e) => {
       const f = e.target.files && e.target.files[0];
       if (!f) return;
+      const lname = f.name.toLowerCase();
+      // Sniff first bytes — handles files mis-labelled by extension.
+      const headBuf = new Uint8Array(await f.slice(0, 8).arrayBuffer());
+      const looksDwg = lname.endsWith('.dwg') || isBinaryDWG(headBuf);
+      if (looksDwg) {
+        dxfFileName.innerHTML =
+          'DWG는 브라우저에서 직접 열 수 없어요.<br/>' +
+          '<a href="https://cloudconvert.com/dwg-to-dxf" target="_blank" class="underline">DXF로 변환</a>해서 다시 올려주세요.';
+        dxfFileName.classList.add('text-error');
+        state.dxf = null;
+        refreshDxfControls();
+        dxfInput.value = '';
+        blitAndOverlay();
+        return;
+      }
       const text = await f.text();
       try {
         const dxf = DrillDXF.parseDXF(text);
@@ -747,7 +768,7 @@
       if (state.pickMode || !state.dxfVisible || !state.dxf) return;
       e.preventDefault();
       const factor = Math.exp(-e.deltaY * 0.001);
-      state.dxfScaleUser = Math.max(0.05, Math.min(10, state.dxfScaleUser * factor));
+      state.dxfScaleUser = Math.max(0.05, Math.min(50, state.dxfScaleUser * factor));
       refreshDxfControls();
       blitAndOverlay();
     }, { passive: false });
