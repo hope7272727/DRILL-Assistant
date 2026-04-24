@@ -804,9 +804,37 @@
 
     async function exportItem(it) {
       const cv = DrillAlign.exportRotated(it.image, it.angle, it.bg);
+
+      // Bake DXF overlay into the export when visible. Crosshair is NEVER
+      // baked (display-only). Photo offset is NOT applied to the exported
+      // image itself (rotation only), so we offset the DXF instead so that
+      // the DXF sits at the same image-relative location as seen on screen.
+      if (state.dxfVisible && state.dxf) {
+        const ctx = cv.getContext('2d');
+        const iw = it.image.naturalWidth, ih = it.image.naturalHeight;
+        const Wd = canvas.width, Hd = canvas.height;
+        const sDisp = Math.min(Wd / iw, Hd / ih);
+        if (sDisp > 0 && isFinite(sDisp)) {
+          const dpr = window.devicePixelRatio || 1;
+          const dxfScaleExport = (state.dxfFitScale * state.dxfScaleUser) / sDisp;
+          // Display: DXF at (Wd/2, Hd/2), photo centre at (Wd/2 + photoOffset).
+          // In image-pixel space the DXF sits at photo-centre minus photoOffset/sDisp.
+          const cxExport = iw / 2 - state.photoOffsetX / sDisp;
+          const cyExport = ih / 2 - state.photoOffsetY / sDisp;
+          DrillDXF.drawDXF(ctx, state.dxf, {
+            cx: cxExport,
+            cy: cyExport,
+            scale: dxfScaleExport,
+            rotationRad: state.dxfRotationDeg * Math.PI / 180,
+            color: state.dxfColor,
+            lineWidth: Math.max(1.5, 1.5 * dpr / sDisp),
+            alpha: 0.9,
+          });
+        }
+      }
+
       const ext = (it.name.match(/\.[^.]+$/) || ['.png'])[0];
       const stem = it.name.slice(0, it.name.length - ext.length);
-      // Match input format: PNG for .png inputs, JPEG otherwise.
       const isJpeg = /^\.jpe?g$/i.test(ext);
       const mime = isJpeg ? 'image/jpeg' : 'image/png';
       const blob = await new Promise(res => cv.toBlob(res, mime, isJpeg ? 0.95 : undefined));
