@@ -167,7 +167,7 @@
 
     ctx.save();
     ctx.globalAlpha = alpha != null ? alpha : 1;
-    ctx.strokeStyle = color || '#e53935';
+    ctx.strokeStyle = color || '#ff0000';
     ctx.lineWidth = lineWidth || 2;
     ctx.beginPath();
 

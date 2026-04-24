@@ -168,7 +168,7 @@
 
             <div class="flex items-center justify-between mt-2 gap-2">
               <label class="font-label-sm text-on-surface">색상</label>
-              <input id="dxf-color" type="color" value="#e53935" class="w-16 h-7 rounded border border-outline-variant cursor-pointer"/>
+              <input id="dxf-color" type="color" value="#ff0000" class="w-16 h-7 rounded border border-outline-variant cursor-pointer"/>
             </div>
 
             <button id="btn-dxf-reset" disabled class="mt-2 px-3 py-1.5 border border-outline-variant rounded text-secondary text-body-sm hover:bg-surface-variant disabled:opacity-40 w-full">위치/크기 초기화</button>
@@ -198,7 +198,7 @@
       dxfName: '',
       dxfVisible: false,
       dxfScaleUser: 1,   // multiplier on top of fit-scale
-      dxfColor: '#e53935',
+      dxfColor: '#ff0000',
       dxfFitScale: 1,    // computed on load + canvas resize
       // Photo offset from canvas center (display-only, not baked into export)
       photoOffsetX: 0,
@@ -259,7 +259,7 @@
       const ctx = canvas.getContext('2d');
       const W = canvas.width, H = canvas.height;
       ctx.save();
-      ctx.strokeStyle = '#e53935';
+      ctx.strokeStyle = '#ff0000';
       ctx.lineWidth = Math.max(1, Math.round((window.devicePixelRatio || 1) * 1.2));
       ctx.beginPath();
       ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2);
