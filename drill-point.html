@@ -195,26 +195,21 @@
 
     // App state
     const state = {
-      items: [],         // [{name, image, threshold, autoAngle, angle, bg}]
+      items: [],         // per-item fields include their own dxf/scale/offset
       activeIdx: -1,
       showOriginal: false,
       showCrosshair: false,
       saveDir: null,     // FileSystemDirectoryHandle (Chromium only)
       pickMode: false,
       pickedPoints: [],  // up to 2 points in canvas pixel coords
-      dxf: null,         // parsed { entities, bbox }
-      dxfName: '',
-      dxfText: '',       // raw DXF text, kept so we can save to library
-      dxfVisible: false,
-      dxfScaleUser: 1,   // multiplier on top of fit-scale
-      dxfColor: '#ff0000',
-      dxfFitScale: 1,    // computed on load + canvas resize
-      // Photo offset from canvas center (display-only, not baked into export)
-      photoOffsetX: 0,
-      photoOffsetY: 0,
+      dxfColor: '#ff0000', // shared across photos — user preference
       photoDragging: false,
       photoDragStart: null,
     };
+
+    function activeItem() {
+      return state.activeIdx >= 0 ? state.items[state.activeIdx] : null;
+    }
 
     // DOM
     const $ = (id) => document.getElementById(id);
@@ -350,34 +345,36 @@
       const angle = state.showOriginal ? 0 : it.angle;
       DrillAlign.renderRotated(
         it.image, imageCache, angle, it.bg,
-        state.photoOffsetX, state.photoOffsetY
+        it.photoOffsetX, it.photoOffsetY
       );
     }
 
     function computeDxfFitScale() {
-      if (!state.dxf || !state.dxf.bbox) { state.dxfFitScale = 1; return; }
-      const { w: bw, h: bh } = state.dxf.bbox;
+      const it = activeItem();
+      if (!it || !it.dxf || !it.dxf.bbox) return;
+      const { w: bw, h: bh } = it.dxf.bbox;
       const W = canvas.width, H = canvas.height;
       // Fit DXF bbox to 70% of the smaller canvas dimension
       const fit = 0.7 * Math.min(W / bw, H / bh);
-      state.dxfFitScale = isFinite(fit) && fit > 0 ? fit : 1;
+      it.dxfFitScale = isFinite(fit) && fit > 0 ? fit : 1;
     }
 
     function drawDxfOverlay() {
-      if (!state.dxf || !state.dxfVisible) return;
+      const it = activeItem();
+      if (!it || !it.dxf || !it.dxfVisible) return;
       const dpr = window.devicePixelRatio || 1;
       const ctx = canvas.getContext('2d');
       // DXF stays pinned at canvas centre; the photo moves to meet it.
       const placement = {
         cx: canvas.width / 2,
         cy: canvas.height / 2,
-        scale: state.dxfFitScale * state.dxfScaleUser,
+        scale: it.dxfFitScale * it.dxfScaleUser,
         rotationRad: 0,
         color: state.dxfColor,
         lineWidth: Math.max(1, 1.5 * dpr),
         alpha: 0.9,
       };
-      DrillDXF.drawDXF(ctx, state.dxf, placement);
+      DrillDXF.drawDXF(ctx, it.dxf, placement);
     }
 
     function blitAndOverlay() {
@@ -447,6 +444,7 @@
           </button>`;
         row.querySelector('.item-select').addEventListener('click', () => {
           state.activeIdx = i;
+          syncUIForActive();
           renderFileList();
           renderActive();
         });
@@ -470,6 +468,7 @@
         state.activeIdx--;
       }
       state.pickedPoints = [];
+      syncUIForActive();
       setEnabled();
       renderFileList();
       renderActive();
@@ -511,9 +510,19 @@
           bg: bg.css,
           brightCount: 0,
           thumb: makeThumb(image),
+          // Per-photo DXF + positioning state
+          dxf: null,
+          dxfName: '',
+          dxfText: '',
+          dxfVisible: false,
+          dxfScaleUser: 100,
+          dxfFitScale: 1,
+          photoOffsetX: 0,
+          photoOffsetY: 0,
         });
       }
       if (state.activeIdx < 0 && state.items.length > 0) state.activeIdx = 0;
+      syncUIForActive();
       setEnabled();
       renderFileList();
       renderActive();
@@ -669,43 +678,82 @@
     });
 
     // ===== DXF integration =====
-    function setDxfVisible(on) {
-      state.dxfVisible = on;
+    function updateDxfButtonVisual(on) {
       dxfToggleLabel.textContent = on ? 'DXF 켜짐 (D)' : 'DXF (D)';
       btnDxfToggle.classList.toggle('bg-secondary-container', on);
       btnDxfToggle.classList.toggle('text-on-surface', on);
       btnDxfToggle.classList.toggle('border', !on);
       btnDxfToggle.classList.toggle('text-secondary', !on);
+    }
+
+    function setDxfVisible(on) {
+      const it = activeItem();
+      if (it) it.dxfVisible = on;
+      updateDxfButtonVisual(it ? it.dxfVisible : false);
       blitAndOverlay();
     }
 
     function refreshDxfControls() {
-      const has = !!state.dxf;
+      const it = activeItem();
+      const has = !!(it && it.dxf);
       btnDxfToggle.disabled = !has;
       dxfScaleInput.disabled = !has;
       btnDxfReset.disabled = !has;
-      btnDxfLibSave.disabled = !state.dxfText;
-      dxfScaleInput.value = state.dxfScaleUser;
-      dxfScaleVal.textContent = state.dxfScaleUser.toFixed(2) + 'x';
+      btnDxfLibSave.disabled = !(it && it.dxfText);
+      if (it) {
+        dxfScaleInput.value = it.dxfScaleUser;
+        dxfScaleVal.textContent = it.dxfScaleUser.toFixed(2) + 'x';
+      } else {
+        dxfScaleInput.value = 1;
+        dxfScaleVal.textContent = '1.00x';
+      }
       dxfColorInput.value = state.dxfColor;
+    }
+
+    function syncUIForActive() {
+      const it = activeItem();
+      if (it) {
+        dxfFileName.classList.remove('text-error');
+        dxfFileName.textContent = it.dxf
+          ? `${it.dxfName} (${it.dxf.entities.length}개 엔티티)`
+          : '파일 없음';
+        updateDxfButtonVisual(it.dxfVisible);
+        computeDxfFitScale();
+      } else {
+        dxfFileName.textContent = '파일 없음';
+        dxfFileName.classList.remove('text-error');
+        updateDxfButtonVisual(false);
+      }
+      // Clear transient interaction state when switching
+      state.pickedPoints = [];
+      state.photoDragging = false;
+      dxfLibSelect.value = '';
+      btnDxfLibDel.disabled = true;
+      refreshDxfControls();
     }
 
     dxfInput.addEventListener('change', async (e) => {
       const f = e.target.files && e.target.files[0];
       if (!f) return;
+      const it = activeItem();
+      if (!it) {
+        alert('사진을 먼저 업로드하세요.');
+        dxfInput.value = '';
+        return;
+      }
       const text = await f.text();
       try {
         const dxf = DrillDXF.parseDXF(text);
         if (!dxf.entities.length || !dxf.bbox) {
           dxfFileName.textContent = '읽을 수 있는 엔티티가 없습니다';
           dxfFileName.classList.add('text-error');
-          state.dxf = null;
-          state.dxfText = '';
+          it.dxf = null;
+          it.dxfText = '';
         } else {
-          state.dxf = dxf;
-          state.dxfName = f.name;
-          state.dxfText = text;
-          state.dxfScaleUser = 100;
+          it.dxf = dxf;
+          it.dxfName = f.name;
+          it.dxfText = text;
+          it.dxfScaleUser = 100;
           computeDxfFitScale();
           dxfFileName.textContent = `${f.name} (${dxf.entities.length}개 엔티티)`;
           dxfFileName.classList.remove('text-error');
@@ -745,8 +793,9 @@
     refreshDxfLibSelect();
 
     btnDxfLibSave.addEventListener('click', () => {
-      if (!state.dxfText) return;
-      const suggested = state.dxfName || 'untitled.dxf';
+      const it = activeItem();
+      if (!it || !it.dxfText) return;
+      const suggested = it.dxfName || 'untitled.dxf';
       const name = prompt('이 DXF의 이름 (자주쓰는 DXF 드롭다운에 표시됨)', suggested);
       if (!name) return;
       const trimmed = name.trim();
@@ -755,9 +804,9 @@
       const exists = lib.findIndex(it => it.name === trimmed);
       if (exists >= 0) {
         if (!confirm(`"${trimmed}"이(가) 이미 저장되어 있습니다. 덮어쓸까요?`)) return;
-        lib[exists] = { name: trimmed, text: state.dxfText, savedAt: Date.now() };
+        lib[exists] = { name: trimmed, text: it.dxfText, savedAt: Date.now() };
       } else {
-        lib.push({ name: trimmed, text: state.dxfText, savedAt: Date.now() });
+        lib.push({ name: trimmed, text: it.dxfText, savedAt: Date.now() });
       }
       try {
         setDxfLibStore(lib);
@@ -794,24 +843,30 @@
         btnDxfLibDel.disabled = true;
         return;
       }
+      const active = activeItem();
+      if (!active) {
+        alert('사진을 먼저 업로드하세요.');
+        dxfLibSelect.value = '';
+        return;
+      }
       const idx = parseInt(val, 10);
       const lib = getDxfLib();
-      const it = lib[idx];
-      if (!it) return;
+      const entry = lib[idx];
+      if (!entry) return;
       try {
-        const dxf = DrillDXF.parseDXF(it.text);
+        const dxf = DrillDXF.parseDXF(entry.text);
         if (!dxf.entities.length || !dxf.bbox) {
           dxfFileName.textContent = '읽을 수 있는 엔티티가 없습니다';
           dxfFileName.classList.add('text-error');
-          state.dxf = null;
-          state.dxfText = '';
+          active.dxf = null;
+          active.dxfText = '';
         } else {
-          state.dxf = dxf;
-          state.dxfName = it.name;
-          state.dxfText = it.text;
-          state.dxfScaleUser = 100;
+          active.dxf = dxf;
+          active.dxfName = entry.name;
+          active.dxfText = entry.text;
+          active.dxfScaleUser = 100;
           computeDxfFitScale();
-          dxfFileName.textContent = `${it.name} (${dxf.entities.length}개 엔티티) · 저장됨`;
+          dxfFileName.textContent = `${entry.name} (${dxf.entities.length}개 엔티티) · 저장됨`;
           dxfFileName.classList.remove('text-error');
           setDxfVisible(true);
         }
@@ -825,13 +880,15 @@
     });
 
     btnDxfToggle.addEventListener('click', () => {
-      if (!state.dxf) return;
-      setDxfVisible(!state.dxfVisible);
+      const it = activeItem();
+      if (!it || !it.dxf) return;
+      setDxfVisible(!it.dxfVisible);
     });
 
     dxfScaleInput.addEventListener('input', (e) => {
-      state.dxfScaleUser = parseFloat(e.target.value);
-      dxfScaleVal.textContent = state.dxfScaleUser.toFixed(2) + 'x';
+      const it = activeItem(); if (!it) return;
+      it.dxfScaleUser = parseFloat(e.target.value);
+      dxfScaleVal.textContent = it.dxfScaleUser.toFixed(2) + 'x';
       blitAndOverlay();
     });
 
@@ -841,7 +898,8 @@
     });
 
     btnDxfReset.addEventListener('click', () => {
-      state.dxfScaleUser = state.dxf ? 100 : 1;
+      const it = activeItem(); if (!it) return;
+      it.dxfScaleUser = it.dxf ? 100 : 1;
       refreshDxfControls();
       blitAndOverlay();
     });
@@ -849,20 +907,22 @@
     // Drag to shift the PHOTO (DXF stays at canvas centre). Disabled in
     // pick mode so two-point clicks aren't misread as drags.
     canvas.addEventListener('mousedown', (e) => {
-      if (state.pickMode || state.activeIdx < 0) return;
+      const it = activeItem();
+      if (state.pickMode || !it) return;
       const p = getCanvasCoord(e);
       state.photoDragging = true;
       state.photoDragStart = {
         x: p.x, y: p.y,
-        ox: state.photoOffsetX, oy: state.photoOffsetY,
+        ox: it.photoOffsetX, oy: it.photoOffsetY,
       };
       canvas.style.cursor = 'grabbing';
     });
     window.addEventListener('mousemove', (e) => {
       if (!state.photoDragging) return;
+      const it = activeItem(); if (!it) return;
       const p = getCanvasCoord(e);
-      state.photoOffsetX = state.photoDragStart.ox + (p.x - state.photoDragStart.x);
-      state.photoOffsetY = state.photoDragStart.oy + (p.y - state.photoDragStart.y);
+      it.photoOffsetX = state.photoDragStart.ox + (p.x - state.photoDragStart.x);
+      it.photoOffsetY = state.photoDragStart.oy + (p.y - state.photoDragStart.y);
       renderImageCache();
       blitAndOverlay();
     });
@@ -874,8 +934,9 @@
 
 
     function resetPhotoOffset() {
-      state.photoOffsetX = 0;
-      state.photoOffsetY = 0;
+      const it = activeItem(); if (!it) return;
+      it.photoOffsetX = 0;
+      it.photoOffsetY = 0;
       renderImageCache();
       blitAndOverlay();
     }
@@ -884,11 +945,11 @@
     dpadCenter.addEventListener('click', resetPhotoOffset);
 
     function nudgePhoto(dx, dy) {
-      if (state.activeIdx < 0) return;
+      const it = activeItem(); if (!it) return;
       const dpr = window.devicePixelRatio || 1;
       // Offsets are in canvas (backing) pixels; multiply by dpr so 1px = 1 on-screen px.
-      state.photoOffsetX += dx * dpr;
-      state.photoOffsetY += dy * dpr;
+      it.photoOffsetX += dx * dpr;
+      it.photoOffsetY += dy * dpr;
       renderImageCache();
       blitAndOverlay();
     }
@@ -934,19 +995,17 @@
       // baked (display-only). Photo offset is NOT applied to the exported
       // image itself (rotation only), so we offset the DXF instead so that
       // the DXF sits at the same image-relative location as seen on screen.
-      if (state.dxfVisible && state.dxf) {
+      if (it.dxfVisible && it.dxf) {
         const ctx = cv.getContext('2d');
         const iw = it.image.naturalWidth, ih = it.image.naturalHeight;
         const Wd = canvas.width, Hd = canvas.height;
         const sDisp = Math.min(Wd / iw, Hd / ih);
         if (sDisp > 0 && isFinite(sDisp)) {
           const dpr = window.devicePixelRatio || 1;
-          const dxfScaleExport = (state.dxfFitScale * state.dxfScaleUser) / sDisp;
-          // Display: DXF at (Wd/2, Hd/2), photo centre at (Wd/2 + photoOffset).
-          // In image-pixel space the DXF sits at photo-centre minus photoOffset/sDisp.
-          const cxExport = iw / 2 - state.photoOffsetX / sDisp;
-          const cyExport = ih / 2 - state.photoOffsetY / sDisp;
-          DrillDXF.drawDXF(ctx, state.dxf, {
+          const dxfScaleExport = (it.dxfFitScale * it.dxfScaleUser) / sDisp;
+          const cxExport = iw / 2 - it.photoOffsetX / sDisp;
+          const cyExport = ih / 2 - it.photoOffsetY / sDisp;
+          DrillDXF.drawDXF(ctx, it.dxf, {
             cx: cxExport,
             cy: cyExport,
             scale: dxfScaleExport,
