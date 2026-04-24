@@ -30,3 +30,12 @@ body {
 /* Hide scrollbar utility */
 .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
 .scrollbar-thin::-webkit-scrollbar-thumb { background: #c2c6d4; border-radius: 3px; }
+
+/* D-pad for photo positioning */
+.dpad { display: block; margin: 0 auto 8px; width: 140px; height: 140px; }
+.dpad-wedge { cursor: pointer; transition: fill 120ms ease; }
+.dpad-wedge:hover { fill: rgba(0, 86, 179, 0.10); }
+.dpad-wedge:active { fill: rgba(0, 86, 179, 0.20); }
+.dpad-center { cursor: pointer; transition: fill 120ms ease; }
+.dpad-center:hover { fill: #dce1e8; }
+.dpad-disabled { opacity: 0.4; pointer-events: none; }

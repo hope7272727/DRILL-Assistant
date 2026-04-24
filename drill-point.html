@@ -112,27 +112,22 @@
 
           <div>
             <label class="font-label-sm text-on-surface block mb-1">사진 위치</label>
-            <div class="grid grid-cols-3 gap-1 mb-2" style="max-width:168px;margin-left:auto;margin-right:auto;">
-              <div></div>
-              <button id="btn-photo-up" disabled class="py-1.5 border border-outline-variant rounded text-on-surface hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center" title="위로 이동 (Shift+클릭 = 10px)">
-                <span class="material-symbols-outlined text-[20px]">keyboard_arrow_up</span>
-              </button>
-              <div></div>
-              <button id="btn-photo-left" disabled class="py-1.5 border border-outline-variant rounded text-on-surface hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center" title="왼쪽으로 이동 (Shift+클릭 = 10px)">
-                <span class="material-symbols-outlined text-[20px]">keyboard_arrow_left</span>
-              </button>
-              <button id="btn-photo-center-small" disabled class="py-1.5 border border-outline-variant rounded text-secondary hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center" title="중앙으로">
-                <span class="material-symbols-outlined text-[18px]">filter_center_focus</span>
-              </button>
-              <button id="btn-photo-right" disabled class="py-1.5 border border-outline-variant rounded text-on-surface hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center" title="오른쪽으로 이동 (Shift+클릭 = 10px)">
-                <span class="material-symbols-outlined text-[20px]">keyboard_arrow_right</span>
-              </button>
-              <div></div>
-              <button id="btn-photo-down" disabled class="py-1.5 border border-outline-variant rounded text-on-surface hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center" title="아래로 이동 (Shift+클릭 = 10px)">
-                <span class="material-symbols-outlined text-[20px]">keyboard_arrow_down</span>
-              </button>
-              <div></div>
-            </div>
+            <svg id="dpad" class="dpad dpad-disabled" viewBox="0 0 100 100" aria-label="사진 위치 조정">
+              <circle cx="50" cy="50" r="48" fill="#fbf9f8" stroke="#727784" stroke-width="1.2"/>
+              <line x1="16" y1="16" x2="84" y2="84" stroke="#727784" stroke-width="1.2"/>
+              <line x1="84" y1="16" x2="16" y2="84" stroke="#727784" stroke-width="1.2"/>
+              <path id="dpad-up"    class="dpad-wedge" d="M50,50 L16,16 A48,48 0 0,1 84,16 Z" fill="transparent"><title>위로 이동 (Shift+클릭 = 10px)</title></path>
+              <path id="dpad-right" class="dpad-wedge" d="M50,50 L84,16 A48,48 0 0,1 84,84 Z" fill="transparent"><title>오른쪽으로 이동 (Shift+클릭 = 10px)</title></path>
+              <path id="dpad-down"  class="dpad-wedge" d="M50,50 L84,84 A48,48 0 0,1 16,84 Z" fill="transparent"><title>아래로 이동 (Shift+클릭 = 10px)</title></path>
+              <path id="dpad-left"  class="dpad-wedge" d="M50,50 L16,84 A48,48 0 0,1 16,16 Z" fill="transparent"><title>왼쪽으로 이동 (Shift+클릭 = 10px)</title></path>
+              <g stroke="#1b1c1c" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" pointer-events="none">
+                <path d="M50,34 L50,20 M44,26 L50,20 L56,26"/>
+                <path d="M50,66 L50,80 M44,74 L50,80 L56,74"/>
+                <path d="M34,50 L20,50 M26,44 L20,50 L26,56"/>
+                <path d="M66,50 L80,50 M74,44 L80,50 L74,56"/>
+              </g>
+              <circle id="dpad-center" class="dpad-center" cx="50" cy="50" r="7" fill="#eaecf0" stroke="#727784" stroke-width="1"><title>중앙으로 초기화</title></circle>
+            </svg>
             <button id="btn-photo-center" disabled class="px-3 py-2 border border-outline-variant rounded text-on-surface text-body-sm hover:bg-surface-variant disabled:opacity-40 w-full flex items-center justify-center gap-1">
               <span class="material-symbols-outlined text-[18px]">filter_center_focus</span>
               중앙으로 초기화
@@ -231,11 +226,12 @@
     const downloadAllLabel = $('download-all-label');
     const btnReset = $('btn-reset');
     const btnPhotoCenter = $('btn-photo-center');
-    const btnPhotoCenterSmall = $('btn-photo-center-small');
-    const btnPhotoUp = $('btn-photo-up');
-    const btnPhotoDown = $('btn-photo-down');
-    const btnPhotoLeft = $('btn-photo-left');
-    const btnPhotoRight = $('btn-photo-right');
+    const dpad = $('dpad');
+    const dpadUp = $('dpad-up');
+    const dpadDown = $('dpad-down');
+    const dpadLeft = $('dpad-left');
+    const dpadRight = $('dpad-right');
+    const dpadCenter = $('dpad-center');
     const btnToggle = $('btn-toggle');
     const toggleLabel = $('toggle-label');
     const btnCrosshair = $('btn-crosshair');
@@ -312,11 +308,7 @@
       btnDownloadAll.disabled = !has;
       btnReset.disabled = !hasActive;
       btnPhotoCenter.disabled = !hasActive;
-      btnPhotoCenterSmall.disabled = !hasActive;
-      btnPhotoUp.disabled = !hasActive;
-      btnPhotoDown.disabled = !hasActive;
-      btnPhotoLeft.disabled = !hasActive;
-      btnPhotoRight.disabled = !hasActive;
+      dpad.classList.toggle('dpad-disabled', !hasActive);
       angleInput.disabled = !hasActive;
       angleSlider.disabled = !hasActive;
     }
@@ -784,7 +776,7 @@
     }
 
     btnPhotoCenter.addEventListener('click', resetPhotoOffset);
-    btnPhotoCenterSmall.addEventListener('click', resetPhotoOffset);
+    dpadCenter.addEventListener('click', resetPhotoOffset);
 
     function nudgePhoto(dx, dy) {
       if (state.activeIdx < 0) return;
@@ -797,10 +789,10 @@
     }
 
     function stepPx(shift) { return shift ? 10 : 1; }
-    btnPhotoUp.addEventListener('click', (e) => nudgePhoto(0, -stepPx(e.shiftKey)));
-    btnPhotoDown.addEventListener('click', (e) => nudgePhoto(0, +stepPx(e.shiftKey)));
-    btnPhotoLeft.addEventListener('click', (e) => nudgePhoto(-stepPx(e.shiftKey), 0));
-    btnPhotoRight.addEventListener('click', (e) => nudgePhoto(+stepPx(e.shiftKey), 0));
+    dpadUp.addEventListener('click', (e) => nudgePhoto(0, -stepPx(e.shiftKey)));
+    dpadDown.addEventListener('click', (e) => nudgePhoto(0, +stepPx(e.shiftKey)));
+    dpadLeft.addEventListener('click', (e) => nudgePhoto(-stepPx(e.shiftKey), 0));
+    dpadRight.addEventListener('click', (e) => nudgePhoto(+stepPx(e.shiftKey), 0));
 
     async function saveBlobToFolder(blob, filename) {
       if (state.saveDir) {
