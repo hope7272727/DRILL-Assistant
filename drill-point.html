@@ -26,11 +26,11 @@
           <label class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2 cursor-pointer">
             <input id="dxf-input" type="file" accept=".dxf" class="hidden"/>
             <span class="material-symbols-outlined text-[18px]">architecture</span>
-            <span id="dxf-file-btn">DXF 파일</span>
+            <span id="dxf-file-btn">DXF 파일 불러오기</span>
           </label>
           <button id="btn-pick-folder" class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2 max-w-[220px]">
             <span class="material-symbols-outlined text-[18px]">folder_open</span>
-            <span id="folder-btn-label" class="truncate">저장 폴더</span>
+            <span id="folder-btn-label" class="truncate">저장 폴더 설정</span>
           </button>
           <label class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2 cursor-pointer">
             <input id="file-input" type="file" accept="image/*" multiple class="hidden"/>
@@ -153,9 +153,9 @@
             <p id="dxf-file-name" class="font-body-sm text-secondary text-[11px] truncate mb-2">파일 없음</p>
             <p id="folder-name" class="hidden"></p>
 
-            <label class="font-label-sm text-on-surface block mb-1">자주쓰는 DXF</label>
+            <label class="font-label-sm text-on-surface block mb-1">DXF 저장소</label>
             <select id="dxf-lib-select" class="w-full px-2 py-1.5 border border-outline-variant rounded bg-surface-container-lowest text-body-sm focus:outline-none focus:border-primary mb-1">
-              <option value="">저장된 DXF 선택…</option>
+              <option value="">저장소에서 선택…</option>
             </select>
             <div class="flex gap-1 mb-2">
               <button id="btn-dxf-lib-save" disabled class="flex-1 px-2 py-1 border border-outline-variant rounded text-body-sm text-on-surface hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center gap-1">
@@ -709,7 +709,7 @@
           state.dxf = dxf;
           state.dxfName = f.name;
           state.dxfText = text;
-          state.dxfScaleUser = 1;
+          state.dxfScaleUser = 100;
           computeDxfFitScale();
           dxfFileName.textContent = `${f.name} (${dxf.entities.length}개 엔티티)`;
           dxfFileName.classList.remove('text-error');
@@ -813,7 +813,7 @@
           state.dxf = dxf;
           state.dxfName = it.name;
           state.dxfText = it.text;
-          state.dxfScaleUser = 1;
+          state.dxfScaleUser = 100;
           computeDxfFitScale();
           dxfFileName.textContent = `${it.name} (${dxf.entities.length}개 엔티티) · 저장됨`;
           dxfFileName.classList.remove('text-error');
@@ -845,7 +845,7 @@
     });
 
     btnDxfReset.addEventListener('click', () => {
-      state.dxfScaleUser = 1;
+      state.dxfScaleUser = state.dxf ? 100 : 1;
       refreshDxfControls();
       blitAndOverlay();
     });
