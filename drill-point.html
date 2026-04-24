@@ -78,7 +78,7 @@
               </button>
               <button id="btn-crosshair" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 min-w-[124px] justify-center" title="단축키: X">
                 <span class="material-symbols-outlined text-[18px]">add</span>
-                <span id="crosshair-label">십자선 끄기 (X)</span>
+                <span id="crosshair-label">십자선 켜기 (X)</span>
               </button>
               <button id="btn-dxf-toggle" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 min-w-[104px] justify-center disabled:opacity-40 disabled:cursor-not-allowed" disabled title="단축키: D">
                 <span class="material-symbols-outlined text-[18px]">architecture</span>
@@ -198,7 +198,7 @@
       items: [],         // [{name, image, threshold, autoAngle, angle, bg}]
       activeIdx: -1,
       showOriginal: false,
-      showCrosshair: true,
+      showCrosshair: false,
       saveDir: null,     // FileSystemDirectoryHandle (Chromium only)
       pickMode: false,
       pickedPoints: [],  // up to 2 points in canvas pixel coords
@@ -592,10 +592,6 @@
     }
 
     btnCrosshair.addEventListener('click', () => setCrosshair(!state.showCrosshair));
-
-    // Initialize crosshair button visual state to match showCrosshair = true
-    btnCrosshair.classList.add('bg-secondary-container', 'text-on-surface');
-    btnCrosshair.classList.remove('border', 'text-secondary');
 
     function setPickMode(on) {
       state.pickMode = on;
