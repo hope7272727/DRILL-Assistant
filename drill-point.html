@@ -112,11 +112,32 @@
 
           <div>
             <label class="font-label-sm text-on-surface block mb-1">사진 위치</label>
+            <div class="grid grid-cols-3 gap-1 mb-2" style="max-width:168px;margin-left:auto;margin-right:auto;">
+              <div></div>
+              <button id="btn-photo-up" disabled class="py-1.5 border border-outline-variant rounded text-on-surface hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center" title="위로 이동 (Shift+클릭 = 10px)">
+                <span class="material-symbols-outlined text-[20px]">keyboard_arrow_up</span>
+              </button>
+              <div></div>
+              <button id="btn-photo-left" disabled class="py-1.5 border border-outline-variant rounded text-on-surface hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center" title="왼쪽으로 이동 (Shift+클릭 = 10px)">
+                <span class="material-symbols-outlined text-[20px]">keyboard_arrow_left</span>
+              </button>
+              <button id="btn-photo-center-small" disabled class="py-1.5 border border-outline-variant rounded text-secondary hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center" title="중앙으로">
+                <span class="material-symbols-outlined text-[18px]">filter_center_focus</span>
+              </button>
+              <button id="btn-photo-right" disabled class="py-1.5 border border-outline-variant rounded text-on-surface hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center" title="오른쪽으로 이동 (Shift+클릭 = 10px)">
+                <span class="material-symbols-outlined text-[20px]">keyboard_arrow_right</span>
+              </button>
+              <div></div>
+              <button id="btn-photo-down" disabled class="py-1.5 border border-outline-variant rounded text-on-surface hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center" title="아래로 이동 (Shift+클릭 = 10px)">
+                <span class="material-symbols-outlined text-[20px]">keyboard_arrow_down</span>
+              </button>
+              <div></div>
+            </div>
             <button id="btn-photo-center" disabled class="px-3 py-2 border border-outline-variant rounded text-on-surface text-body-sm hover:bg-surface-variant disabled:opacity-40 w-full flex items-center justify-center gap-1">
               <span class="material-symbols-outlined text-[18px]">filter_center_focus</span>
               중앙으로 초기화
             </button>
-            <p class="font-body-sm text-secondary text-[11px] mt-1">캔버스 드래그로 사진 이동 (DXF/십자선은 고정)</p>
+            <p class="font-body-sm text-secondary text-[11px] mt-1">드래그 = 빠른 이동 · 방향키 = 1px(Shift=10px)</p>
           </div>
 
 
@@ -210,6 +231,11 @@
     const downloadAllLabel = $('download-all-label');
     const btnReset = $('btn-reset');
     const btnPhotoCenter = $('btn-photo-center');
+    const btnPhotoCenterSmall = $('btn-photo-center-small');
+    const btnPhotoUp = $('btn-photo-up');
+    const btnPhotoDown = $('btn-photo-down');
+    const btnPhotoLeft = $('btn-photo-left');
+    const btnPhotoRight = $('btn-photo-right');
     const btnToggle = $('btn-toggle');
     const toggleLabel = $('toggle-label');
     const btnCrosshair = $('btn-crosshair');
@@ -286,6 +312,11 @@
       btnDownloadAll.disabled = !has;
       btnReset.disabled = !hasActive;
       btnPhotoCenter.disabled = !hasActive;
+      btnPhotoCenterSmall.disabled = !hasActive;
+      btnPhotoUp.disabled = !hasActive;
+      btnPhotoDown.disabled = !hasActive;
+      btnPhotoLeft.disabled = !hasActive;
+      btnPhotoRight.disabled = !hasActive;
       angleInput.disabled = !hasActive;
       angleSlider.disabled = !hasActive;
     }
@@ -753,6 +784,23 @@
     }
 
     btnPhotoCenter.addEventListener('click', resetPhotoOffset);
+    btnPhotoCenterSmall.addEventListener('click', resetPhotoOffset);
+
+    function nudgePhoto(dx, dy) {
+      if (state.activeIdx < 0) return;
+      const dpr = window.devicePixelRatio || 1;
+      // Offsets are in canvas (backing) pixels; multiply by dpr so 1px = 1 on-screen px.
+      state.photoOffsetX += dx * dpr;
+      state.photoOffsetY += dy * dpr;
+      renderImageCache();
+      blitAndOverlay();
+    }
+
+    function stepPx(shift) { return shift ? 10 : 1; }
+    btnPhotoUp.addEventListener('click', (e) => nudgePhoto(0, -stepPx(e.shiftKey)));
+    btnPhotoDown.addEventListener('click', (e) => nudgePhoto(0, +stepPx(e.shiftKey)));
+    btnPhotoLeft.addEventListener('click', (e) => nudgePhoto(-stepPx(e.shiftKey), 0));
+    btnPhotoRight.addEventListener('click', (e) => nudgePhoto(+stepPx(e.shiftKey), 0));
 
     async function saveBlobToFolder(blob, filename) {
       if (state.saveDir) {
