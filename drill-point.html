@@ -180,7 +180,7 @@
             </div>
 
             <button id="btn-dxf-reset" disabled class="mt-2 px-3 py-1.5 border border-outline-variant rounded text-secondary text-body-sm hover:bg-surface-variant disabled:opacity-40 w-full">위치/크기 초기화</button>
-            <p class="font-body-sm text-secondary text-[11px] mt-1">캔버스 드래그로 이동, 휠로 크기 조절</p>
+            <p class="font-body-sm text-secondary text-[11px] mt-1">슬라이더로 크기 조절</p>
           </div>
         </div>
       </div>
@@ -876,15 +876,6 @@
       canvas.style.cursor = state.pickMode ? 'crosshair' : 'grab';
     });
 
-    // Wheel over the canvas scales the DXF overlay when visible; otherwise no-op.
-    canvas.addEventListener('wheel', (e) => {
-      if (state.pickMode || !state.dxfVisible || !state.dxf) return;
-      e.preventDefault();
-      const factor = Math.exp(-e.deltaY * 0.001);
-      state.dxfScaleUser = Math.max(0.05, Math.min(100, state.dxfScaleUser * factor));
-      refreshDxfControls();
-      blitAndOverlay();
-    }, { passive: false });
 
     function resetPhotoOffset() {
       state.photoOffsetX = 0;
