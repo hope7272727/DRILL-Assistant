@@ -111,6 +111,15 @@
           </div>
 
           <div>
+            <label class="font-label-sm text-on-surface block mb-1">사진 위치</label>
+            <button id="btn-photo-center" disabled class="px-3 py-2 border border-outline-variant rounded text-on-surface text-body-sm hover:bg-surface-variant disabled:opacity-40 w-full flex items-center justify-center gap-1">
+              <span class="material-symbols-outlined text-[18px]">filter_center_focus</span>
+              중앙으로 초기화
+            </button>
+            <p class="font-body-sm text-secondary text-[11px] mt-1">캔버스 드래그로 사진 이동 (DXF/십자선은 고정)</p>
+          </div>
+
+          <div>
             <label class="font-label-sm text-on-surface block mb-1">배경색 (빈 모서리)</label>
             <input id="bg-color" type="color" value="#000000" class="w-full h-9 rounded border border-outline-variant cursor-pointer disabled:opacity-40" disabled/>
             <p class="font-body-sm text-secondary text-[11px] mt-1">기본은 사진 코너 색을 자동으로 따라갑니다</p>
@@ -185,13 +194,14 @@
       dxfName: '',
       dxfVisible: false,
       dxfScaleUser: 1,   // multiplier on top of fit-scale
-      dxfOffsetX: 0,     // canvas pixels from center
-      dxfOffsetY: 0,
       dxfRotationDeg: 0,
       dxfColor: '#e53935',
       dxfFitScale: 1,    // computed on load + canvas resize
-      dxfDragging: false,
-      dxfDragStart: null,
+      // Photo offset from canvas center (display-only, not baked into export)
+      photoOffsetX: 0,
+      photoOffsetY: 0,
+      photoDragging: false,
+      photoDragStart: null,
     };
 
     // DOM
@@ -213,6 +223,7 @@
     const btnDownloadAll = $('btn-download-all');
     const downloadAllLabel = $('download-all-label');
     const btnReset = $('btn-reset');
+    const btnPhotoCenter = $('btn-photo-center');
     const btnToggle = $('btn-toggle');
     const toggleLabel = $('toggle-label');
     const btnCrosshair = $('btn-crosshair');
@@ -290,6 +301,7 @@
       btnDownload.disabled = !hasActive;
       btnDownloadAll.disabled = !has;
       btnReset.disabled = !hasActive;
+      btnPhotoCenter.disabled = !hasActive;
       angleInput.disabled = !hasActive;
       angleSlider.disabled = !hasActive;
       bgColorInput.disabled = !hasActive;
@@ -318,7 +330,10 @@
     function renderImageCache() {
       const it = state.items[state.activeIdx]; if (!it) return;
       const angle = state.showOriginal ? 0 : it.angle;
-      DrillAlign.renderRotated(it.image, imageCache, angle, it.bg);
+      DrillAlign.renderRotated(
+        it.image, imageCache, angle, it.bg,
+        state.photoOffsetX, state.photoOffsetY
+      );
     }
 
     function computeDxfFitScale() {
@@ -334,9 +349,10 @@
       if (!state.dxf || !state.dxfVisible) return;
       const dpr = window.devicePixelRatio || 1;
       const ctx = canvas.getContext('2d');
+      // DXF stays pinned at canvas centre; the photo moves to meet it.
       const placement = {
-        cx: canvas.width / 2 + state.dxfOffsetX,
-        cy: canvas.height / 2 + state.dxfOffsetY,
+        cx: canvas.width / 2,
+        cy: canvas.height / 2,
         scale: state.dxfFitScale * state.dxfScaleUser,
         rotationRad: state.dxfRotationDeg * Math.PI / 180,
         color: state.dxfColor,
@@ -484,6 +500,7 @@
       setEnabled();
       renderFileList();
       renderActive();
+      if (state.activeIdx >= 0 && !state.pickMode) canvas.style.cursor = 'grab';
     }
 
     // ---- Events ----
@@ -541,6 +558,7 @@
     btnReset.addEventListener('click', () => {
       const it = state.items[state.activeIdx]; if (!it) return;
       it.angle = 0;
+      resetPhotoOffset();
       renderFileList();
       renderActive();
     });
@@ -713,36 +731,39 @@
     });
 
     btnDxfReset.addEventListener('click', () => {
-      state.dxfOffsetX = 0;
-      state.dxfOffsetY = 0;
       state.dxfScaleUser = 1;
       state.dxfRotationDeg = 0;
       refreshDxfControls();
       blitAndOverlay();
     });
 
-    // Drag DXF with mouse when overlay is visible and pick mode is off
+    // Drag to shift the PHOTO (DXF stays at canvas centre). Disabled in
+    // pick mode so two-point clicks aren't misread as drags.
     canvas.addEventListener('mousedown', (e) => {
-      if (state.pickMode || !state.dxfVisible || !state.dxf) return;
+      if (state.pickMode || state.activeIdx < 0) return;
       const p = getCanvasCoord(e);
-      state.dxfDragging = true;
-      state.dxfDragStart = { x: p.x, y: p.y, ox: state.dxfOffsetX, oy: state.dxfOffsetY };
+      state.photoDragging = true;
+      state.photoDragStart = {
+        x: p.x, y: p.y,
+        ox: state.photoOffsetX, oy: state.photoOffsetY,
+      };
       canvas.style.cursor = 'grabbing';
     });
     window.addEventListener('mousemove', (e) => {
-      if (!state.dxfDragging) return;
+      if (!state.photoDragging) return;
       const p = getCanvasCoord(e);
-      state.dxfOffsetX = state.dxfDragStart.ox + (p.x - state.dxfDragStart.x);
-      state.dxfOffsetY = state.dxfDragStart.oy + (p.y - state.dxfDragStart.y);
+      state.photoOffsetX = state.photoDragStart.ox + (p.x - state.photoDragStart.x);
+      state.photoOffsetY = state.photoDragStart.oy + (p.y - state.photoDragStart.y);
+      renderImageCache();
       blitAndOverlay();
     });
     window.addEventListener('mouseup', () => {
-      if (!state.dxfDragging) return;
-      state.dxfDragging = false;
-      canvas.style.cursor = state.pickMode ? 'crosshair' : '';
+      if (!state.photoDragging) return;
+      state.photoDragging = false;
+      canvas.style.cursor = state.pickMode ? 'crosshair' : 'grab';
     });
 
-    // Wheel to scale DXF (only when visible and pick mode off)
+    // Wheel over the canvas scales the DXF overlay when visible; otherwise no-op.
     canvas.addEventListener('wheel', (e) => {
       if (state.pickMode || !state.dxfVisible || !state.dxf) return;
       e.preventDefault();
@@ -751,6 +772,15 @@
       refreshDxfControls();
       blitAndOverlay();
     }, { passive: false });
+
+    function resetPhotoOffset() {
+      state.photoOffsetX = 0;
+      state.photoOffsetY = 0;
+      renderImageCache();
+      blitAndOverlay();
+    }
+
+    btnPhotoCenter.addEventListener('click', resetPhotoOffset);
 
     async function saveBlobToFolder(blob, filename) {
       if (state.saveDir) {

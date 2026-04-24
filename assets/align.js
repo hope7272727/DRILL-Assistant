@@ -189,8 +189,9 @@
 
   // Render `image` rotated by `angleDeg` onto `canvas`, sized to fit while
   // preserving aspect ratio. Empty area filled with bgCss.
+  // offsetX/offsetY shift the image centre from the canvas centre (canvas pixels).
   // Convention: positive angleDeg = visually counter-clockwise.
-  function renderRotated(image, canvas, angleDeg, bgCss) {
+  function renderRotated(image, canvas, angleDeg, bgCss, offsetX, offsetY) {
     const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;
     ctx.fillStyle = bgCss;
@@ -201,7 +202,7 @@
     const dw = iw * scale, dh = ih * scale;
 
     ctx.save();
-    ctx.translate(W / 2, H / 2);
+    ctx.translate(W / 2 + (offsetX || 0), H / 2 + (offsetY || 0));
     ctx.rotate(-angleDeg * Math.PI / 180);
     ctx.drawImage(image, -dw / 2, -dh / 2, dw, dh);
     ctx.restore();
