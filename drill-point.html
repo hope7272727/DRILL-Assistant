@@ -159,6 +159,20 @@
             </label>
             <p id="dxf-file-name" class="font-body-sm text-secondary text-[11px] truncate mb-2">파일 없음</p>
 
+            <label class="font-label-sm text-on-surface block mb-1">자주쓰는 DXF</label>
+            <select id="dxf-lib-select" class="w-full px-2 py-1.5 border border-outline-variant rounded bg-surface-container-lowest text-body-sm focus:outline-none focus:border-primary mb-1">
+              <option value="">저장된 DXF 선택…</option>
+            </select>
+            <div class="flex gap-1 mb-2">
+              <button id="btn-dxf-lib-save" disabled class="flex-1 px-2 py-1 border border-outline-variant rounded text-body-sm text-on-surface hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">bookmark_add</span>
+                저장
+              </button>
+              <button id="btn-dxf-lib-del" disabled class="px-2 py-1 border border-outline-variant rounded text-body-sm text-secondary hover:bg-error-container hover:text-on-error-container disabled:opacity-40 flex items-center justify-center" title="선택된 항목 삭제">
+                <span class="material-symbols-outlined text-[14px]">delete</span>
+              </button>
+            </div>
+
             <div class="flex items-center justify-between mb-1">
               <label class="font-label-sm text-on-surface">크기</label>
               <span id="dxf-scale-val" class="font-code text-label-sm text-secondary">1.00x</span>
@@ -196,6 +210,7 @@
       pickedPoints: [],  // up to 2 points in canvas pixel coords
       dxf: null,         // parsed { entities, bbox }
       dxfName: '',
+      dxfText: '',       // raw DXF text, kept so we can save to library
       dxfVisible: false,
       dxfScaleUser: 1,   // multiplier on top of fit-scale
       dxfColor: '#ff0000',
@@ -253,6 +268,9 @@
     const dxfScaleVal = $('dxf-scale-val');
     const dxfColorInput = $('dxf-color');
     const btnDxfReset = $('btn-dxf-reset');
+    const dxfLibSelect = $('dxf-lib-select');
+    const btnDxfLibSave = $('btn-dxf-lib-save');
+    const btnDxfLibDel = $('btn-dxf-lib-del');
 
     function drawCrosshair() {
       if (!state.showCrosshair) return;
@@ -676,6 +694,7 @@
       btnDxfToggle.disabled = !has;
       dxfScaleInput.disabled = !has;
       btnDxfReset.disabled = !has;
+      btnDxfLibSave.disabled = !state.dxfText;
       dxfScaleInput.value = state.dxfScaleUser;
       dxfScaleVal.textContent = state.dxfScaleUser.toFixed(2) + 'x';
       dxfColorInput.value = state.dxfColor;
@@ -691,13 +710,17 @@
           dxfFileName.textContent = '읽을 수 있는 엔티티가 없습니다';
           dxfFileName.classList.add('text-error');
           state.dxf = null;
+          state.dxfText = '';
         } else {
           state.dxf = dxf;
           state.dxfName = f.name;
+          state.dxfText = text;
           state.dxfScaleUser = 1;
           computeDxfFitScale();
           dxfFileName.textContent = `${f.name} (${dxf.entities.length}개 엔티티)`;
           dxfFileName.classList.remove('text-error');
+          dxfLibSelect.value = '';
+          btnDxfLibDel.disabled = true;
           setDxfVisible(true);
         }
       } catch (err) {
@@ -706,6 +729,107 @@
         dxfFileName.classList.add('text-error');
       }
       dxfInput.value = '';
+      refreshDxfControls();
+      blitAndOverlay();
+    });
+
+    // ----- DXF library (localStorage) -----
+    const DXF_LIB_KEY = 'drill.dxfLib.v1';
+    function getDxfLib() {
+      try { return JSON.parse(localStorage.getItem(DXF_LIB_KEY) || '[]'); }
+      catch { return []; }
+    }
+    function setDxfLibStore(lib) {
+      localStorage.setItem(DXF_LIB_KEY, JSON.stringify(lib));
+    }
+    function refreshDxfLibSelect() {
+      const lib = getDxfLib();
+      while (dxfLibSelect.options.length > 1) dxfLibSelect.remove(1);
+      lib.forEach((it, i) => {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = it.name;
+        dxfLibSelect.appendChild(opt);
+      });
+    }
+    refreshDxfLibSelect();
+
+    btnDxfLibSave.addEventListener('click', () => {
+      if (!state.dxfText) return;
+      const suggested = state.dxfName || 'untitled.dxf';
+      const name = prompt('이 DXF의 이름 (자주쓰는 DXF 드롭다운에 표시됨)', suggested);
+      if (!name) return;
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      const lib = getDxfLib();
+      const exists = lib.findIndex(it => it.name === trimmed);
+      if (exists >= 0) {
+        if (!confirm(`"${trimmed}"이(가) 이미 저장되어 있습니다. 덮어쓸까요?`)) return;
+        lib[exists] = { name: trimmed, text: state.dxfText, savedAt: Date.now() };
+      } else {
+        lib.push({ name: trimmed, text: state.dxfText, savedAt: Date.now() });
+      }
+      try {
+        setDxfLibStore(lib);
+      } catch (err) {
+        alert('저장 실패: 저장소 용량이 부족합니다.');
+        return;
+      }
+      refreshDxfLibSelect();
+      // Select the newly saved item
+      const idx = getDxfLib().findIndex(it => it.name === trimmed);
+      if (idx >= 0) {
+        dxfLibSelect.value = String(idx);
+        btnDxfLibDel.disabled = false;
+      }
+    });
+
+    btnDxfLibDel.addEventListener('click', () => {
+      const val = dxfLibSelect.value;
+      if (val === '') return;
+      const idx = parseInt(val, 10);
+      const lib = getDxfLib();
+      const it = lib[idx]; if (!it) return;
+      if (!confirm(`"${it.name}"을(를) 즐겨찾기에서 삭제할까요?`)) return;
+      lib.splice(idx, 1);
+      setDxfLibStore(lib);
+      refreshDxfLibSelect();
+      dxfLibSelect.value = '';
+      btnDxfLibDel.disabled = true;
+    });
+
+    dxfLibSelect.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val === '') {
+        btnDxfLibDel.disabled = true;
+        return;
+      }
+      const idx = parseInt(val, 10);
+      const lib = getDxfLib();
+      const it = lib[idx];
+      if (!it) return;
+      try {
+        const dxf = DrillDXF.parseDXF(it.text);
+        if (!dxf.entities.length || !dxf.bbox) {
+          dxfFileName.textContent = '읽을 수 있는 엔티티가 없습니다';
+          dxfFileName.classList.add('text-error');
+          state.dxf = null;
+          state.dxfText = '';
+        } else {
+          state.dxf = dxf;
+          state.dxfName = it.name;
+          state.dxfText = it.text;
+          state.dxfScaleUser = 1;
+          computeDxfFitScale();
+          dxfFileName.textContent = `${it.name} (${dxf.entities.length}개 엔티티) · 저장됨`;
+          dxfFileName.classList.remove('text-error');
+          setDxfVisible(true);
+        }
+      } catch (err) {
+        dxfFileName.textContent = '로드 실패: ' + err.message;
+        dxfFileName.classList.add('text-error');
+      }
+      btnDxfLibDel.disabled = false;
       refreshDxfControls();
       blitAndOverlay();
     });
