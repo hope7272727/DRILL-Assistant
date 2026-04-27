@@ -381,9 +381,9 @@
       sheetCount.textContent = state.sheets.length;
       if (!has) return;
       const multipleFiles = state.files.length > 1;
-      for (const s of state.sheets) {
+      state.sheets.forEach((s, idx) => {
         const row = document.createElement('label');
-        row.className = 'flex items-center gap-2 p-2 rounded-lg border border-outline-variant hover:bg-surface-container cursor-pointer';
+        row.className = 'flex items-center gap-2 p-2 rounded-lg border border-outline-variant hover:bg-surface-container';
         const checked = state.selected.has(s.name);
         const fileLabel = multipleFiles && s.fileName
           ? `<p class="font-body-sm text-[10px] text-outline truncate">${s.fileName}</p>`
@@ -391,7 +391,7 @@
         row.innerHTML = `
           <input type="checkbox" class="accent-primary rounded" ${checked ? 'checked' : ''}/>
           <div class="flex-1 min-w-0">
-            <p class="font-label-md text-on-surface text-[13px] truncate">${s.name}</p>
+            <p class="sheet-name font-label-md text-on-surface text-[13px] truncate cursor-text" title="더블클릭하여 이름 변경">${escapeHtml(s.name)}</p>
             <p class="font-body-sm text-[11px] text-secondary">${s.data.length}개 행</p>
             ${fileLabel}
           </div>`;
@@ -400,8 +400,65 @@
           if (cb.checked) state.selected.add(s.name); else state.selected.delete(s.name);
           buildPreview();
         });
+        const nameEl = row.querySelector('.sheet-name');
+        nameEl.addEventListener('dblclick', (e) => {
+          e.preventDefault();
+          startRenameInline(nameEl, idx);
+        });
         sheetList.appendChild(row);
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      }[c]));
+    }
+
+    function renameSheet(idx, newName) {
+      const s = state.sheets[idx];
+      if (!s) return;
+      newName = (newName || '').trim();
+      if (!newName || newName === s.name) return;
+      // Avoid colliding with another sheet's name.
+      let candidate = newName;
+      let i = 2;
+      while (state.sheets.some((x, j) => j !== idx && x.name === candidate)) {
+        candidate = `${newName} (${i++})`;
       }
+      if (state.selected.has(s.name)) {
+        state.selected.delete(s.name);
+        state.selected.add(candidate);
+      }
+      s.name = candidate;
+      renderSheetList();
+      buildPreview();
+    }
+
+    function startRenameInline(targetEl, idx) {
+      const s = state.sheets[idx];
+      if (!s) return;
+      const oldName = s.name;
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.value = oldName;
+      inp.className = 'px-1 py-0 border border-primary rounded bg-surface text-on-surface text-[13px] font-label-md min-w-0';
+      inp.style.width = Math.max(targetEl.offsetWidth + 24, 90) + 'px';
+      inp.style.maxWidth = '100%';
+      targetEl.replaceWith(inp);
+      inp.focus();
+      inp.select();
+      let done = false;
+      const finish = (commit) => {
+        if (done) return; done = true;
+        if (commit) renameSheet(idx, inp.value);
+        else { renderSheetList(); buildPreview(); }
+      };
+      inp.addEventListener('blur', () => finish(true));
+      inp.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+        else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+      });
     }
 
     btnSelectAll.addEventListener('click', () => {
@@ -537,7 +594,13 @@
           const th = document.createElement('th');
           th.textContent = s.name;
           th.colSpan = 2;
-          th.className = TH_CLS + ' text-center';
+          th.className = TH_CLS + ' text-center cursor-text';
+          th.title = '더블클릭하여 이름 변경';
+          const sIdx = state.sheets.indexOf(s);
+          th.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            startRenameInline(th, sIdx);
+          });
           tr1.appendChild(th);
         }
         previewThead.appendChild(tr1);
