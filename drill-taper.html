@@ -764,7 +764,7 @@
     document.querySelectorAll('input[name="save-mode"]').forEach(el => el.addEventListener('change', schedulePersist));
     outSheetName.addEventListener('input', schedulePersist);
     outFileName.addEventListener('input', schedulePersist);
-    [avgStart, avgEnd].forEach(el => el.addEventListener('input', schedulePersist));
+    // avgStart / avgEnd persist hook is set later (where those consts live).
 
     // ===== Chart =====
     const SHEET_COLORS = [
@@ -967,7 +967,10 @@
         avgResults.appendChild(row);
       }
     }
-    [avgStart, avgEnd].forEach(el => el.addEventListener('input', computeMaxAverages));
+    [avgStart, avgEnd].forEach(el => {
+      el.addEventListener('input', computeMaxAverages);
+      el.addEventListener('input', schedulePersist);
+    });
     btnChartReset.addEventListener('click', () => {
       chartXMin.value = ''; chartXMax.value = '';
       chartYMin.value = ''; chartYMax.value = '';
