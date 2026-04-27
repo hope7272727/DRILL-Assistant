@@ -310,46 +310,38 @@
       buildPreview();
     });
 
-    // --- Build consolidated data ---
+    // --- Build consolidated data (geometry-agnostic) ---
     function consolidate() {
-      // Pick sheets in workbook order that are selected
       const sel = state.sheets.filter(s => state.selected.has(s.name));
       if (!sel.length) return null;
-      // Union of DISTANCE values across selected sheets, sorted ascending.
       const set = new Set();
       for (const s of sel) for (const r of s.data) set.add(r.d);
       const distances = Array.from(set).sort((a, b) => a - b);
-      // Per-sheet lookup for fast access
       const lookup = new Map();
       for (const s of sel) {
         const m = new Map();
         for (const r of s.data) m.set(r.d, r);
         lookup.set(s.name, m);
       }
-      const mode = document.querySelector('input[name="header-mode"]:checked').value;
-      const headers = ['DISTANCE'];
-      const sheetRow = ['']; // shown above headers if enabled
-      for (const s of sel) {
-        if (mode === 'prefixed') {
-          headers.push(s.name + '_MAX', s.name + '_MIN');
-        } else {
-          headers.push('MAX', 'MIN');
-        }
-        sheetRow.push(s.name, '');
-      }
-      const rows = [];
-      if (includeSheetRow.checked) rows.push(sheetRow);
-      rows.push(headers);
+      const dataRows = [];
       for (const d of distances) {
         const out = [d];
         for (const s of sel) {
           const r = lookup.get(s.name).get(d);
           out.push(r ? r.mx : null, r ? r.mn : null);
         }
-        rows.push(out);
+        dataRows.push(out);
       }
-      return { rows, sheets: sel };
+      return {
+        sheets: sel,
+        dataRows,
+        headerMode: document.querySelector('input[name="header-mode"]:checked').value,
+        twoRowHeader: includeSheetRow.checked,
+      };
     }
+
+    const TH_CLS = 'px-3 py-1.5 text-left border-b border-r border-outline-variant font-label-md text-on-surface-variant bg-surface-container last:border-r-0';
+    const TD_CLS = 'px-3 py-1 border-b border-outline-variant text-on-surface';
 
     function buildPreview() {
       const result = consolidate();
@@ -363,32 +355,71 @@
       previewEmpty.style.display = 'none';
       previewTable.classList.remove('hidden');
       btnDownload.disabled = false;
-      previewMeta.textContent = `${result.sheets.length}개 시트 · ${result.rows.length - (includeSheetRow.checked ? 2 : 1)}행 데이터`;
+      previewMeta.textContent = `${result.sheets.length}개 시트 · ${result.dataRows.length}행 데이터`;
 
-      // Render as HTML table (cap preview rows for performance)
-      const maxRows = 300;
-      const headerRowCount = includeSheetRow.checked ? 2 : 1;
       previewThead.innerHTML = '';
       previewTbody.innerHTML = '';
-      for (let i = 0; i < headerRowCount; i++) {
-        const tr = document.createElement('tr');
-        for (const cell of result.rows[i]) {
+      const { sheets: sel, dataRows, headerMode, twoRowHeader } = result;
+      const maxLabel = (s) => headerMode === 'prefixed' ? s.name + '_MAX' : 'MAX';
+      const minLabel = (s) => headerMode === 'prefixed' ? s.name + '_MIN' : 'MIN';
+
+      if (twoRowHeader) {
+        // Row 1: DISTANCE (rowspan=2) + sheet names (colspan=2 each)
+        const tr1 = document.createElement('tr');
+        const thDist = document.createElement('th');
+        thDist.textContent = 'DISTANCE';
+        thDist.rowSpan = 2;
+        thDist.className = TH_CLS + ' text-center align-middle';
+        tr1.appendChild(thDist);
+        for (const s of sel) {
           const th = document.createElement('th');
-          th.textContent = cell == null ? '' : cell;
-          th.className = 'px-3 py-1.5 text-left border-b border-outline-variant font-label-md text-on-surface-variant bg-surface-container';
-          tr.appendChild(th);
+          th.textContent = s.name;
+          th.colSpan = 2;
+          th.className = TH_CLS + ' text-center';
+          tr1.appendChild(th);
+        }
+        previewThead.appendChild(tr1);
+        // Row 2: MAX / MIN labels
+        const tr2 = document.createElement('tr');
+        for (const s of sel) {
+          const tMax = document.createElement('th');
+          tMax.textContent = maxLabel(s);
+          tMax.className = TH_CLS + ' text-center';
+          tr2.appendChild(tMax);
+          const tMin = document.createElement('th');
+          tMin.textContent = minLabel(s);
+          tMin.className = TH_CLS + ' text-center';
+          tr2.appendChild(tMin);
+        }
+        previewThead.appendChild(tr2);
+      } else {
+        const tr = document.createElement('tr');
+        const thDist = document.createElement('th');
+        thDist.textContent = 'DISTANCE';
+        thDist.className = TH_CLS + ' text-center';
+        tr.appendChild(thDist);
+        for (const s of sel) {
+          const tMax = document.createElement('th');
+          tMax.textContent = maxLabel(s);
+          tMax.className = TH_CLS + ' text-center';
+          tr.appendChild(tMax);
+          const tMin = document.createElement('th');
+          tMin.textContent = minLabel(s);
+          tMin.className = TH_CLS + ' text-center';
+          tr.appendChild(tMin);
         }
         previewThead.appendChild(tr);
       }
-      const dataRows = result.rows.slice(headerRowCount);
-      const shownRows = dataRows.slice(0, maxRows);
-      for (const r of shownRows) {
+
+      const maxRows = 300;
+      const shown = dataRows.slice(0, maxRows);
+      for (const r of shown) {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-surface-container';
         for (const v of r) {
           const td = document.createElement('td');
           td.textContent = v == null ? '' : (typeof v === 'number' ? (Math.round(v * 10000) / 10000) : v);
-          td.className = 'px-3 py-1 border-b border-outline-variant text-on-surface';
+          td.className = TD_CLS;
           tr.appendChild(td);
         }
         previewTbody.appendChild(tr);
@@ -396,12 +427,41 @@
       if (dataRows.length > maxRows) {
         const tr = document.createElement('tr');
         const td = document.createElement('td');
-        td.colSpan = result.rows[0].length;
+        td.colSpan = 1 + sel.length * 2;
         td.className = 'px-3 py-2 text-center text-secondary text-body-sm';
         td.textContent = `… 나머지 ${dataRows.length - maxRows}행은 다운로드 파일에 포함됩니다.`;
         tr.appendChild(td);
         previewTbody.appendChild(tr);
       }
+    }
+
+    // Build the AOA + merges for xlsx export
+    function buildExportAOA(result) {
+      const { sheets: sel, dataRows, headerMode, twoRowHeader } = result;
+      const maxLabel = (s) => headerMode === 'prefixed' ? s.name + '_MAX' : 'MAX';
+      const minLabel = (s) => headerMode === 'prefixed' ? s.name + '_MIN' : 'MIN';
+      const aoa = [];
+      const merges = [];
+      if (twoRowHeader) {
+        const row0 = ['DISTANCE'];
+        for (const s of sel) row0.push(s.name, '');
+        aoa.push(row0);
+        const row1 = [''];
+        for (const s of sel) row1.push(maxLabel(s), minLabel(s));
+        aoa.push(row1);
+        merges.push({ s: { r: 0, c: 0 }, e: { r: 1, c: 0 } });
+        let c = 1;
+        for (const s of sel) {
+          merges.push({ s: { r: 0, c }, e: { r: 0, c: c + 1 } });
+          c += 2;
+        }
+      } else {
+        const row = ['DISTANCE'];
+        for (const s of sel) row.push(maxLabel(s), minLabel(s));
+        aoa.push(row);
+      }
+      for (const r of dataRows) aoa.push(r);
+      return { aoa, merges };
     }
 
     document.querySelectorAll('input[name="header-mode"]').forEach(el => el.addEventListener('change', buildPreview));
@@ -410,19 +470,10 @@
     btnDownload.addEventListener('click', () => {
       const result = consolidate();
       if (!result) return;
+      const { aoa, merges } = buildExportAOA(result);
       const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet(result.rows);
-      // Merge the per-sheet name cells on the top row (e.g., A over its MAX/MIN pair)
-      if (includeSheetRow.checked) {
-        const merges = [];
-        let c = 1;
-        for (const s of result.sheets) {
-          merges.push({ s: { r: 0, c }, e: { r: 0, c: c + 1 } });
-          c += 2;
-        }
-        ws['!merges'] = merges;
-      }
-      // Column widths
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      if (merges.length) ws['!merges'] = merges;
       const cols = [{ wch: 10 }];
       for (let i = 0; i < result.sheets.length; i++) cols.push({ wch: 9 }, { wch: 9 });
       ws['!cols'] = cols;
