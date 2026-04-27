@@ -27,13 +27,9 @@
             <span class="material-symbols-outlined text-[18px]">bookmark_add</span>
             저장
           </button>
-          <button id="btn-copy-all" class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2">
-            <span class="material-symbols-outlined text-[18px]">content_copy</span>
-            전체 복사
-          </button>
           <button id="btn-clear" class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-error-container hover:text-on-error-container hover:border-error transition-colors flex items-center gap-2">
             <span class="material-symbols-outlined text-[18px]">refresh</span>
-            초기화
+            입력 초기화
           </button>
         </div>
       </div>
@@ -263,7 +259,6 @@
     const inMemo     = document.getElementById('in-memo');
     const outList  = document.getElementById('out-list');
     const outEmpty = document.getElementById('out-empty');
-    const btnCopyAll = document.getElementById('btn-copy-all');
     const btnClear   = document.getElementById('btn-clear');
 
     const OUTPUTS = [
@@ -380,26 +375,6 @@
       refreshSaveButtonState();
     }
     [inPumbun, inFinish, inBrtip, inMaterial, inDanno].forEach(el => el.addEventListener('paste', handleExcelPaste));
-
-    btnCopyAll.addEventListener('click', () => {
-      const lines = [];
-      lines.push(`품번\t${inPumbun.value}`);
-      lines.push(`드릴 최종\t${inFinish.value}`);
-      if (inBrtip.value) lines.push(`BR 팁\t${inBrtip.value}`);
-      if (inDanno.value) lines.push(`단번호\t${inDanno.value}`);
-      lines.push('');
-      const pumbun = inPumbun.value, finish = inFinish.value.trim(), brtip = inBrtip.value.trim(), danno = inDanno.value.trim();
-      lines.push(`드릴 초도\t${compute초도(finish)}`);
-      lines.push(`드릴 홈\t${compute홈(finish, brtip, pumbun)}`);
-      lines.push(`드릴 단\t${compute단(finish, brtip, pumbun, danno)}`);
-      lines.push(`센터/자재\t${compute센터(finish, brtip, pumbun)}`);
-      navigator.clipboard.writeText(lines.join('\n')).then(() => {
-        const span = btnCopyAll.querySelector('span:last-child');
-        const orig = span.textContent;
-        span.textContent = '복사됨!';
-        setTimeout(() => { span.textContent = orig; }, 1500);
-      });
-    });
 
     btnClear.addEventListener('click', () => {
       if (!inPumbun.value && !inFinish.value && !inBrtip.value && !inMaterial.value && !inDanno.value && !inMemo.value) return;
