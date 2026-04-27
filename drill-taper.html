@@ -762,37 +762,48 @@
       const showMax = chartShowMax.checked;
       const showMin = chartShowMin.checked;
       const datasets = [];
+      const mode = getTaperCore();
       sheets.forEach((s, i) => {
         const color = SHEET_COLORS[i % SHEET_COLORS.length];
+        const maxArr = result.dataRows.map(r => r[1 + i * 2]);
+        const minArr = result.dataRows.map(r => r[1 + i * 2 + 1]);
         if (showMax) {
           datasets.push({
             label: s.name + ' MAX',
-            data: result.dataRows.map(r => r[1 + i * 2]),
-            borderColor: color,
-            backgroundColor: color,
-            borderWidth: 1.5,
-            pointRadius: 0,
-            pointHoverRadius: 6,
-            pointHitRadius: 8,
-            tension: 0,
-            spanGaps: true,
+            data: maxArr,
+            borderColor: color, backgroundColor: color,
+            borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 6, pointHitRadius: 8,
+            tension: 0, spanGaps: true,
             meta: { sheetName: s.name, type: 'max' },
           });
         }
         if (showMin) {
-          datasets.push({
-            label: s.name + ' MIN',
-            data: result.dataRows.map(r => r[1 + i * 2 + 1]),
-            borderColor: color,
-            backgroundColor: color,
-            borderWidth: 1.5,
-            pointRadius: 0,
-            pointHoverRadius: 5,
-            pointHitRadius: 6,
-            tension: 0,
-            spanGaps: true,
-            meta: { sheetName: s.name, type: 'min' },
-          });
+          if (mode === 'double' || mode === 'all') {
+            datasets.push({
+              label: s.name + ' MIN',
+              data: minArr,
+              borderColor: color, backgroundColor: color,
+              borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 6,
+              tension: 0, spanGaps: true,
+              meta: { sheetName: s.name, type: 'min' },
+            });
+          }
+          if (mode === 'single' || mode === 'all') {
+            const singledArr = maxArr.map((mx, k) => {
+              const mn = minArr[k];
+              if (mx == null || mn == null) return null;
+              return mx - (mx - mn) * 2;
+            });
+            datasets.push({
+              label: s.name + ' 싱글',
+              data: singledArr,
+              borderColor: color, backgroundColor: color,
+              borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 6,
+              borderDash: [5, 4],
+              tension: 0, spanGaps: true,
+              meta: { sheetName: s.name, type: 'min' }, // edits write to MIN
+            });
+          }
         }
       });
 
@@ -845,6 +856,13 @@
         el.addEventListener('input', () => { /* defer */ });
       }
     });
+    document.querySelectorAll('input[name="taper-core"]').forEach(el => {
+      el.addEventListener('change', rebuildChart);
+    });
+    function getTaperCore() {
+      const el = document.querySelector('input[name="taper-core"]:checked');
+      return el ? el.value : 'double';
+    }
     btnChartReset.addEventListener('click', () => {
       chartXMin.value = ''; chartXMax.value = '';
       chartYMin.value = ''; chartYMax.value = '';
@@ -986,20 +1004,36 @@
       off.width = w; off.height = h;
       const labels = result.dataRows.map(r => r[0]);
       const datasets = [];
+      const mode = getTaperCore();
       result.sheets.forEach((s, i) => {
         const color = SHEET_COLORS[i % SHEET_COLORS.length];
+        const maxArr = result.dataRows.map(r => r[1 + i * 2]);
+        const minArr = result.dataRows.map(r => r[1 + i * 2 + 1]);
         datasets.push({
-          label: s.name + ' MAX',
-          data: result.dataRows.map(r => r[1 + i * 2]),
+          label: s.name + ' MAX', data: maxArr,
           borderColor: color, backgroundColor: color,
           borderWidth: 1.5, pointRadius: 0, tension: 0, spanGaps: true,
         });
-        datasets.push({
-          label: s.name + ' MIN',
-          data: result.dataRows.map(r => r[1 + i * 2 + 1]),
-          borderColor: color, backgroundColor: color,
-          borderWidth: 1.5, pointRadius: 0, tension: 0, spanGaps: true,
-        });
+        if (mode === 'double' || mode === 'all') {
+          datasets.push({
+            label: s.name + ' MIN', data: minArr,
+            borderColor: color, backgroundColor: color,
+            borderWidth: 1.5, pointRadius: 0, tension: 0, spanGaps: true,
+          });
+        }
+        if (mode === 'single' || mode === 'all') {
+          const singledArr = maxArr.map((mx, k) => {
+            const mn = minArr[k];
+            if (mx == null || mn == null) return null;
+            return mx - (mx - mn) * 2;
+          });
+          datasets.push({
+            label: s.name + ' 싱글', data: singledArr,
+            borderColor: color, backgroundColor: color,
+            borderWidth: 1.5, pointRadius: 0, tension: 0, spanGaps: true,
+            borderDash: [5, 4],
+          });
+        }
       });
       const tempChart = new Chart(off.getContext('2d'), {
         type: 'line',
@@ -1065,6 +1099,8 @@
           numDataRows: result.dataRows.length,
           twoRowHeader: result.twoRowHeader,
           sheetNames: result.sheets.map(s => s.name),
+          mode: getTaperCore(),
+          dataRows: result.dataRows,
         });
         const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         const url = URL.createObjectURL(blob);
@@ -1113,52 +1149,64 @@
     }
 
     function buildChartXml(opts) {
-      const { sheetName, numSheets, numDataRows, twoRowHeader, sheetNames } = opts;
+      const { sheetName, numSheets, numDataRows, twoRowHeader, sheetNames, mode, dataRows } = opts;
       const dataStart = twoRowHeader ? 3 : 2;
       const dataEnd = dataStart + numDataRows - 1;
       const sn = quoteSheetForFormula(sheetName);
       const distRange = `${sn}!$A$${dataStart}:$A$${dataEnd}`;
+      const showOriginalMin = (mode === 'double' || mode === 'all');
+      const showSingled = (mode === 'single' || mode === 'all');
+
+      function makeSer(idx, order, label, color, valRefXml, dashed) {
+        const dashXml = dashed ? '<a:prstDash val="dash"/>' : '';
+        return `
+          <c:ser>
+            <c:idx val="${idx}"/>
+            <c:order val="${order}"/>
+            <c:tx><c:v>${xmlEscape(label)}</c:v></c:tx>
+            <c:spPr>
+              <a:ln w="19050"><a:solidFill><a:srgbClr val="${color}"/></a:solidFill>${dashXml}</a:ln>
+            </c:spPr>
+            <c:marker><c:symbol val="none"/></c:marker>
+            <c:cat><c:numRef><c:f>${xmlEscape(distRange)}</c:f></c:numRef></c:cat>
+            ${valRefXml}
+            <c:smooth val="0"/>
+          </c:ser>`;
+      }
 
       let series = '';
+      let nextIdx = 0;
       let colIdx = 1; // column B for first sheet's MAX
       for (let i = 0; i < numSheets; i++) {
         const sheetLabel = sheetNames[i];
         const colMax = colLetter(colIdx);
         const colMin = colLetter(colIdx + 1);
-        const colorMax = CHART_COLORS[(i * 2) % CHART_COLORS.length];
-        const colorMin = CHART_COLORS[(i * 2 + 1) % CHART_COLORS.length];
-        // Use the same colour for MAX and MIN of the same sheet
         const sheetColor = CHART_COLORS[i % CHART_COLORS.length];
         const valRangeMax = `${sn}!$${colMax}$${dataStart}:$${colMax}$${dataEnd}`;
         const valRangeMin = `${sn}!$${colMin}$${dataStart}:$${colMin}$${dataEnd}`;
-        const labelMax = `${sheetLabel} MAX`;
-        const labelMin = `${sheetLabel} MIN`;
+        const valXmlMax = `<c:val><c:numRef><c:f>${xmlEscape(valRangeMax)}</c:f></c:numRef></c:val>`;
+        const valXmlMin = `<c:val><c:numRef><c:f>${xmlEscape(valRangeMin)}</c:f></c:numRef></c:val>`;
 
-        series += `
-          <c:ser>
-            <c:idx val="${i * 2}"/>
-            <c:order val="${i * 2}"/>
-            <c:tx><c:v>${xmlEscape(labelMax)}</c:v></c:tx>
-            <c:spPr>
-              <a:ln w="19050"><a:solidFill><a:srgbClr val="${sheetColor}"/></a:solidFill></a:ln>
-            </c:spPr>
-            <c:marker><c:symbol val="none"/></c:marker>
-            <c:cat><c:numRef><c:f>${xmlEscape(distRange)}</c:f></c:numRef></c:cat>
-            <c:val><c:numRef><c:f>${xmlEscape(valRangeMax)}</c:f></c:numRef></c:val>
-            <c:smooth val="0"/>
-          </c:ser>
-          <c:ser>
-            <c:idx val="${i * 2 + 1}"/>
-            <c:order val="${i * 2 + 1}"/>
-            <c:tx><c:v>${xmlEscape(labelMin)}</c:v></c:tx>
-            <c:spPr>
-              <a:ln w="19050"><a:solidFill><a:srgbClr val="${sheetColor}"/></a:solidFill></a:ln>
-            </c:spPr>
-            <c:marker><c:symbol val="none"/></c:marker>
-            <c:cat><c:numRef><c:f>${xmlEscape(distRange)}</c:f></c:numRef></c:cat>
-            <c:val><c:numRef><c:f>${xmlEscape(valRangeMin)}</c:f></c:numRef></c:val>
-            <c:smooth val="0"/>
-          </c:ser>`;
+        series += makeSer(nextIdx, nextIdx, `${sheetLabel} MAX`, sheetColor, valXmlMax, false);
+        nextIdx++;
+        if (showOriginalMin) {
+          series += makeSer(nextIdx, nextIdx, `${sheetLabel} MIN`, sheetColor, valXmlMin, false);
+          nextIdx++;
+        }
+        if (showSingled) {
+          // Compute singled values from dataRows (MAX - (MAX - MIN) * 2)
+          const pts = [];
+          for (let r = 0; r < numDataRows; r++) {
+            const mx = dataRows[r][1 + i * 2];
+            const mn = dataRows[r][1 + i * 2 + 1];
+            const v = (mx == null || mn == null) ? '' : (mx - (mx - mn) * 2);
+            pts.push(v);
+          }
+          const ptsXml = pts.map((v, k) => `<c:pt idx="${k}"><c:v>${v}</c:v></c:pt>`).join('');
+          const valXmlSingled = `<c:val><c:numLit><c:formatCode>General</c:formatCode><c:ptCount val="${numDataRows}"/>${ptsXml}</c:numLit></c:val>`;
+          series += makeSer(nextIdx, nextIdx, `${sheetLabel} 싱글`, sheetColor, valXmlSingled, true);
+          nextIdx++;
+        }
         colIdx += 2;
       }
 
