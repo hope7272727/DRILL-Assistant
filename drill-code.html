@@ -23,7 +23,11 @@
           <span class="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-sm">자동 채번</span>
         </div>
         <div class="flex gap-sm">
-          <button id="btn-copy-all" class="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md hover:bg-primary-container transition-colors flex items-center gap-2">
+          <button id="btn-save" class="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md hover:bg-primary-container transition-colors flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+            <span class="material-symbols-outlined text-[18px]">bookmark_add</span>
+            저장
+          </button>
+          <button id="btn-copy-all" class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2">
             <span class="material-symbols-outlined text-[18px]">content_copy</span>
             전체 복사
           </button>
@@ -38,7 +42,7 @@
       <div class="flex-1 grid grid-cols-12 gap-lg min-h-0">
 
         <!-- Left: input form -->
-        <div class="col-span-5 bg-surface p-lg rounded-xl border border-outline-variant shadow-sm flex flex-col gap-md overflow-y-auto">
+        <div class="col-span-4 bg-surface p-lg rounded-xl border border-outline-variant shadow-sm flex flex-col gap-md overflow-y-auto">
           <h3 class="font-h3 text-[18px] text-on-surface flex items-center gap-2">
             <span class="material-symbols-outlined text-secondary">edit_note</span>
             입력 항목
@@ -82,8 +86,8 @@
           </div>
         </div>
 
-        <!-- Right: outputs -->
-        <div class="col-span-7 bg-surface p-lg rounded-xl border border-outline-variant shadow-sm flex flex-col gap-md overflow-y-auto">
+        <!-- Center: outputs -->
+        <div class="col-span-5 bg-surface p-lg rounded-xl border border-outline-variant shadow-sm flex flex-col gap-md overflow-y-auto">
           <h3 class="font-h3 text-[18px] text-on-surface flex items-center gap-2">
             <span class="material-symbols-outlined text-secondary">account_tree</span>
             자동 생성 코드
@@ -95,6 +99,24 @@
             <span class="material-symbols-outlined text-[64px] text-outline mb-2">data_object</span>
             <p class="font-body-md">완제품 코드를 입력하면 채번 결과가 표시됩니다.</p>
           </div>
+        </div>
+
+        <!-- Right: saved list -->
+        <div class="col-span-3 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col overflow-hidden">
+          <div class="flex justify-between items-center mb-sm">
+            <h3 class="font-label-md text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">bookmark</span>
+              저장 목록
+            </h3>
+            <span id="saved-count" class="font-label-sm text-secondary">0</span>
+          </div>
+          <div id="saved-list" class="flex-1 overflow-y-auto scrollbar-thin -mr-2 pr-2 flex flex-col gap-2">
+            <div id="saved-empty" class="text-center text-secondary text-body-sm p-md">
+              <span class="material-symbols-outlined text-[40px] text-outline mb-2 block">bookmark_border</span>
+              저장 버튼으로 현재 코드를 추가하세요.
+            </div>
+          </div>
+          <button id="btn-saved-clear" disabled class="mt-2 px-3 py-1.5 border border-outline-variant rounded text-body-sm text-secondary hover:bg-error-container hover:text-on-error-container disabled:opacity-40">전체 삭제</button>
         </div>
       </div>
     </div>
@@ -324,6 +346,117 @@
       recalc();
       DrillPersist.remove('drill-code/v1');
     });
+
+    // ===== Saved list =====
+    const SAVED_KEY = 'drill-code/library/v1';
+    const btnSave = document.getElementById('btn-save');
+    const savedList = document.getElementById('saved-list');
+    const savedEmpty = document.getElementById('saved-empty');
+    const savedCount = document.getElementById('saved-count');
+    const btnSavedClear = document.getElementById('btn-saved-clear');
+    let savedEntries = [];
+
+    async function loadSaved() {
+      try {
+        const arr = await DrillPersist.get(SAVED_KEY);
+        savedEntries = Array.isArray(arr) ? arr : [];
+      } catch (e) {
+        console.warn(e);
+        savedEntries = [];
+      }
+      renderSaved();
+    }
+    function persistSaved() {
+      DrillPersist.set(SAVED_KEY, savedEntries).catch(e => console.warn('save failed', e));
+    }
+    function fmtTs(iso) {
+      const d = iso ? new Date(iso) : new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+    function renderSaved() {
+      while (savedList.firstChild) savedList.removeChild(savedList.firstChild);
+      savedCount.textContent = savedEntries.length;
+      btnSavedClear.disabled = savedEntries.length === 0;
+      if (savedEntries.length === 0) {
+        savedList.appendChild(savedEmpty);
+        return;
+      }
+      savedEntries.forEach((e, idx) => {
+        const card = document.createElement('div');
+        card.className = 'border border-outline-variant rounded-lg p-2 hover:border-primary hover:bg-surface-container transition-colors';
+        card.innerHTML = `
+          <div class="flex justify-between items-start gap-1 mb-1">
+            <p class="font-label-sm text-on-surface text-[12px] truncate flex-1" title="${escapeHtml(e.pumbun || '')}">${escapeHtml(e.pumbun || '(품번 없음)')}</p>
+            <button class="del-btn text-secondary hover:text-error shrink-0" title="삭제">
+              <span class="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          </div>
+          <p class="font-code text-[13px] text-primary truncate">${escapeHtml(e.finish || '')}</p>
+          <p class="font-code text-[10px] text-secondary truncate" title="초도/홈/단/센터">
+            ${escapeHtml((e.outputs && e.outputs.초도) || '·')} · ${escapeHtml((e.outputs && e.outputs.홈) || '·')} · ${escapeHtml((e.outputs && e.outputs.단) || '·')} · ${escapeHtml((e.outputs && e.outputs.센터) || '·')}
+          </p>
+          <p class="font-body-sm text-outline text-[10px] mt-0.5">${fmtTs(e.savedAt)}</p>`;
+        card.addEventListener('click', (ev) => {
+          if (ev.target.closest('.del-btn')) return;
+          inPumbun.value = e.pumbun || '';
+          inFinish.value = e.finish || '';
+          inBrtip.value  = e.brtip || '';
+          inDanno.value  = e.danno || '';
+          recalc();
+        });
+        card.querySelector('.del-btn').addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          savedEntries.splice(idx, 1);
+          persistSaved();
+          renderSaved();
+        });
+        savedList.appendChild(card);
+      });
+    }
+    btnSave.addEventListener('click', () => {
+      const pumbun = inPumbun.value.trim();
+      const finish = inFinish.value.trim();
+      const brtip  = inBrtip.value.trim();
+      const danno  = inDanno.value.trim();
+      if (!finish) {
+        alert('드릴 최종 (완제품 코드)를 입력하세요.');
+        return;
+      }
+      const entry = {
+        pumbun, finish, brtip, danno,
+        outputs: {
+          초도: compute초도(finish),
+          홈:   compute홈(finish, brtip, pumbun),
+          단:   compute단(finish, brtip, pumbun, danno),
+          센터: compute센터(finish, brtip, pumbun),
+        },
+        savedAt: new Date().toISOString(),
+      };
+      // Newest first; replace if same finish code already saved
+      const existing = savedEntries.findIndex(e => e.finish === finish);
+      if (existing >= 0) savedEntries.splice(existing, 1);
+      savedEntries.unshift(entry);
+      persistSaved();
+      renderSaved();
+      const span = btnSave.querySelector('span:last-child');
+      const orig = span.textContent;
+      span.textContent = '저장됨!';
+      setTimeout(() => { span.textContent = orig; }, 1200);
+    });
+    btnSavedClear.addEventListener('click', () => {
+      if (!savedEntries.length) return;
+      if (!confirm('저장된 코드 목록을 모두 삭제할까요?')) return;
+      savedEntries = [];
+      persistSaved();
+      renderSaved();
+    });
+    function refreshSaveButtonState() {
+      btnSave.disabled = !inFinish.value.trim();
+    }
+    [inFinish].forEach(el => el.addEventListener('input', refreshSaveButtonState));
+    loadSaved();
+    refreshSaveButtonState();
 
     // No auto-fill: drill-code starts blank every visit.
     function schedulePersist() { /* intentionally no-op for drill-code */ }
