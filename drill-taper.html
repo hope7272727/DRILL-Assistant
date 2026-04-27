@@ -1142,29 +1142,42 @@ ${rel}</Relationships>`;
     async function injectNativeChart(buffer, opts) {
       const zip = await JSZip.loadAsync(buffer);
 
-      // Find the merged sheet (the one named opts.sheetName) — it's
-      // typically sheet1 since we add it first, but let's confirm via workbook.xml.
       const wbXml = await zip.file('xl/workbook.xml').async('text');
-      // Sheets are in order of <sheet>; first is sheet1 etc.
       const sheetEntries = [];
-      const sheetRe = /<sheet[^>]*name="([^"]+)"[^>]*sheetId="(\d+)"[^>]*r:id="(rId\d+)"[^>]*\/>/g;
+      const tagRe = /<sheet\s+([^>]+?)\/>/g;
       let m;
-      while ((m = sheetRe.exec(wbXml)) !== null) {
-        sheetEntries.push({ name: m[1], sheetId: m[2], rId: m[3] });
+      while ((m = tagRe.exec(wbXml)) !== null) {
+        const attrs = {};
+        const attrRe = /([A-Za-z_][A-Za-z0-9_:]*)\s*=\s*"([^"]*)"/g;
+        let am;
+        while ((am = attrRe.exec(m[1])) !== null) attrs[am[1]] = am[2];
+        sheetEntries.push({
+          name: attrs.name,
+          sheetId: attrs.sheetId,
+          rId: attrs['r:id'] || attrs['r:Id'] || attrs.id,
+        });
       }
-      // Workbook rels map rId to xl/worksheets/sheetN.xml
+      if (!sheetEntries.length) throw new Error('워크북에서 시트 목록을 읽지 못했습니다.');
+
       const wbRels = await zip.file('xl/_rels/workbook.xml.rels').async('text');
       const targetMap = {};
-      const relRe = /<Relationship[^>]*Id="(rId\d+)"[^>]*Target="([^"]+)"/g;
-      let r2;
-      while ((r2 = relRe.exec(wbRels)) !== null) {
-        targetMap[r2[1]] = r2[2];
+      const relRe = /<Relationship\b([^>]+)\/>/g;
+      let rm;
+      while ((rm = relRe.exec(wbRels)) !== null) {
+        const attrs = {};
+        const attrRe = /([A-Za-z_][A-Za-z0-9_:]*)\s*=\s*"([^"]*)"/g;
+        let am;
+        while ((am = attrRe.exec(rm[1])) !== null) attrs[am[1]] = am[2];
+        if (attrs.Id && attrs.Target) targetMap[attrs.Id] = attrs.Target;
       }
+
       const targetEntry = sheetEntries.find(s => s.name === opts.sheetName);
-      if (!targetEntry) throw new Error('통합 시트를 찾지 못했습니다.');
+      if (!targetEntry) {
+        const known = sheetEntries.map(s => s.name).join(', ');
+        throw new Error(`통합 시트("${opts.sheetName}")를 찾지 못했습니다. 워크북 시트: ${known}`);
+      }
       const sheetTarget = targetMap[targetEntry.rId];
       if (!sheetTarget) throw new Error('워크북 관계를 찾지 못했습니다.');
-      // Normalize path (e.g., 'worksheets/sheet1.xml' under xl/)
       const sheetXmlPath = sheetTarget.startsWith('/') ? sheetTarget.slice(1) : 'xl/' + sheetTarget;
       const sheetBaseName = sheetXmlPath.split('/').pop().replace('.xml', '');
       const sheetRelsPath = `xl/worksheets/_rels/${sheetBaseName}.xml.rels`;
