@@ -331,17 +331,32 @@
           </button>
           ${wcBtnHtml}`;
         const btn = card.querySelector('.copy-btn');
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
           if (!v) return;
           // Clipboard layout: 품번 [TAB] (규격 빈칸 → ERP 자동) [TAB]
           // (투입단위 빈칸 → ERP 자동) [TAB] 분자=1 [TAB] 분모=1
-          const clipboard = v + '\t\t\t1\t1';
-          navigator.clipboard.writeText(clipboard).then(() => {
-            const span = btn.querySelector('span:last-child');
-            const orig = span.textContent;
-            span.textContent = '복사됨!';
-            setTimeout(() => { span.textContent = orig; }, 1200);
-          });
+          const tsv = v + '\t\t\t1\t1';
+          // Some ERP grids only accept multi-cell paste via HTML. Provide
+          // both plain TSV and an HTML <table> on the clipboard.
+          const html = `<table><tr><td>${escapeHtml(v)}</td><td></td><td></td><td>1</td><td>1</td></tr></table>`;
+          try {
+            if (navigator.clipboard && window.ClipboardItem) {
+              const item = new ClipboardItem({
+                'text/plain': new Blob([tsv], { type: 'text/plain' }),
+                'text/html':  new Blob([html], { type: 'text/html' }),
+              });
+              await navigator.clipboard.write([item]);
+            } else {
+              await navigator.clipboard.writeText(tsv);
+            }
+          } catch (err) {
+            console.warn('rich clipboard failed, falling back', err);
+            try { await navigator.clipboard.writeText(tsv); } catch (_) {}
+          }
+          const span = btn.querySelector('span:last-child');
+          const orig = span.textContent;
+          span.textContent = '복사됨!';
+          setTimeout(() => { span.textContent = orig; }, 1200);
         });
         const wcBtn = card.querySelector('.wc-btn');
         if (wcBtn) {
