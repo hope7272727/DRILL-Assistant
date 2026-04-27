@@ -45,6 +45,10 @@
             <span class="material-symbols-outlined text-[18px]">download_done</span>
             <span id="download-all-label">전체 저장</span>
           </button>
+          <button id="btn-clear-all" class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-error-container hover:text-on-error-container hover:border-error transition-colors flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">delete_sweep</span>
+            전체 초기화
+          </button>
         </div>
       </div>
 
@@ -1179,6 +1183,33 @@
       }
     }
     restoreState();
+
+    document.getElementById('btn-clear-all').addEventListener('click', () => {
+      if (!state.items.length) {
+        if (!confirm('현재 저장된 작업이 없는지 확인하셨나요? 그래도 초기화할까요?')) return;
+      } else {
+        if (!confirm('업로드된 모든 사진과 DXF, 위치/각도 조정 내역을 모두 비울까요? (되돌릴 수 없음)')) return;
+      }
+      state.items = [];
+      state.activeIdx = -1;
+      state.pickedPoints = [];
+      state.photoDragging = false;
+      if (state.pickMode) setPickMode(false);
+      if (state.showCrosshair) setCrosshair(false);
+      // Reset DXF library selection too (library entries themselves stay)
+      dxfLibSelect.value = '';
+      btnDxfLibDel.disabled = true;
+      dxfFileName.textContent = '파일 없음';
+      dxfFileName.classList.remove('text-error');
+      updateDxfButtonVisual(false);
+      refreshDxfControls();
+      syncUIForActive();
+      setEnabled();
+      renderFileList();
+      renderActive();
+      DrillPersist.remove(PERSIST_KEY);
+      canvas.style.cursor = '';
+    });
   </script>
 </body>
 </html>
