@@ -10,6 +10,7 @@
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <script src="assets/theme.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body class="flex h-screen overflow-hidden antialiased text-on-surface">
   <div id="app-shell"></div>
@@ -60,27 +61,74 @@
           </div>
         </div>
 
-        <!-- Center: consolidated preview -->
-        <div class="col-span-7 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col">
-          <div class="flex justify-between items-center mb-md pb-md border-b border-outline-variant">
-            <h3 class="font-label-md text-on-surface flex items-center gap-2">
-              <span class="material-symbols-outlined text-[18px]">table_view</span>
-              통합 미리보기
-            </h3>
-            <div id="preview-meta" class="font-label-sm text-secondary"></div>
-          </div>
-          <div id="preview-scroll-top" class="overflow-x-auto overflow-y-hidden scrollbar-thin border border-outline-variant border-b-0 rounded-t-lg bg-surface-container-lowest hidden" style="height:14px;">
-            <div id="preview-scroll-spacer" style="height:1px;"></div>
-          </div>
-          <div id="preview-wrapper" class="flex-1 overflow-auto scrollbar-thin border border-outline-variant rounded-lg bg-surface-container-lowest">
-            <div id="preview-empty" class="flex flex-col items-center justify-center text-secondary pointer-events-none" style="padding:48px;">
-              <span class="material-symbols-outlined text-[64px] text-outline mb-2">table_view</span>
-              <p class="font-body-md">엑셀을 업로드하면 여기에 통합 결과가 표시됩니다.</p>
+        <!-- Center: consolidated preview + graph -->
+        <div class="col-span-7 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col min-w-0">
+          <div class="flex items-center mb-md pb-md border-b border-outline-variant gap-md">
+            <div class="flex gap-1 bg-surface-container rounded-lg p-1">
+              <button id="tab-table" class="px-3 py-1.5 bg-surface-container-lowest text-on-surface rounded font-label-sm shadow-sm flex items-center gap-1">
+                <span class="material-symbols-outlined text-[18px]">table_view</span>
+                통합 미리보기
+              </button>
+              <button id="tab-graph" class="px-3 py-1.5 text-secondary hover:text-on-surface rounded font-label-sm flex items-center gap-1">
+                <span class="material-symbols-outlined text-[18px]">show_chart</span>
+                그래프
+              </button>
             </div>
-            <table id="preview-table" class="text-body-sm font-code hidden" style="border-collapse:separate;border-spacing:0;table-layout:auto;">
-              <thead id="preview-thead" class="sticky top-0 bg-surface-container z-10"></thead>
-              <tbody id="preview-tbody"></tbody>
-            </table>
+            <div id="preview-meta" class="font-label-sm text-secondary ml-auto"></div>
+            <button id="btn-chart-png" disabled class="px-3 py-1.5 border border-outline-variant rounded font-label-sm text-on-surface hover:bg-surface-variant disabled:opacity-40 hidden items-center gap-1">
+              <span class="material-symbols-outlined text-[18px]">download</span>
+              PNG 저장
+            </button>
+          </div>
+
+          <!-- Table view -->
+          <div id="view-table" class="flex-1 flex flex-col min-h-0">
+            <div id="preview-scroll-top" class="overflow-x-auto overflow-y-hidden scrollbar-thin border border-outline-variant border-b-0 rounded-t-lg bg-surface-container-lowest hidden" style="height:14px;">
+              <div id="preview-scroll-spacer" style="height:1px;"></div>
+            </div>
+            <div id="preview-wrapper" class="flex-1 overflow-auto scrollbar-thin border border-outline-variant rounded-lg bg-surface-container-lowest">
+              <div id="preview-empty" class="flex flex-col items-center justify-center text-secondary pointer-events-none" style="padding:48px;">
+                <span class="material-symbols-outlined text-[64px] text-outline mb-2">table_view</span>
+                <p class="font-body-md">엑셀을 업로드하면 여기에 통합 결과가 표시됩니다.</p>
+              </div>
+              <table id="preview-table" class="text-body-sm font-code hidden" style="border-collapse:separate;border-spacing:0;table-layout:auto;">
+                <thead id="preview-thead" class="sticky top-0 bg-surface-container z-10"></thead>
+                <tbody id="preview-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Graph view -->
+          <div id="view-graph" class="flex-1 flex-col min-h-0 gap-md hidden">
+            <div class="flex flex-wrap items-center gap-md mb-2 text-body-sm">
+              <label class="flex items-center gap-1 text-on-surface">
+                <input id="chart-show-max" type="checkbox" checked class="accent-primary rounded"/> MAX
+              </label>
+              <label class="flex items-center gap-1 text-on-surface">
+                <input id="chart-show-min" type="checkbox" checked class="accent-primary rounded"/> MIN
+              </label>
+              <span class="text-outline">·</span>
+              <label class="flex items-center gap-1 text-on-surface">
+                X 범위
+                <input id="chart-x-min" type="number" step="0.1" placeholder="auto" class="w-16 px-2 py-0.5 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code"/>
+                ~
+                <input id="chart-x-max" type="number" step="0.1" placeholder="auto" class="w-16 px-2 py-0.5 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code"/>
+              </label>
+              <label class="flex items-center gap-1 text-on-surface">
+                Y 범위
+                <input id="chart-y-min" type="number" step="0.01" placeholder="auto" class="w-20 px-2 py-0.5 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code"/>
+                ~
+                <input id="chart-y-max" type="number" step="0.01" placeholder="auto" class="w-20 px-2 py-0.5 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code"/>
+              </label>
+              <button id="btn-chart-reset" class="px-2 py-0.5 border border-outline-variant rounded text-secondary hover:bg-surface-variant text-body-sm">자동</button>
+            </div>
+            <div class="flex-1 relative border border-outline-variant rounded-lg bg-surface-container-lowest p-md min-h-[400px]">
+              <div id="chart-empty" class="absolute inset-0 flex flex-col items-center justify-center text-secondary pointer-events-none">
+                <span class="material-symbols-outlined text-[64px] text-outline mb-2">show_chart</span>
+                <p class="font-body-md">데이터를 업로드하면 그래프가 그려집니다.</p>
+              </div>
+              <canvas id="chart-canvas" class="hidden"></canvas>
+            </div>
           </div>
         </div>
 
@@ -360,6 +408,34 @@
     const previewScrollSpacer = $('preview-scroll-spacer');
     const previewWrapper = $('preview-wrapper');
 
+    // --- Tabs ---
+    const tabTable = $('tab-table');
+    const tabGraph = $('tab-graph');
+    const viewTable = $('view-table');
+    const viewGraph = $('view-graph');
+    const btnChartPng = $('btn-chart-png');
+    function activateTab(name) {
+      const isTable = name === 'table';
+      tabTable.classList.toggle('bg-surface-container-lowest', isTable);
+      tabTable.classList.toggle('text-on-surface', isTable);
+      tabTable.classList.toggle('shadow-sm', isTable);
+      tabTable.classList.toggle('text-secondary', !isTable);
+      tabGraph.classList.toggle('bg-surface-container-lowest', !isTable);
+      tabGraph.classList.toggle('text-on-surface', !isTable);
+      tabGraph.classList.toggle('shadow-sm', !isTable);
+      tabGraph.classList.toggle('text-secondary', isTable);
+      viewTable.classList.toggle('hidden', !isTable);
+      viewGraph.classList.toggle('hidden', isTable);
+      viewGraph.classList.toggle('flex', !isTable);
+      btnChartPng.classList.toggle('hidden', isTable);
+      btnChartPng.classList.toggle('flex', !isTable);
+      if (!isTable) {
+        rebuildChart();
+      }
+    }
+    tabTable.addEventListener('click', () => activateTab('table'));
+    tabGraph.addEventListener('click', () => activateTab('graph'));
+
     let _suppressScroll = false;
     previewScrollTop.addEventListener('scroll', () => {
       if (_suppressScroll) return;
@@ -385,6 +461,7 @@
     window.addEventListener('resize', syncTopScrollWidth);
 
     function buildPreview() {
+      rebuildChart(); // keep chart in sync
       const result = consolidate();
       if (!result) {
         previewTable.classList.add('hidden');
@@ -513,6 +590,135 @@
 
     document.querySelectorAll('input[name="header-mode"]').forEach(el => el.addEventListener('change', buildPreview));
     includeSheetRow.addEventListener('change', buildPreview);
+
+    // ===== Chart =====
+    const SHEET_COLORS = [
+      '#e53935', '#fb8c00', '#43a047', '#1e88e5',
+      '#5e35b1', '#d81b60', '#00acc1', '#fdd835',
+      '#6d4c41', '#546e7a', '#7cb342', '#039be5',
+      '#f4511e', '#ab47bc', '#0097a7', '#c0ca33',
+    ];
+    let chart = null;
+    const chartCanvas = $('chart-canvas');
+    const chartEmpty = $('chart-empty');
+    const chartShowMax = $('chart-show-max');
+    const chartShowMin = $('chart-show-min');
+    const chartXMin = $('chart-x-min');
+    const chartXMax = $('chart-x-max');
+    const chartYMin = $('chart-y-min');
+    const chartYMax = $('chart-y-max');
+    const btnChartReset = $('btn-chart-reset');
+
+    function rebuildChart() {
+      if (viewGraph.classList.contains('hidden')) return; // only when active
+      const result = consolidate();
+      if (!result || !result.dataRows.length) {
+        if (chart) { chart.destroy(); chart = null; }
+        chartCanvas.classList.add('hidden');
+        chartEmpty.classList.remove('hidden');
+        btnChartPng.disabled = true;
+        return;
+      }
+      chartEmpty.classList.add('hidden');
+      chartCanvas.classList.remove('hidden');
+      btnChartPng.disabled = false;
+
+      const sheets = result.sheets;
+      const labels = result.dataRows.map(r => r[0]);
+      const showMax = chartShowMax.checked;
+      const showMin = chartShowMin.checked;
+      const datasets = [];
+      sheets.forEach((s, i) => {
+        const color = SHEET_COLORS[i % SHEET_COLORS.length];
+        if (showMax) {
+          datasets.push({
+            label: s.name + ' MAX',
+            data: result.dataRows.map(r => r[1 + i * 2]),
+            borderColor: color,
+            backgroundColor: color,
+            borderWidth: 1.5,
+            pointRadius: 0,
+            tension: 0,
+            spanGaps: true,
+          });
+        }
+        if (showMin) {
+          datasets.push({
+            label: s.name + ' MIN',
+            data: result.dataRows.map(r => r[1 + i * 2 + 1]),
+            borderColor: color,
+            backgroundColor: color,
+            borderWidth: 1.5,
+            pointRadius: 0,
+            borderDash: [4, 3],
+            tension: 0,
+            spanGaps: true,
+          });
+        }
+      });
+
+      const xMin = chartXMin.value === '' ? undefined : parseFloat(chartXMin.value);
+      const xMax = chartXMax.value === '' ? undefined : parseFloat(chartXMax.value);
+      const yMin = chartYMin.value === '' ? undefined : parseFloat(chartYMin.value);
+      const yMax = chartYMax.value === '' ? undefined : parseFloat(chartYMax.value);
+
+      const config = {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          interaction: { intersect: false, mode: 'nearest', axis: 'x' },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { boxWidth: 14, boxHeight: 8, font: { size: 11 } },
+            },
+            tooltip: { enabled: true },
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'DISTANCE' },
+              ticks: { autoSkip: true, maxTicksLimit: 24 },
+              min: xMin, max: xMax,
+            },
+            y: {
+              title: { display: true, text: 'MAX / MIN' },
+              min: yMin, max: yMax,
+            },
+          },
+        },
+      };
+
+      if (chart) {
+        chart.data = config.data;
+        chart.options = config.options;
+        chart.update();
+      } else {
+        chart = new Chart(chartCanvas.getContext('2d'), config);
+      }
+    }
+
+    [chartShowMax, chartShowMin, chartXMin, chartXMax, chartYMin, chartYMax].forEach(el => {
+      el.addEventListener('change', rebuildChart);
+      if (el.tagName === 'INPUT' && el.type === 'number') {
+        el.addEventListener('input', () => { /* defer */ });
+      }
+    });
+    btnChartReset.addEventListener('click', () => {
+      chartXMin.value = ''; chartXMax.value = '';
+      chartYMin.value = ''; chartYMax.value = '';
+      rebuildChart();
+    });
+    btnChartPng.addEventListener('click', () => {
+      if (!chart) return;
+      const url = chart.toBase64Image('image/png', 1);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = (outFileName.value || 'chart').replace(/\.xlsx?$/i, '') + '_그래프.png';
+      a.click();
+    });
 
     btnDownload.addEventListener('click', () => {
       const result = consolidate();
