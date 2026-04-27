@@ -93,7 +93,17 @@
 
           <div>
             <label class="font-label-sm text-on-surface block mb-1">통합 시트 이름</label>
-            <input id="out-sheet-name" type="text" value="최하" class="w-full px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-sm focus:outline-none focus:border-primary"/>
+            <input id="out-sheet-name" type="text" value="취합" class="w-full px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-sm focus:outline-none focus:border-primary"/>
+          </div>
+
+          <div>
+            <label class="font-label-sm text-on-surface block mb-1">저장 방식</label>
+            <label class="flex items-center gap-2 font-body-sm text-on-surface mb-1">
+              <input type="radio" name="save-mode" value="merged-only" checked class="accent-primary"/> 취합 시트만
+            </label>
+            <label class="flex items-center gap-2 font-body-sm text-on-surface">
+              <input type="radio" name="save-mode" value="with-source" class="accent-primary"/> 취합 + 원본 시트
+            </label>
           </div>
 
           <div>
@@ -511,8 +521,20 @@
       const cols = [{ wch: 10 }];
       for (let i = 0; i < result.sheets.length; i++) cols.push({ wch: 9 }, { wch: 9 });
       ws['!cols'] = cols;
-      const sheetName = (outSheetName.value || '통합').slice(0, 31);
+      const sheetName = (outSheetName.value || '취합').slice(0, 31);
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      const saveMode = (document.querySelector('input[name="save-mode"]:checked') || {}).value || 'merged-only';
+      if (saveMode === 'with-source' && state.workbook) {
+        // Append the original sheets that contributed (selected) so the
+        // workbook ends up: [취합, A, B, C, D, E, F, G, 레퍼런스, ...]
+        for (const s of result.sheets) {
+          const origWs = state.workbook.Sheets[s.name];
+          if (origWs) {
+            const safeName = s.name.slice(0, 31);
+            XLSX.utils.book_append_sheet(wb, origWs, safeName);
+          }
+        }
+      }
       const filename = (outFileName.value || 'consolidated.xlsx').replace(/\.xlsx?$/i, '') + '.xlsx';
       XLSX.writeFile(wb, filename);
     });
