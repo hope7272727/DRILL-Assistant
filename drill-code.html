@@ -48,15 +48,17 @@
             입력 항목
           </h3>
 
-          <div>
-            <label for="in-pumbun" class="font-label-md text-on-surface-variant block mb-1">품명</label>
-            <input id="in-pumbun" type="text" autocomplete="off" spellcheck="false"
-                   class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
-          </div>
-          <div>
-            <label for="in-finish" class="font-label-md text-on-surface-variant block mb-1">품번 (완제품 코드)</label>
-            <input id="in-finish" type="text" autocomplete="off" spellcheck="false"
-                   class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code uppercase tracking-wider focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
+          <div class="grid grid-cols-2 gap-md">
+            <div>
+              <label for="in-pumbun" class="font-label-md text-on-surface-variant block mb-1">품명</label>
+              <input id="in-pumbun" type="text" autocomplete="off" spellcheck="false"
+                     class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
+            </div>
+            <div>
+              <label for="in-finish" class="font-label-md text-on-surface-variant block mb-1">품번 (완제품 코드)</label>
+              <input id="in-finish" type="text" autocomplete="off" spellcheck="false"
+                     class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code uppercase tracking-wider focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
+            </div>
           </div>
           <div class="grid grid-cols-3 gap-md">
             <div>
@@ -89,7 +91,7 @@
               <li><strong>드릴 초도</strong>: 완제품 코드의 1번째→2, 10번째→1 (1로 시작하는 경우)</li>
               <li><strong>드릴 홈</strong>: BR 팁이 있거나 품번이 "A"로 끝날 때만, 1→2, 10→4</li>
               <li><strong>드릴 단</strong>: A 끝 또는 BR 팁이 있을 때 — 기본은 품번 마지막 영문(P/C/a/M)에 따라 직경 ±5, BR이 L1/L2/L3로 끝나면 직경 그대로 + N자리에 L1→G, L2→J, L3→K</li>
-              <li><strong>센터/자재</strong>: 품명이 E로 시작/3번째 E면 "소재확인", BR 팁 코드(M1~M5, L1B~L3P, A1B~A5L 등)는 매핑 테이블에서 룩업, 없으면 단일 B~F 폴백, A 끝+BR 없음이면 "2R3175A1Z7"</li>
+              <li><strong>센터/자재</strong>: 품명이 E로 시작/3번째 E면 "소재확인", **소재** 입력값 (M1~M5, L1B~L3P, A1B~A5L 등) 매핑 테이블에서 룩업, 없으면 BR 팁 단일 B~F 폴백, A 끝+BR 없음이면 "2R3175A1Z7"</li>
             </ul>
           </div>
         </div>
@@ -215,9 +217,9 @@
       return '2D' + middle + en + dn + '5';
     }
 
-    // BR tip → 센터/자재 code lookup table.
-    // Match the BR-tip suffix (longest first) against this map.
-    const BR_CENTER_MAP = {
+    // 소재 → 센터/자재 code lookup table.
+    // Match the 소재 input suffix (longest first) against this map.
+    const MATERIAL_CENTER_MAP = {
       M1:  '0D3175B018', M2:  '0D3175D018', M3:  '0D3175F018',
       M4:  '0D3175E018', M5:  '0D3175C018',
       B1:  '0D2000AP18', B1J: '0D2000AJ18',
@@ -231,23 +233,22 @@
       A1S: '2R3175A1Z7', A2Y: '2R3175KK07', A2Z: '2R3175A2Z7',
       A5L: '2R3175A3U7',
     };
-    function lookupCenterFromBR(brtip) {
-      if (!brtip) return null;
-      const upper = String(brtip).toUpperCase();
-      // Try suffixes longest-first so "L1B" beats "1B"/"B".
+    function lookupCenterFromMaterial(material) {
+      if (!material) return null;
+      const upper = String(material).toUpperCase();
       for (const len of [3, 2]) {
         const tail = upper.slice(-len);
-        if (BR_CENTER_MAP[tail]) return BR_CENTER_MAP[tail];
+        if (MATERIAL_CENTER_MAP[tail]) return MATERIAL_CENTER_MAP[tail];
       }
       return null;
     }
 
     // 센터 / 자재
-    function compute센터(finish, brtip, pumbun) {
+    function compute센터(finish, brtip, pumbun, material) {
       if (leftStr(pumbun, 1) === 'E' || midStr(pumbun, 3, 1) === 'E') return '소재확인';
-      const mapped = lookupCenterFromBR(brtip);
+      const mapped = lookupCenterFromMaterial(material);
       if (mapped) return mapped;
-      // Legacy single-letter fallback (B/C/D/E/F)
+      // Legacy single-letter fallback on BR 팁 (B/C/D/E/F)
       const last1 = rightStr(brtip, 1).toUpperCase();
       if (['B', 'C', 'D', 'E', 'F'].includes(last1)) return '0D3175' + last1 + '018';
       if (rightStr(pumbun, 1) === 'A' && !isText(brtip)) return '2R3175A1Z7';
@@ -289,16 +290,17 @@
 
     function recalc() {
       uppercaseTransform(inFinish);
-      const pumbun = inPumbun.value;
-      const finish = inFinish.value.trim();
-      const brtip  = inBrtip.value.trim();
-      const danno  = inDanno.value.trim();
+      const pumbun   = inPumbun.value;
+      const finish   = inFinish.value.trim();
+      const brtip    = inBrtip.value.trim();
+      const material = inMaterial.value.trim();
+      const danno    = inDanno.value.trim();
       const values = {
         최종: finish,                                     // 드릴 최종검사 = 입력한 완제품 코드 그대로
         초도: compute초도(finish),
         홈:   compute홈(finish, brtip, pumbun),
         단:   compute단(finish, brtip, pumbun, danno),
-        센터: compute센터(finish, brtip, pumbun),
+        센터: compute센터(finish, brtip, pumbun, material),
       };
       const hasAny = Object.values(values).some(v => v && v.trim());
       outEmpty.classList.toggle('hidden', hasAny);
@@ -537,7 +539,7 @@
           초도: compute초도(finish),
           홈:   compute홈(finish, brtip, pumbun),
           단:   compute단(finish, brtip, pumbun, danno),
-          센터: compute센터(finish, brtip, pumbun),
+          센터: compute센터(finish, brtip, pumbun, material),
         },
         savedAt: new Date().toISOString(),
       };
