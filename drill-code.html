@@ -315,27 +315,9 @@
       DrillPersist.remove('drill-code/v1');
     });
 
-    function schedulePersist() {
-      DrillPersist.setDebounced('drill-code/v1', () => ({
-        pumbun: inPumbun.value,
-        finish: inFinish.value,
-        brtip:  inBrtip.value,
-        danno:  inDanno.value,
-      }), 400);
-    }
-
-    (async () => {
-      try {
-        const saved = await DrillPersist.get('drill-code/v1');
-        if (saved) {
-          inPumbun.value = saved.pumbun || '';
-          inFinish.value = saved.finish || saved.finishedCode || '';
-          inBrtip.value  = saved.brtip  || '';
-          inDanno.value  = saved.danno  || '';
-          recalc();
-        }
-      } catch (e) { console.warn(e); }
-    })();
+    // No auto-fill: drill-code starts blank every visit.
+    function schedulePersist() { /* intentionally no-op for drill-code */ }
+    DrillPersist.remove('drill-code/v1').catch(() => {});
   </script>
 </body>
 </html>
