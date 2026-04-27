@@ -127,6 +127,36 @@
         <p class="font-body-sm text-secondary text-[11px]">소재 코드 매핑: P→(N810A) · B→(AF806H) · Q→(AF209) · J→(AF308H) · Z→(ZK11SF) · 숫자→(소재공통) · 그 외→(확인요망)</p>
       </div>
 
+      <!-- 중복코드 행 생성 -->
+      <div class="bg-surface p-lg rounded-xl border border-outline-variant shadow-sm flex flex-col gap-md">
+        <h3 class="font-h3 text-[18px] text-on-surface flex items-center gap-2">
+          <span class="material-symbols-outlined text-secondary">content_copy</span>
+          중복코드 행 생성
+        </h3>
+
+        <div class="grid grid-cols-12 gap-md items-start">
+          <div class="col-span-3">
+            <label for="in-dup-finish" class="font-label-md text-on-surface-variant block mb-1">중복 품번</label>
+            <input id="in-dup-finish" type="text" autocomplete="off" spellcheck="false"
+                   class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code uppercase focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
+            <p class="font-body-sm text-secondary text-[11px] mt-1">위 단연삭 입력값과 함께 사용됩니다.</p>
+          </div>
+          <div class="col-span-9">
+            <label class="font-label-md text-on-surface-variant block mb-1">변환 결과 (3셀, 탭 구분 복사)</label>
+            <div class="flex items-stretch gap-2">
+              <div id="out-dup" class="flex-1 px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest font-code text-body-md text-on-surface flex items-center min-h-[42px] overflow-x-auto">
+                <span class="text-outline">위에서 단연삭 입력 + 중복 품번을 입력하면 3셀 행이 생성됩니다.</span>
+              </div>
+              <button id="btn-copy-dup" disabled class="px-3 py-2 border border-outline-variant rounded-lg text-secondary hover:bg-surface-variant disabled:opacity-40 flex items-center gap-1">
+                <span class="material-symbols-outlined text-[18px]">content_copy</span>
+                행 복사
+              </button>
+            </div>
+            <p class="font-body-sm text-secondary text-[11px] mt-1">출력 셀: <code class="font-code">[구코드/미사용]</code> · <code class="font-code">중복 품번</code> · <code class="font-code">[중복코드] 규격...</code></p>
+          </div>
+        </div>
+      </div>
+
       </div><!-- /flex-1 overflow scroll -->
     </div>
   </main>
@@ -312,7 +342,7 @@
       P: '(N810A)', B: '(AF806H)', Q: '(AF209)',
       J: '(AF308H)', Z: '(ZK11SF)',
     };
-    function compute단연삭(input) {
+    function compute단연삭Spec(input) {
       if (!input) return '';
       const m = String(input).trim().match(/^([A-Za-z0-9]+)-(\d+(?:\.\d+)?)\s*\*\s*(\d+(?:\.\d+)?)-(.+)$/);
       if (!m) return '';
@@ -328,7 +358,11 @@
       if (/^\d$/.test(lastChar)) mat = '(소재공통)';
       else if (SUFFIX_MAP[lastChar]) mat = SUFFIX_MAP[lastChar];
       else mat = '(확인요망)';
-      return `[단가공] ${prefix}-${dia4}-${len4}-${rest} ${mat}`;
+      return `${prefix}-${dia4}-${len4}-${rest} ${mat}`;
+    }
+    function compute단연삭(input) {
+      const spec = compute단연삭Spec(input);
+      return spec ? `[단가공] ${spec}` : '';
     }
 
     const inGrind  = document.getElementById('in-grind');
@@ -354,12 +388,64 @@
       btnCopyGrind.disabled = false;
       outGrind.dataset.value = out;
     }
-    inGrind.addEventListener('input', recalcGrind);
+    inGrind.addEventListener('input', () => { recalcGrind(); recalcDup(); });
     btnCopyGrind.addEventListener('click', () => {
       const v = outGrind.dataset.value;
       if (!v) return;
       navigator.clipboard.writeText(v).then(() => {
         const span = btnCopyGrind.querySelector('span:last-child');
+        const orig = span.textContent;
+        span.textContent = '복사됨!';
+        setTimeout(() => { span.textContent = orig; }, 1100);
+      });
+    });
+
+    // ===== 중복코드 행 생성 =====
+    const inDupFinish = document.getElementById('in-dup-finish');
+    const outDup     = document.getElementById('out-dup');
+    const btnCopyDup = document.getElementById('btn-copy-dup');
+
+    function recalcDup() {
+      const dupFinish = inDupFinish.value.trim();
+      const spec = compute단연삭Spec(inGrind.value);
+      if (!dupFinish && !spec) {
+        outDup.innerHTML = '<span class="text-outline">위에서 단연삭 입력 + 중복 품번을 입력하면 3셀 행이 생성됩니다.</span>';
+        outDup.dataset.value = '';
+        btnCopyDup.disabled = true;
+        return;
+      }
+      if (!spec) {
+        outDup.innerHTML = '<span class="text-error">단연삭 입력 패턴을 인식하지 못했습니다 (예: L1-0.34 * 3.7-1M L1J).</span>';
+        outDup.dataset.value = '';
+        btnCopyDup.disabled = true;
+        return;
+      }
+      const cells = ['[구코드/미사용]', dupFinish, `[중복코드] ${spec}`];
+      const tsv = cells.join('\t');
+      outDup.innerHTML = `
+        <span class="text-secondary">${escapeHtml(cells[0])}</span>
+        <span class="mx-2 text-outline">|</span>
+        <span class="text-primary">${escapeHtml(cells[1] || '(중복 품번 미입력)')}</span>
+        <span class="mx-2 text-outline">|</span>
+        <span>${escapeHtml(cells[2])}</span>`;
+      outDup.dataset.value = tsv;
+      btnCopyDup.disabled = !dupFinish;
+    }
+    inDupFinish.addEventListener('input', () => {
+      // Force uppercase for the finish code (matching other code inputs).
+      const v = inDupFinish.value, u = v.toUpperCase();
+      if (v !== u) {
+        const pos = inDupFinish.selectionStart;
+        inDupFinish.value = u;
+        try { inDupFinish.setSelectionRange(pos, pos); } catch(_) {}
+      }
+      recalcDup();
+    });
+    btnCopyDup.addEventListener('click', () => {
+      const v = outDup.dataset.value;
+      if (!v) return;
+      navigator.clipboard.writeText(v).then(() => {
+        const span = btnCopyDup.querySelector('span:last-child');
         const orig = span.textContent;
         span.textContent = '복사됨!';
         setTimeout(() => { span.textContent = orig; }, 1100);
