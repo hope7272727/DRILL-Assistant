@@ -316,6 +316,7 @@
       if (parts[2] !== undefined) inBrtip.value  = parts[2];
       if (parts[3] !== undefined) inDanno.value  = parts[3];
       recalc();
+      refreshSaveButtonState();
     }
     [inPumbun, inFinish, inBrtip, inDanno].forEach(el => el.addEventListener('paste', handleExcelPaste));
 
@@ -344,6 +345,7 @@
       if (!confirm('입력 내용을 모두 비울까요?')) return;
       inPumbun.value = ''; inFinish.value = ''; inBrtip.value = ''; inDanno.value = '';
       recalc();
+      refreshSaveButtonState();
       DrillPersist.remove('drill-code/v1');
     });
 
