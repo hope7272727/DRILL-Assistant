@@ -118,13 +118,11 @@
               저장 버튼으로 현재 코드를 추가하세요.
             </div>
           </div>
-          <div class="flex gap-1 mt-2">
-            <button id="btn-saved-copy-sel" disabled class="flex-1 px-2 py-1.5 bg-primary text-on-primary rounded text-body-sm hover:bg-primary-container disabled:opacity-40 flex items-center justify-center gap-1" title="선택한 항목을 '품명 / 품번' 형식으로 복사">
-              <span class="material-symbols-outlined text-[14px]">content_copy</span>
-              선택 복사 (<span id="saved-sel-count">0</span>)
-            </button>
-            <button id="btn-saved-clear" disabled class="px-2 py-1.5 border border-outline-variant rounded text-body-sm text-secondary hover:bg-error-container hover:text-on-error-container disabled:opacity-40">전체 삭제</button>
-          </div>
+          <button id="btn-saved-copy-sel" disabled class="mt-2 px-2 py-1.5 bg-primary text-on-primary rounded text-body-sm hover:bg-primary-container disabled:opacity-40 flex items-center justify-center gap-1" title="선택한 항목을 '품명 / 품번' 형식으로 복사">
+            <span class="material-symbols-outlined text-[14px]">content_copy</span>
+            선택 복사 (<span id="saved-sel-count">0</span>)
+          </button>
+          <button id="btn-saved-clear" hidden></button>
         </div>
       </div>
     </div>
