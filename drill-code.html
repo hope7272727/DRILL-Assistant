@@ -48,23 +48,16 @@
             입력 항목
           </h3>
 
-          <div>
-            <label for="in-pumbun" class="font-label-md text-on-surface-variant block mb-1">품번 (제품명)</label>
-            <input id="in-pumbun" type="text" autocomplete="off" spellcheck="false"
-                   class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
-            <p class="font-body-sm text-secondary text-[12px] mt-1">엑셀에서 품번 + 드릴 최종 (+ BR 팁 + 단번호) 셀들을 한꺼번에 복사해서 여기에 붙여넣으면 자동으로 분배됩니다.</p>
-          </div>
-
           <div class="grid grid-cols-2 gap-md">
             <div>
-              <label for="in-finish" class="font-label-md text-on-surface-variant block mb-1">드릴 최종 (완제품 코드)</label>
-              <input id="in-finish" type="text" autocomplete="off" spellcheck="false"
-                     class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code uppercase tracking-wider focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
+              <label for="in-pumbun" class="font-label-md text-on-surface-variant block mb-1">품명</label>
+              <input id="in-pumbun" type="text" autocomplete="off" spellcheck="false"
+                     class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
             </div>
             <div>
-              <label for="in-danno" class="font-label-md text-on-surface-variant block mb-1">단번호 (선택)</label>
-              <input id="in-danno" type="number" min="0" max="999"
-                     class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
+              <label for="in-finish" class="font-label-md text-on-surface-variant block mb-1">품번 (완제품 코드)</label>
+              <input id="in-finish" type="text" autocomplete="off" spellcheck="false"
+                     class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code uppercase tracking-wider focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
             </div>
             <div>
               <label for="in-brtip" class="font-label-md text-on-surface-variant block mb-1">BR 팁 (선택)</label>
@@ -72,11 +65,12 @@
                      class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
             </div>
             <div>
-              <label for="in-material" class="font-label-md text-on-surface-variant block mb-1">소재 (선택)</label>
-              <input id="in-material" type="text" autocomplete="off" spellcheck="false"
+              <label for="in-danno" class="font-label-md text-on-surface-variant block mb-1">단번호 (선택)</label>
+              <input id="in-danno" type="number" min="0" max="999"
                      class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
             </div>
           </div>
+          <p class="font-body-sm text-secondary text-[11px] -mt-1">엑셀에서 품명 + 품번 (+ BR 팁 + 단번호) 셀들을 한꺼번에 복사해서 어느 칸에든 붙여넣으면 자동으로 분배됩니다.</p>
 
           <div>
             <label for="in-memo" class="font-label-md text-on-surface-variant block mb-1">특이사항 / 비고 (선택)</label>
@@ -90,7 +84,7 @@
               <li><strong>드릴 초도</strong>: 완제품 코드의 1번째→2, 10번째→1 (1로 시작하는 경우)</li>
               <li><strong>드릴 홈</strong>: BR 팁이 있거나 품번이 "A"로 끝날 때만, 1→2, 10→4</li>
               <li><strong>드릴 단</strong>: A 끝 또는 BR 팁이 있을 때 — 기본은 품번 마지막 영문(P/C/a/M)에 따라 직경 ±5, BR이 L1/L2/L3로 끝나면 직경 그대로 + N자리에 L1→G, L2→J, L3→K</li>
-              <li><strong>센터/자재</strong>: 품번이 E로 시작/3번째 E면 "소재확인", BR 팁 끝이 B~F 또는 M1~M5면 "0D3175*018" (M1→B, M2→D, M3→F, M4→E, M5→C), A 끝+BR 없음이면 "2R3175A1Z7"</li>
+              <li><strong>센터/자재</strong>: 품명이 E로 시작/3번째 E면 "소재확인", BR 팁 코드(M1~M5, L1B~L3P, A1B~A5L 등)는 매핑 테이블에서 룩업, 없으면 단일 B~F 폴백, A 끝+BR 없음이면 "2R3175A1Z7"</li>
             </ul>
           </div>
         </div>
@@ -216,24 +210,41 @@
       return '2D' + middle + en + dn + '5';
     }
 
-    // BR tip suffix → letter used in the 센터/자재 code.
-    // Accepts both the legacy single-letter form (B/C/D/E/F) and the new
-    // two-letter form (M1=B, M2=D, M3=F, M4=E, M5=C).
-    const M_TO_LETTER = { M1: 'B', M2: 'D', M3: 'F', M4: 'E', M5: 'C' };
-    function brLetter(brtip) {
+    // BR tip → 센터/자재 code lookup table.
+    // Match the BR-tip suffix (longest first) against this map.
+    const BR_CENTER_MAP = {
+      M1:  '0D3175B018', M2:  '0D3175D018', M3:  '0D3175F018',
+      M4:  '0D3175E018', M5:  '0D3175C018',
+      B1:  '0D2000AP18', B1J: '0D2000AJ18',
+      L1B: '0D3185GB08', L1J: '0D3185GJ08', L1P: '0D3185GP08',
+      L2B: '0D3185JB08', L2C: '0D3185JC08', L2J: '0D3185JJ08', L2P: '0D3185JP08',
+      L3P: '0D3185KP08',
+      A1B: '2D3175AB08', A1C: '2D3175AC08', A1J: '2D3175AJ08', A1Q: '2D3175AQ08',
+      B1C: '2D2000AC08', B1Q: '2D2000AQ08',
+      M1R: '2D3175AR08',
+      A1Z: '2R3175A1Z7', A1L: '2R3175EE07', A1Y: '2R3175YY07',
+      A1S: '2R3175A1Z7', A2Y: '2R3175KK07', A2Z: '2R3175A2Z7',
+      A5L: '2R3175A3U07',
+    };
+    function lookupCenterFromBR(brtip) {
       if (!brtip) return null;
-      const last2 = rightStr(brtip, 2).toUpperCase();
-      if (M_TO_LETTER[last2]) return M_TO_LETTER[last2];
-      const last1 = rightStr(brtip, 1).toUpperCase();
-      if (['B', 'C', 'D', 'E', 'F'].includes(last1)) return last1;
+      const upper = String(brtip).toUpperCase();
+      // Try suffixes longest-first so "L1B" beats "1B"/"B".
+      for (const len of [3, 2]) {
+        const tail = upper.slice(-len);
+        if (BR_CENTER_MAP[tail]) return BR_CENTER_MAP[tail];
+      }
       return null;
     }
 
     // 센터 / 자재
     function compute센터(finish, brtip, pumbun) {
       if (leftStr(pumbun, 1) === 'E' || midStr(pumbun, 3, 1) === 'E') return '소재확인';
-      const letter = brLetter(brtip);
-      if (letter) return '0D3175' + letter + '018';
+      const mapped = lookupCenterFromBR(brtip);
+      if (mapped) return mapped;
+      // Legacy single-letter fallback (B/C/D/E/F)
+      const last1 = rightStr(brtip, 1).toUpperCase();
+      if (['B', 'C', 'D', 'E', 'F'].includes(last1)) return '0D3175' + last1 + '018';
       if (rightStr(pumbun, 1) === 'A' && !isText(brtip)) return '2R3175A1Z7';
       if (!isText(finish)) return '';
       let r = replaceAt(finish, 10, 1, '0');
@@ -242,12 +253,11 @@
     }
 
     // ===== UI wiring =====
-    const inPumbun   = document.getElementById('in-pumbun');
-    const inFinish   = document.getElementById('in-finish');
-    const inBrtip    = document.getElementById('in-brtip');
-    const inDanno    = document.getElementById('in-danno');
-    const inMaterial = document.getElementById('in-material');
-    const inMemo     = document.getElementById('in-memo');
+    const inPumbun = document.getElementById('in-pumbun');
+    const inFinish = document.getElementById('in-finish');
+    const inBrtip  = document.getElementById('in-brtip');
+    const inDanno  = document.getElementById('in-danno');
+    const inMemo   = document.getElementById('in-memo');
     const outList  = document.getElementById('out-list');
     const outEmpty = document.getElementById('out-empty');
     const btnCopyAll = document.getElementById('btn-copy-all');
@@ -345,7 +355,7 @@
       }[c]));
     }
 
-    [inPumbun, inFinish, inBrtip, inDanno, inMaterial].forEach(el => el.addEventListener('input', recalc));
+    [inPumbun, inFinish, inBrtip, inDanno].forEach(el => el.addEventListener('input', recalc));
 
     // Multi-cell Excel paste: if the pasted text contains a TAB, split into
     // [품번, 드릴 최종, BR 팁, 단번호] in column order. Single-cell pastes use
@@ -365,7 +375,7 @@
       recalc();
       refreshSaveButtonState();
     }
-    [inPumbun, inFinish, inBrtip, inDanno, inMaterial].forEach(el => el.addEventListener('paste', handleExcelPaste));
+    [inPumbun, inFinish, inBrtip, inDanno].forEach(el => el.addEventListener('paste', handleExcelPaste));
 
     btnCopyAll.addEventListener('click', () => {
       const lines = [];
@@ -388,10 +398,10 @@
     });
 
     btnClear.addEventListener('click', () => {
-      if (!inPumbun.value && !inFinish.value && !inBrtip.value && !inDanno.value && !inMaterial.value && !inMemo.value) return;
+      if (!inPumbun.value && !inFinish.value && !inBrtip.value && !inDanno.value && !inMemo.value) return;
       if (!confirm('입력 내용을 모두 비울까요?')) return;
       inPumbun.value = ''; inFinish.value = ''; inBrtip.value = '';
-      inDanno.value = ''; inMaterial.value = ''; inMemo.value = '';
+      inDanno.value = ''; inMemo.value = '';
       recalc();
       refreshSaveButtonState();
       DrillPersist.remove('drill-code/v1');
@@ -454,12 +464,11 @@
         card.addEventListener('click', (ev) => {
           if (ev.target.closest('.del-btn')) return;
           if (ev.target.classList.contains('memo-line')) return;
-          inPumbun.value   = e.pumbun || '';
-          inFinish.value   = e.finish || '';
-          inBrtip.value    = e.brtip || '';
-          inDanno.value    = e.danno || '';
-          inMaterial.value = e.material || '';
-          inMemo.value     = e.memo  || '';
+          inPumbun.value = e.pumbun || '';
+          inFinish.value = e.finish || '';
+          inBrtip.value  = e.brtip  || '';
+          inDanno.value  = e.danno  || '';
+          inMemo.value   = e.memo   || '';
           recalc();
           refreshSaveButtonState();
         });
@@ -504,18 +513,17 @@
       });
     }
     btnSave.addEventListener('click', () => {
-      const pumbun   = inPumbun.value.trim();
-      const finish   = inFinish.value.trim();
-      const brtip    = inBrtip.value.trim();
-      const danno    = inDanno.value.trim();
-      const material = inMaterial.value.trim();
-      const memo     = inMemo.value.trim();
+      const pumbun = inPumbun.value.trim();
+      const finish = inFinish.value.trim();
+      const brtip  = inBrtip.value.trim();
+      const danno  = inDanno.value.trim();
+      const memo   = inMemo.value.trim();
       if (!finish) {
-        alert('드릴 최종 (완제품 코드)를 입력하세요.');
+        alert('품번 (완제품 코드)를 입력하세요.');
         return;
       }
       const entry = {
-        pumbun, finish, brtip, danno, material, memo,
+        pumbun, finish, brtip, danno, memo,
         outputs: {
           최종: finish,
           초도: compute초도(finish),
