@@ -186,6 +186,7 @@
   </main>
 
   <script src="assets/shell.js"></script>
+  <script src="assets/persist.js"></script>
   <script src="assets/align.js"></script>
   <script src="assets/dxf.js"></script>
   <script>
@@ -468,6 +469,7 @@
       setEnabled();
       renderFileList();
       renderActive();
+      schedulePersist();
     }
 
     function makeThumb(image) {
@@ -487,35 +489,7 @@
     async function loadFiles(fileList) {
       const arr = Array.from(fileList).filter(f => f.type.startsWith('image/'));
       for (const f of arr) {
-        const url = URL.createObjectURL(f);
-        const image = new Image();
-        await new Promise((res, rej) => {
-          image.onload = res;
-          image.onerror = rej;
-          image.src = url;
-        });
-        const id = DrillAlign.imageData(image);
-        const bg = DrillAlign.sampleBg(id.data, id.width, id.height);
-        state.items.push({
-          name: f.name,
-          image,
-          imageData: id,
-          threshold: 220,
-          autoAngle: 0,
-          angle: 0,
-          bg: bg.css,
-          brightCount: 0,
-          thumb: makeThumb(image),
-          // Per-photo DXF + positioning state
-          dxf: null,
-          dxfName: '',
-          dxfText: '',
-          dxfVisible: false,
-          dxfScaleUser: 100,
-          dxfFitScale: 1,
-          photoOffsetX: 0,
-          photoOffsetY: 0,
-        });
+        await addItemFromBlob(f, f.name);
       }
       if (state.activeIdx < 0 && state.items.length > 0) state.activeIdx = 0;
       syncUIForActive();
@@ -523,6 +497,49 @@
       renderFileList();
       renderActive();
       if (state.activeIdx >= 0 && !state.pickMode) canvas.style.cursor = 'grab';
+      schedulePersist();
+    }
+
+    async function addItemFromBlob(blob, name, restore) {
+      const url = URL.createObjectURL(blob);
+      const image = new Image();
+      await new Promise((res, rej) => {
+        image.onload = res;
+        image.onerror = rej;
+        image.src = url;
+      });
+      const id = DrillAlign.imageData(image);
+      const bg = DrillAlign.sampleBg(id.data, id.width, id.height);
+      const item = {
+        name,
+        image,
+        imageData: id,
+        threshold: 220,
+        autoAngle: 0,
+        angle: 0,
+        bg: bg.css,
+        brightCount: 0,
+        thumb: makeThumb(image),
+        dxf: null,
+        dxfName: '',
+        dxfText: '',
+        dxfVisible: false,
+        dxfScaleUser: 100,
+        dxfFitScale: 1,
+        photoOffsetX: 0,
+        photoOffsetY: 0,
+        fileBlob: blob,
+      };
+      if (restore) Object.assign(item, restore);
+      // If a DXF was restored as text, reparse to entities/bbox.
+      if (item.dxfText && !item.dxf) {
+        try {
+          const dxf = DrillDXF.parseDXF(item.dxfText);
+          if (dxf.entities.length && dxf.bbox) item.dxf = dxf;
+        } catch (e) { console.warn('DXF restore parse failed', e); }
+      }
+      state.items.push(item);
+      return item;
     }
 
     // ---- Events ----
@@ -541,6 +558,7 @@
       angleSlider.value = a.toFixed(2);
       renderFileList();
       renderActive();
+      schedulePersist();
     }
 
     angleSlider.addEventListener('input', (e) => commitAngle(e.target.value));
@@ -589,7 +607,7 @@
       blitAndOverlay();
     }
 
-    btnCrosshair.addEventListener('click', () => setCrosshair(!state.showCrosshair));
+    btnCrosshair.addEventListener('click', () => { setCrosshair(!state.showCrosshair); schedulePersist(); });
 
     function setPickMode(on) {
       state.pickMode = on;
@@ -680,6 +698,7 @@
       if (it) it.dxfVisible = on;
       updateDxfButtonVisual(it ? it.dxfVisible : false);
       blitAndOverlay();
+      schedulePersist();
     }
 
     function refreshDxfControls() {
@@ -760,6 +779,7 @@
       dxfInput.value = '';
       refreshDxfControls();
       blitAndOverlay();
+      schedulePersist();
     });
 
     // ----- DXF library (localStorage) -----
@@ -828,6 +848,7 @@
       btnDxfLibDel.disabled = true;
     });
 
+    function _afterDxfLibLoad() { schedulePersist(); }
     dxfLibSelect.addEventListener('change', (e) => {
       const val = e.target.value;
       if (val === '') {
@@ -868,6 +889,7 @@
       btnDxfLibDel.disabled = false;
       refreshDxfControls();
       blitAndOverlay();
+      _afterDxfLibLoad();
     });
 
     btnDxfToggle.addEventListener('click', () => {
@@ -886,6 +908,7 @@
       dxfScaleNumInput.value = s.toFixed(2);
       dxfScaleVal.textContent = s.toFixed(2) + 'x';
       blitAndOverlay();
+      schedulePersist();
     }
 
     dxfScaleInput.addEventListener('input', (e) => commitDxfScale(e.target.value));
@@ -907,6 +930,7 @@
     dxfColorInput.addEventListener('input', (e) => {
       state.dxfColor = e.target.value;
       blitAndOverlay();
+      schedulePersist();
     });
 
     // Drag to shift the PHOTO (DXF stays at canvas centre). Disabled in
@@ -935,6 +959,7 @@
       if (!state.photoDragging) return;
       state.photoDragging = false;
       canvas.style.cursor = state.pickMode ? 'crosshair' : 'grab';
+      schedulePersist();
     });
 
 
@@ -944,6 +969,7 @@
       it.photoOffsetY = 0;
       renderImageCache();
       blitAndOverlay();
+      schedulePersist();
     }
 
     btnPhotoCenter.addEventListener('click', resetPhotoOffset);
@@ -957,6 +983,7 @@
       it.photoOffsetY += dy * dpr;
       renderImageCache();
       blitAndOverlay();
+      schedulePersist();
     }
 
     function stepPx(shift) { return shift ? 10 : 1; }
@@ -1096,6 +1123,62 @@
     window.addEventListener('resize', renderActive);
     setEnabled();
     fitCanvas();
+
+    // ===== State persistence (IndexedDB) =====
+    const PERSIST_KEY = 'drill-point/v1';
+    function snapshotState() {
+      return {
+        activeIdx: state.activeIdx,
+        showCrosshair: state.showCrosshair,
+        dxfColor: state.dxfColor,
+        items: state.items.map(it => ({
+          fileBlob: it.fileBlob || null,
+          name: it.name,
+          angle: it.angle,
+          photoOffsetX: it.photoOffsetX,
+          photoOffsetY: it.photoOffsetY,
+          dxfText: it.dxfText || '',
+          dxfName: it.dxfName || '',
+          dxfVisible: !!it.dxfVisible,
+          dxfScaleUser: it.dxfScaleUser || 100,
+        })),
+      };
+    }
+    function schedulePersist() {
+      DrillPersist.setDebounced(PERSIST_KEY, snapshotState, 500);
+    }
+    async function restoreState() {
+      try {
+        const saved = await DrillPersist.get(PERSIST_KEY);
+        if (!saved || !saved.items || !saved.items.length) return;
+        for (const s of saved.items) {
+          if (!s.fileBlob) continue;
+          await addItemFromBlob(s.fileBlob, s.name, {
+            angle: s.angle || 0,
+            photoOffsetX: s.photoOffsetX || 0,
+            photoOffsetY: s.photoOffsetY || 0,
+            dxfText: s.dxfText || '',
+            dxfName: s.dxfName || '',
+            dxfVisible: !!s.dxfVisible,
+            dxfScaleUser: s.dxfScaleUser || 100,
+          });
+        }
+        state.activeIdx = (saved.activeIdx >= 0 && saved.activeIdx < state.items.length)
+          ? saved.activeIdx : (state.items.length ? 0 : -1);
+        state.showCrosshair = !!saved.showCrosshair;
+        state.dxfColor = saved.dxfColor || '#ff0000';
+        // Apply crosshair button visual
+        if (state.showCrosshair) setCrosshair(true);
+        syncUIForActive();
+        setEnabled();
+        renderFileList();
+        renderActive();
+        if (state.activeIdx >= 0 && !state.pickMode) canvas.style.cursor = 'grab';
+      } catch (e) {
+        console.warn('restoreState failed', e);
+      }
+    }
+    restoreState();
   </script>
 </body>
 </html>

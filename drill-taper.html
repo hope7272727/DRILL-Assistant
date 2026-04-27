@@ -220,6 +220,7 @@
   </main>
 
   <script src="assets/shell.js"></script>
+  <script src="assets/persist.js"></script>
   <script>
     renderShell('drill-taper');
 
@@ -263,9 +264,10 @@
         const buf = await f.arrayBuffer();
         const wb = XLSX.read(buf, { type: 'array' });
         const added = appendWorkbook(wb, f.name);
-        state.files.push({ fileName: f.name, sheetCount: added });
+        state.files.push({ fileName: f.name, sheetCount: added, blob: f });
         renderSheetList();
         buildPreview();
+        schedulePersist();
       } catch (err) {
         console.warn(err);
         alert(`엑셀 파일을 읽을 수 없습니다 (${f.name}): ${err.message}`);
@@ -338,6 +340,7 @@
       detectedSummary.textContent = '대기 중...';
       renderSheetList();
       buildPreview();
+      DrillPersist.remove(PERSIST_KEY);
     });
 
     // Drag & drop anywhere on the page
@@ -425,6 +428,7 @@
         cb.addEventListener('change', () => {
           if (cb.checked) state.selected.add(s.name); else state.selected.delete(s.name);
           buildPreview();
+          schedulePersist();
         });
         const nameEl = row.querySelector('.sheet-name');
         nameEl.addEventListener('dblclick', (e) => {
@@ -459,6 +463,7 @@
       s.name = candidate;
       renderSheetList();
       buildPreview();
+      schedulePersist();
     }
 
     function startRenameInline(targetEl, idx) {
@@ -754,8 +759,12 @@
       return { aoa, merges };
     }
 
-    document.querySelectorAll('input[name="header-mode"]').forEach(el => el.addEventListener('change', buildPreview));
-    includeSheetRow.addEventListener('change', buildPreview);
+    document.querySelectorAll('input[name="header-mode"]').forEach(el => el.addEventListener('change', () => { buildPreview(); schedulePersist(); }));
+    includeSheetRow.addEventListener('change', () => { buildPreview(); schedulePersist(); });
+    document.querySelectorAll('input[name="save-mode"]').forEach(el => el.addEventListener('change', schedulePersist));
+    outSheetName.addEventListener('input', schedulePersist);
+    outFileName.addEventListener('input', schedulePersist);
+    [avgStart, avgEnd].forEach(el => el.addEventListener('input', schedulePersist));
 
     // ===== Chart =====
     const SHEET_COLORS = [
@@ -900,7 +909,7 @@
       }
     });
     document.querySelectorAll('input[name="taper-core"]').forEach(el => {
-      el.addEventListener('change', buildPreview);
+      el.addEventListener('change', () => { buildPreview(); schedulePersist(); });
     });
     function getTaperCore() {
       const el = document.querySelector('input[name="taper-core"]:checked');
@@ -1495,6 +1504,96 @@ ${rel}</Relationships>`;
 
       return zip.generateAsync({ type: 'arraybuffer' });
     }
+
+    // ===== State persistence (IndexedDB) =====
+    const PERSIST_KEY = 'drill-taper/v1';
+    function snapshotState() {
+      return {
+        files: state.files.map(f => ({ fileName: f.fileName, blob: f.blob })),
+        renames: state.sheets.map(s => ({
+          fileName: s.fileName, originalName: s.originalName, name: s.name,
+        })),
+        selected: Array.from(state.selected),
+        settings: {
+          sheetName: outSheetName.value,
+          fileName: outFileName.value,
+          saveMode: (document.querySelector('input[name="save-mode"]:checked') || {}).value,
+          headerMode: (document.querySelector('input[name="header-mode"]:checked') || {}).value,
+          includeSheetRow: includeSheetRow.checked,
+          taperCore: getTaperCore(),
+          avgStart: avgStart.value,
+          avgEnd: avgEnd.value,
+        },
+      };
+    }
+    function schedulePersist() {
+      DrillPersist.setDebounced(PERSIST_KEY, snapshotState, 500);
+    }
+    async function restoreState() {
+      try {
+        const saved = await DrillPersist.get(PERSIST_KEY);
+        if (!saved) return;
+        // Settings first (so analyzeSheets reads the right header mode etc.)
+        const st = saved.settings || {};
+        if (st.sheetName != null) outSheetName.value = st.sheetName;
+        if (st.fileName != null) outFileName.value = st.fileName;
+        if (st.saveMode) {
+          const r = document.querySelector(`input[name="save-mode"][value="${st.saveMode}"]`);
+          if (r) r.checked = true;
+        }
+        if (st.headerMode) {
+          const r = document.querySelector(`input[name="header-mode"][value="${st.headerMode}"]`);
+          if (r) r.checked = true;
+        }
+        if (typeof st.includeSheetRow === 'boolean') includeSheetRow.checked = st.includeSheetRow;
+        if (st.taperCore) {
+          const r = document.querySelector(`input[name="taper-core"][value="${st.taperCore}"]`);
+          if (r) r.checked = true;
+        }
+        if (st.avgStart != null) avgStart.value = st.avgStart;
+        if (st.avgEnd != null) avgEnd.value = st.avgEnd;
+
+        // Re-parse files
+        if (saved.files && saved.files.length) {
+          for (const f of saved.files) {
+            if (!f.blob) continue;
+            try {
+              const buf = await f.blob.arrayBuffer();
+              const wb = XLSX.read(buf, { type: 'array' });
+              const added = appendWorkbook(wb, f.fileName);
+              state.files.push({ fileName: f.fileName, sheetCount: added, blob: f.blob });
+            } catch (e) { console.warn('restore file failed', f.fileName, e); }
+          }
+        }
+
+        // Apply saved sheet renames (match by fileName + originalName)
+        if (saved.renames) {
+          for (const r of saved.renames) {
+            const sheet = state.sheets.find(s => s.fileName === r.fileName && s.originalName === r.originalName);
+            if (sheet && sheet.name !== r.name) {
+              const oldName = sheet.name;
+              sheet.name = r.name;
+              if (state.selected.has(oldName)) {
+                state.selected.delete(oldName);
+                state.selected.add(r.name);
+              }
+            }
+          }
+        }
+        // Apply selected (overwrite — only keeps selections of sheets that exist now)
+        if (saved.selected) {
+          state.selected = new Set();
+          for (const name of saved.selected) {
+            if (state.sheets.some(s => s.name === name)) state.selected.add(name);
+          }
+        }
+        renderSheetList();
+        buildPreview();
+      } catch (e) {
+        console.warn('restoreState failed', e);
+      }
+    }
+    restoreState();
   </script>
 </body>
 </html>
