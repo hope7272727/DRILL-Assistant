@@ -75,6 +75,12 @@
             </div>
           </div>
 
+          <div>
+            <label for="in-memo" class="font-label-md text-on-surface-variant block mb-1">특이사항 / 비고 (선택)</label>
+            <textarea id="in-memo" rows="2" autocomplete="off" spellcheck="false"
+                      class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none"></textarea>
+          </div>
+
           <div class="mt-auto bg-surface-container rounded-lg p-md border border-outline-variant text-body-sm text-secondary text-[12px] leading-relaxed">
             <p class="font-label-md text-on-surface mb-1">채번 규칙 요약</p>
             <ul class="list-disc list-inside space-y-0.5">
@@ -222,6 +228,7 @@
     const inFinish = document.getElementById('in-finish');
     const inBrtip  = document.getElementById('in-brtip');
     const inDanno  = document.getElementById('in-danno');
+    const inMemo   = document.getElementById('in-memo');
     const outList  = document.getElementById('out-list');
     const outEmpty = document.getElementById('out-empty');
     const btnCopyAll = document.getElementById('btn-copy-all');
@@ -341,9 +348,9 @@
     });
 
     btnClear.addEventListener('click', () => {
-      if (!inPumbun.value && !inFinish.value && !inBrtip.value && !inDanno.value) return;
+      if (!inPumbun.value && !inFinish.value && !inBrtip.value && !inDanno.value && !inMemo.value) return;
       if (!confirm('입력 내용을 모두 비울까요?')) return;
-      inPumbun.value = ''; inFinish.value = ''; inBrtip.value = ''; inDanno.value = '';
+      inPumbun.value = ''; inFinish.value = ''; inBrtip.value = ''; inDanno.value = ''; inMemo.value = '';
       recalc();
       refreshSaveButtonState();
       DrillPersist.remove('drill-code/v1');
@@ -387,6 +394,9 @@
       savedEntries.forEach((e, idx) => {
         const card = document.createElement('div');
         card.className = 'border border-outline-variant rounded-lg p-2 hover:border-primary hover:bg-surface-container transition-colors';
+        const memoLine = e.memo
+          ? `<p class="memo-line font-body-sm text-on-surface-variant text-[11px] mt-0.5 whitespace-pre-wrap break-words" title="더블클릭하여 편집">📝 ${escapeHtml(e.memo)}</p>`
+          : `<p class="memo-line font-body-sm text-outline italic text-[11px] mt-0.5" title="더블클릭하여 비고 추가">+ 비고</p>`;
         card.innerHTML = `
           <div class="flex justify-between items-start gap-1 mb-1">
             <p class="font-label-sm text-on-surface text-[12px] truncate flex-1" title="${escapeHtml(e.pumbun || '')}">${escapeHtml(e.pumbun || '(품번 없음)')}</p>
@@ -398,14 +408,18 @@
           <p class="font-code text-[10px] text-secondary truncate" title="초도/홈/단/센터">
             ${escapeHtml((e.outputs && e.outputs.초도) || '·')} · ${escapeHtml((e.outputs && e.outputs.홈) || '·')} · ${escapeHtml((e.outputs && e.outputs.단) || '·')} · ${escapeHtml((e.outputs && e.outputs.센터) || '·')}
           </p>
+          ${memoLine}
           <p class="font-body-sm text-outline text-[10px] mt-0.5">${fmtTs(e.savedAt)}</p>`;
         card.addEventListener('click', (ev) => {
           if (ev.target.closest('.del-btn')) return;
+          if (ev.target.classList.contains('memo-line')) return;
           inPumbun.value = e.pumbun || '';
           inFinish.value = e.finish || '';
           inBrtip.value  = e.brtip || '';
           inDanno.value  = e.danno || '';
+          inMemo.value   = e.memo  || '';
           recalc();
+          refreshSaveButtonState();
         });
         card.querySelector('.del-btn').addEventListener('click', (ev) => {
           ev.stopPropagation();
@@ -413,7 +427,38 @@
           persistSaved();
           renderSaved();
         });
+        const memoEl = card.querySelector('.memo-line');
+        memoEl.addEventListener('dblclick', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          startMemoEdit(memoEl, idx);
+        });
         savedList.appendChild(card);
+      });
+    }
+
+    function startMemoEdit(memoEl, idx) {
+      const cur = savedEntries[idx] && savedEntries[idx].memo || '';
+      const ta = document.createElement('textarea');
+      ta.value = cur;
+      ta.rows = 2;
+      ta.className = 'w-full px-2 py-1 border border-primary rounded bg-surface text-body-sm text-on-surface focus:outline-none resize-none';
+      memoEl.replaceWith(ta);
+      ta.focus();
+      ta.select();
+      let done = false;
+      const finish = (commit) => {
+        if (done) return; done = true;
+        if (commit) {
+          savedEntries[idx].memo = ta.value.trim();
+          persistSaved();
+        }
+        renderSaved();
+      };
+      ta.addEventListener('blur', () => finish(true));
+      ta.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); finish(true); }
       });
     }
     btnSave.addEventListener('click', () => {
@@ -421,12 +466,13 @@
       const finish = inFinish.value.trim();
       const brtip  = inBrtip.value.trim();
       const danno  = inDanno.value.trim();
+      const memo   = inMemo.value.trim();
       if (!finish) {
         alert('드릴 최종 (완제품 코드)를 입력하세요.');
         return;
       }
       const entry = {
-        pumbun, finish, brtip, danno,
+        pumbun, finish, brtip, danno, memo,
         outputs: {
           초도: compute초도(finish),
           홈:   compute홈(finish, brtip, pumbun),
