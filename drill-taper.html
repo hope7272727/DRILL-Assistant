@@ -602,6 +602,20 @@
       '#6d4c41', '#546e7a', '#7cb342', '#039be5',
       '#f4511e', '#ab47bc', '#0097a7', '#c0ca33',
     ];
+
+    // Chart.js plugin: fill the canvas with white before drawing so PNG
+    // exports / images don't end up on a transparent (often black) bg.
+    const WhiteBgPlugin = {
+      id: 'whiteBg',
+      beforeDraw(chart) {
+        const ctx = chart.canvas.getContext('2d');
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, chart.canvas.width, chart.canvas.height);
+        ctx.restore();
+      },
+    };
     let chart = null;
     const chartCanvas = $('chart-canvas');
     const chartEmpty = $('chart-empty');
@@ -705,7 +719,7 @@
         chart.options = config.options;
         chart.update();
       } else {
-        chart = new Chart(chartCanvas.getContext('2d'), config);
+        chart = new Chart(chartCanvas.getContext('2d'), { ...config, plugins: [WhiteBgPlugin] });
       }
     }
 
@@ -885,6 +899,7 @@
             y: { title: { display: true, text: 'MAX / MIN' } },
           },
         },
+        plugins: [WhiteBgPlugin],
       });
       await new Promise(r => requestAnimationFrame(r));
       const dataUrl = tempChart.toBase64Image('image/png', 1);
