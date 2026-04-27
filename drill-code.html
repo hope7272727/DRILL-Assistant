@@ -238,8 +238,15 @@
     // 센터 / 자재
     function compute센터(finish, brtip, pumbun, material) {
       if (leftStr(pumbun, 1) === 'E' || midStr(pumbun, 3, 1) === 'E') return '소재확인';
+      // 소재 lookup first (full table).
       const mapped = lookupCenterFromMaterial(material);
       if (mapped) return mapped;
+      // BR 팁 quick map: M1–M5 also resolve to 센터/자재 directly,
+      // so the user doesn't need to fill 소재 for those tips.
+      const brSuffix2 = rightStr(brtip || '', 2).toUpperCase();
+      if (MATERIAL_CENTER_MAP[brSuffix2] && /^M[1-5]$/.test(brSuffix2)) {
+        return MATERIAL_CENTER_MAP[brSuffix2];
+      }
       // Legacy single-letter fallback on BR 팁 (B/C/D/E/F)
       const last1 = rightStr(brtip, 1).toUpperCase();
       if (['B', 'C', 'D', 'E', 'F'].includes(last1)) return '0D3175' + last1 + '018';
