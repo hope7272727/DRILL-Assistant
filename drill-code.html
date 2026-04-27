@@ -464,6 +464,7 @@
         card.addEventListener('click', (ev) => {
           if (ev.target.closest('.del-btn')) return;
           if (ev.target.classList.contains('memo-line')) return;
+          if (ev.target.classList.contains('sel-cb')) return;
           inPumbun.value   = e.pumbun || '';
           inFinish.value   = e.finish || '';
           inBrtip.value    = e.brtip  || '';
