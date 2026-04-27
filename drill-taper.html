@@ -498,12 +498,21 @@
         for (const r of s.data) m.set(r.d, r);
         lookup.set(s.name, m);
       }
+      const mode = getTaperCore ? getTaperCore() : 'double';
+      const includeSin = (mode === 'single' || mode === 'all');
+      const colsPerSheet = includeSin ? 3 : 2;
       const dataRows = [];
       for (const d of distances) {
         const out = [d];
         for (const s of sel) {
           const r = lookup.get(s.name).get(d);
-          out.push(r ? r.mx : null, r ? r.mn : null);
+          const mx = r ? r.mx : null;
+          const mn = r ? r.mn : null;
+          out.push(mx, mn);
+          if (includeSin) {
+            const sin = (mx == null || mn == null) ? null : (mx - (mx - mn) * 2);
+            out.push(sin);
+          }
         }
         dataRows.push(out);
       }
@@ -512,6 +521,9 @@
         dataRows,
         headerMode: document.querySelector('input[name="header-mode"]:checked').value,
         twoRowHeader: includeSheetRow.checked,
+        mode,
+        includeSin,
+        colsPerSheet,
       };
     }
 
@@ -592,12 +604,12 @@
 
       previewThead.innerHTML = '';
       previewTbody.innerHTML = '';
-      const { sheets: sel, dataRows, headerMode, twoRowHeader } = result;
+      const { sheets: sel, dataRows, headerMode, twoRowHeader, includeSin, colsPerSheet } = result;
       const maxLabel = (s) => headerMode === 'prefixed' ? s.name + '_MAX' : 'MAX';
       const minLabel = (s) => headerMode === 'prefixed' ? s.name + '_MIN' : 'MIN';
+      const sinLabel = (s) => headerMode === 'prefixed' ? s.name + '_SIN' : 'SIN';
 
       if (twoRowHeader) {
-        // Row 1: blank (above DISTANCE) + sheet names (colspan=2 each)
         const tr1 = document.createElement('tr');
         const thBlank = document.createElement('th');
         thBlank.textContent = '';
@@ -606,7 +618,7 @@
         for (const s of sel) {
           const th = document.createElement('th');
           th.textContent = s.name;
-          th.colSpan = 2;
+          th.colSpan = colsPerSheet;
           th.className = TH_CLS + ' text-center cursor-text';
           th.title = '더블클릭하여 이름 변경';
           const sIdx = state.sheets.indexOf(s);
@@ -617,7 +629,6 @@
           tr1.appendChild(th);
         }
         previewThead.appendChild(tr1);
-        // Row 2: DISTANCE + MAX / MIN labels
         const tr2 = document.createElement('tr');
         const thDist = document.createElement('th');
         thDist.textContent = 'DISTANCE';
@@ -632,6 +643,12 @@
           tMin.textContent = minLabel(s);
           tMin.className = TH_CLS + ' text-center';
           tr2.appendChild(tMin);
+          if (includeSin) {
+            const tSin = document.createElement('th');
+            tSin.textContent = sinLabel(s);
+            tSin.className = TH_CLS + ' text-center';
+            tr2.appendChild(tSin);
+          }
         }
         previewThead.appendChild(tr2);
       } else {
@@ -649,6 +666,12 @@
           tMin.textContent = minLabel(s);
           tMin.className = TH_CLS + ' text-center';
           tr.appendChild(tMin);
+          if (includeSin) {
+            const tSin = document.createElement('th');
+            tSin.textContent = sinLabel(s);
+            tSin.className = TH_CLS + ' text-center';
+            tr.appendChild(tSin);
+          }
         }
         previewThead.appendChild(tr);
       }
@@ -669,7 +692,7 @@
       if (dataRows.length > maxRows) {
         const tr = document.createElement('tr');
         const td = document.createElement('td');
-        td.colSpan = 1 + sel.length * 2;
+        td.colSpan = 1 + sel.length * colsPerSheet;
         td.className = 'px-3 py-2 text-center text-secondary text-body-sm';
         td.textContent = `… 나머지 ${dataRows.length - maxRows}행은 다운로드 파일에 포함됩니다.`;
         tr.appendChild(td);
@@ -681,27 +704,36 @@
 
     // Build the AOA + merges for xlsx export
     function buildExportAOA(result) {
-      const { sheets: sel, dataRows, headerMode, twoRowHeader } = result;
+      const { sheets: sel, dataRows, headerMode, twoRowHeader, includeSin, colsPerSheet } = result;
       const maxLabel = (s) => headerMode === 'prefixed' ? s.name + '_MAX' : 'MAX';
       const minLabel = (s) => headerMode === 'prefixed' ? s.name + '_MIN' : 'MIN';
+      const sinLabel = (s) => headerMode === 'prefixed' ? s.name + '_SIN' : 'SIN';
       const aoa = [];
       const merges = [];
       if (twoRowHeader) {
         const row0 = [''];
-        for (const s of sel) row0.push(s.name, '');
+        for (const s of sel) {
+          row0.push(s.name);
+          for (let k = 1; k < colsPerSheet; k++) row0.push('');
+        }
         aoa.push(row0);
         const row1 = ['DISTANCE'];
-        for (const s of sel) row1.push(maxLabel(s), minLabel(s));
+        for (const s of sel) {
+          row1.push(maxLabel(s), minLabel(s));
+          if (includeSin) row1.push(sinLabel(s));
+        }
         aoa.push(row1);
-        // Merge each sheet name horizontally; DISTANCE stays in its own row.
         let c = 1;
         for (const s of sel) {
-          merges.push({ s: { r: 0, c }, e: { r: 0, c: c + 1 } });
-          c += 2;
+          merges.push({ s: { r: 0, c }, e: { r: 0, c: c + colsPerSheet - 1 } });
+          c += colsPerSheet;
         }
       } else {
         const row = ['DISTANCE'];
-        for (const s of sel) row.push(maxLabel(s), minLabel(s));
+        for (const s of sel) {
+          row.push(maxLabel(s), minLabel(s));
+          if (includeSin) row.push(sinLabel(s));
+        }
         aoa.push(row);
       }
       for (const r of dataRows) aoa.push(r);
@@ -762,11 +794,13 @@
       const showMax = chartShowMax.checked;
       const showMin = chartShowMin.checked;
       const datasets = [];
-      const mode = getTaperCore();
+      const mode = result.mode || 'double';
+      const cps = result.colsPerSheet || 2;
       sheets.forEach((s, i) => {
         const color = SHEET_COLORS[i % SHEET_COLORS.length];
-        const maxArr = result.dataRows.map(r => r[1 + i * 2]);
-        const minArr = result.dataRows.map(r => r[1 + i * 2 + 1]);
+        const maxArr = result.dataRows.map(r => r[1 + i * cps]);
+        const minArr = result.dataRows.map(r => r[1 + i * cps + 1]);
+        const sinArr = result.includeSin ? result.dataRows.map(r => r[1 + i * cps + 2]) : null;
         if (showMax) {
           datasets.push({
             label: s.name + ' MAX',
@@ -788,15 +822,10 @@
               meta: { sheetName: s.name, type: 'min' },
             });
           }
-          if (mode === 'single' || mode === 'all') {
-            const singledArr = maxArr.map((mx, k) => {
-              const mn = minArr[k];
-              if (mx == null || mn == null) return null;
-              return mx - (mx - mn) * 2;
-            });
+          if ((mode === 'single' || mode === 'all') && sinArr) {
             datasets.push({
-              label: s.name + ' 싱글',
-              data: singledArr,
+              label: s.name + ' SIN',
+              data: sinArr,
               borderColor: color, backgroundColor: color,
               borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 6,
               borderDash: [5, 4],
@@ -1004,11 +1033,13 @@
       off.width = w; off.height = h;
       const labels = result.dataRows.map(r => r[0]);
       const datasets = [];
-      const mode = getTaperCore();
+      const mode = result.mode || 'double';
+      const cps = result.colsPerSheet || 2;
       result.sheets.forEach((s, i) => {
         const color = SHEET_COLORS[i % SHEET_COLORS.length];
-        const maxArr = result.dataRows.map(r => r[1 + i * 2]);
-        const minArr = result.dataRows.map(r => r[1 + i * 2 + 1]);
+        const maxArr = result.dataRows.map(r => r[1 + i * cps]);
+        const minArr = result.dataRows.map(r => r[1 + i * cps + 1]);
+        const sinArr = result.includeSin ? result.dataRows.map(r => r[1 + i * cps + 2]) : null;
         datasets.push({
           label: s.name + ' MAX', data: maxArr,
           borderColor: color, backgroundColor: color,
@@ -1021,14 +1052,9 @@
             borderWidth: 1.5, pointRadius: 0, tension: 0, spanGaps: true,
           });
         }
-        if (mode === 'single' || mode === 'all') {
-          const singledArr = maxArr.map((mx, k) => {
-            const mn = minArr[k];
-            if (mx == null || mn == null) return null;
-            return mx - (mx - mn) * 2;
-          });
+        if ((mode === 'single' || mode === 'all') && sinArr) {
           datasets.push({
-            label: s.name + ' 싱글', data: singledArr,
+            label: s.name + ' SIN', data: sinArr,
             borderColor: color, backgroundColor: color,
             borderWidth: 1.5, pointRadius: 0, tension: 0, spanGaps: true,
             borderDash: [5, 4],
@@ -1073,10 +1099,10 @@
         for (const m of merges) {
           ws.mergeCells(m.s.r + 1, m.s.c + 1, m.e.r + 1, m.e.c + 1);
         }
+        const cps = result.colsPerSheet || 2;
         ws.getColumn(1).width = 10;
         for (let i = 0; i < result.sheets.length; i++) {
-          ws.getColumn(2 + i * 2).width = 10;
-          ws.getColumn(3 + i * 2).width = 10;
+          for (let k = 0; k < cps; k++) ws.getColumn(2 + i * cps + k).width = 10;
         }
 
         if (saveMode === 'with-source') {
@@ -1099,7 +1125,9 @@
           numDataRows: result.dataRows.length,
           twoRowHeader: result.twoRowHeader,
           sheetNames: result.sheets.map(s => s.name),
-          mode: getTaperCore(),
+          mode: result.mode,
+          colsPerSheet: result.colsPerSheet,
+          includeSin: result.includeSin,
           dataRows: result.dataRows,
         });
         const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -1149,7 +1177,8 @@
     }
 
     function buildChartXml(opts) {
-      const { sheetName, numSheets, numDataRows, twoRowHeader, sheetNames, mode, dataRows } = opts;
+      const { sheetName, numSheets, numDataRows, twoRowHeader, sheetNames, mode, dataRows, colsPerSheet, includeSin } = opts;
+      const cps = colsPerSheet || 2;
       const dataStart = twoRowHeader ? 3 : 2;
       const dataEnd = dataStart + numDataRows - 1;
       const sn = quoteSheetForFormula(sheetName);
@@ -1176,11 +1205,12 @@
 
       let series = '';
       let nextIdx = 0;
-      let colIdx = 1; // column B for first sheet's MAX
+      let colIdx = 1;
       for (let i = 0; i < numSheets; i++) {
         const sheetLabel = sheetNames[i];
         const colMax = colLetter(colIdx);
         const colMin = colLetter(colIdx + 1);
+        const colSin = includeSin ? colLetter(colIdx + 2) : null;
         const sheetColor = CHART_COLORS[i % CHART_COLORS.length];
         const valRangeMax = `${sn}!$${colMax}$${dataStart}:$${colMax}$${dataEnd}`;
         const valRangeMin = `${sn}!$${colMin}$${dataStart}:$${colMin}$${dataEnd}`;
@@ -1194,20 +1224,25 @@
           nextIdx++;
         }
         if (showSingled) {
-          // Compute singled values from dataRows (MAX - (MAX - MIN) * 2)
-          const pts = [];
-          for (let r = 0; r < numDataRows; r++) {
-            const mx = dataRows[r][1 + i * 2];
-            const mn = dataRows[r][1 + i * 2 + 1];
-            const v = (mx == null || mn == null) ? '' : (mx - (mx - mn) * 2);
-            pts.push(v);
+          let valXmlSingled;
+          if (includeSin && colSin) {
+            const valRangeSin = `${sn}!$${colSin}$${dataStart}:$${colSin}$${dataEnd}`;
+            valXmlSingled = `<c:val><c:numRef><c:f>${xmlEscape(valRangeSin)}</c:f></c:numRef></c:val>`;
+          } else {
+            const pts = [];
+            for (let r = 0; r < numDataRows; r++) {
+              const mx = dataRows[r][1 + i * cps];
+              const mn = dataRows[r][1 + i * cps + 1];
+              const v = (mx == null || mn == null) ? '' : (mx - (mx - mn) * 2);
+              pts.push(v);
+            }
+            const ptsXml = pts.map((v, k) => `<c:pt idx="${k}"><c:v>${v}</c:v></c:pt>`).join('');
+            valXmlSingled = `<c:val><c:numLit><c:formatCode>General</c:formatCode><c:ptCount val="${numDataRows}"/>${ptsXml}</c:numLit></c:val>`;
           }
-          const ptsXml = pts.map((v, k) => `<c:pt idx="${k}"><c:v>${v}</c:v></c:pt>`).join('');
-          const valXmlSingled = `<c:val><c:numLit><c:formatCode>General</c:formatCode><c:ptCount val="${numDataRows}"/>${ptsXml}</c:numLit></c:val>`;
-          series += makeSer(nextIdx, nextIdx, `${sheetLabel} 싱글`, sheetColor, valXmlSingled, true);
+          series += makeSer(nextIdx, nextIdx, `${sheetLabel} SIN`, sheetColor, valXmlSingled, true);
           nextIdx++;
         }
-        colIdx += 2;
+        colIdx += cps;
       }
 
       return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -1249,7 +1284,7 @@
     }
 
     function buildDrawingXml(numCols) {
-      const startCol = numCols + 1; // one blank column gap
+      const startCol = numCols + 1; // one blank column gap (after data)
       const endCol = startCol + 16;
       return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
@@ -1360,7 +1395,8 @@ ${rel}</Relationships>`;
       const sheetRelsPath = `xl/worksheets/_rels/${sheetBaseName}.xml.rels`;
 
       // Add chart and drawing files
-      const numCols = 1 + opts.numSheets * 2;
+      const cps = opts.colsPerSheet || 2;
+      const numCols = 1 + opts.numSheets * cps;
       zip.file('xl/charts/chart1.xml', buildChartXml(opts));
       zip.file('xl/drawings/drawing1.xml', buildDrawingXml(numCols));
       zip.file('xl/drawings/_rels/drawing1.xml.rels', buildDrawingRels());
