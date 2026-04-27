@@ -28,10 +28,14 @@
         </div>
         <div class="flex gap-sm">
           <label class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2 cursor-pointer">
-            <input id="file-input" type="file" accept=".xlsx,.xls,.csv" class="hidden"/>
+            <input id="file-input" type="file" accept=".xlsx,.xls,.csv" multiple class="hidden"/>
             <span class="material-symbols-outlined text-[18px]">upload_file</span>
             엑셀 업로드
           </label>
+          <button id="btn-clear" class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-error-container hover:text-on-error-container hover:border-error transition-colors flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">delete_sweep</span>
+            전체 초기화
+          </button>
           <button id="btn-download" disabled class="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md hover:bg-primary-container transition-colors flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
             <span class="material-symbols-outlined text-[18px]">download</span>
             통합 엑셀 다운로드
@@ -195,11 +199,12 @@
 
     // --- State ---
     const state = {
-      workbook: null,
-      fileName: '',
-      // Detected data sheets: [{ name, rows: [[...]] , distCol, maxCol, minCol, startRow, numRows }]
-      sheets: [],
-      selected: new Set(), // sheet names
+      // Per-sheet entries can come from any number of uploaded files; each
+      // entry carries its source workbook/worksheet so "취합 + 원본 시트"
+      // save mode can copy the original back out.
+      files: [],            // [{ fileName, sheetCount }]
+      sheets: [],           // [{ name (disambiguated), originalName, fileName, data, originalWs }]
+      selected: new Set(),  // disambiguated sheet names
     };
 
     const $ = (id) => document.getElementById(id);
@@ -224,25 +229,89 @@
     // --- File handling ---
     async function loadExcelFile(f) {
       if (!f) return;
-      state.fileName = f.name;
-      outFileName.value = f.name.replace(/\.[^.]+$/, '') + '_통합.xlsx';
+      // First file in the session seeds the suggested output filename.
+      if (!state.files.length) {
+        outFileName.value = f.name.replace(/\.[^.]+$/, '') + '_통합.xlsx';
+      }
       try {
         const buf = await f.arrayBuffer();
         const wb = XLSX.read(buf, { type: 'array' });
-        state.workbook = wb;
-        analyzeSheets();
+        const added = appendWorkbook(wb, f.name);
+        state.files.push({ fileName: f.name, sheetCount: added });
         renderSheetList();
         buildPreview();
       } catch (err) {
         console.warn(err);
-        alert('엑셀 파일을 읽을 수 없습니다: ' + err.message);
+        alert(`엑셀 파일을 읽을 수 없습니다 (${f.name}): ${err.message}`);
       }
     }
 
-    fileInput.addEventListener('change', (e) => {
-      const f = e.target.files && e.target.files[0];
-      loadExcelFile(f);
+    fileInput.addEventListener('change', async (e) => {
+      const files = e.target.files ? Array.from(e.target.files) : [];
+      for (const f of files) await loadExcelFile(f);
       fileInput.value = '';
+    });
+
+    function uniqueSheetName(name, fileName) {
+      if (!state.sheets.some(s => s.name === name)) return name;
+      const base = (fileName || '').replace(/\.[^.]+$/, '');
+      let candidate = base ? `${base}_${name}` : name;
+      let i = 2;
+      while (state.sheets.some(s => s.name === candidate)) {
+        candidate = base ? `${base}_${name} (${i++})` : `${name} (${i++})`;
+      }
+      return candidate;
+    }
+
+    // Append data sheets from a parsed workbook to state.sheets.
+    function appendWorkbook(wb, fileName) {
+      let added = 0;
+      for (const sheetName of wb.SheetNames) {
+        const ws = wb.Sheets[sheetName];
+        if (!ws) continue;
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+        if (!rows.length) continue;
+        const header = rows[0] || [];
+        const distCol = header.findIndex(v => String(v).trim().toUpperCase() === 'DISTANCE');
+        const maxCol = header.findIndex(v => String(v).trim().toUpperCase() === 'MAX');
+        const minCol = header.findIndex(v => String(v).trim().toUpperCase() === 'MIN');
+        if (distCol < 0 || maxCol < 0 || minCol < 0) continue;
+        const data = [];
+        for (let r = 1; r < rows.length; r++) {
+          const row = rows[r] || [];
+          const d = toNum(row[distCol]);
+          if (d === null) continue;
+          const mx = toNum(row[maxCol]);
+          const mn = toNum(row[minCol]);
+          data.push({ d, mx, mn });
+        }
+        if (!data.length) continue;
+        const displayName = uniqueSheetName(sheetName, fileName);
+        state.sheets.push({
+          name: displayName,
+          originalName: sheetName,
+          fileName,
+          data,
+          originalWs: ws,
+        });
+        state.selected.add(displayName);
+        added++;
+      }
+      detectedSummary.textContent = state.sheets.length
+        ? `${state.sheets.length}개 시트 (${state.files.length + (added ? 0 : 0) + 1}개 파일)`
+        : '적합한 시트를 찾지 못했습니다. (1행 헤더에 DISTANCE/MAX/MIN 필요)';
+      return added;
+    }
+
+    $('btn-clear').addEventListener('click', () => {
+      if (!state.sheets.length && !state.files.length) return;
+      if (!confirm('업로드된 모든 시트와 파일을 비울까요?')) return;
+      state.sheets = [];
+      state.files = [];
+      state.selected.clear();
+      detectedSummary.textContent = '대기 중...';
+      renderSheetList();
+      buildPreview();
     });
 
     // Drag & drop anywhere on the page
@@ -282,54 +351,20 @@
         dropOverlay.classList.remove('flex');
       }
     });
-    window.addEventListener('drop', (e) => {
+    window.addEventListener('drop', async (e) => {
       e.preventDefault();
       dragDepth = 0;
       dropOverlay.classList.add('hidden');
       dropOverlay.classList.remove('flex');
       const files = e.dataTransfer && e.dataTransfer.files;
       if (!files || !files.length) return;
-      const f = Array.from(files).find(x => /\.(xlsx|xls|csv)$/i.test(x.name));
-      if (!f) {
+      const valid = Array.from(files).filter(x => /\.(xlsx|xls|csv)$/i.test(x.name));
+      if (!valid.length) {
         alert('엑셀 파일(.xlsx, .xls, .csv)만 업로드 가능합니다.');
         return;
       }
-      loadExcelFile(f);
+      for (const f of valid) await loadExcelFile(f);
     });
-
-    // Find DISTANCE/MAX/MIN columns in the first row of each sheet.
-    function analyzeSheets() {
-      const wb = state.workbook;
-      state.sheets = [];
-      state.selected = new Set();
-      for (const name of wb.SheetNames) {
-        const ws = wb.Sheets[name];
-        if (!ws) continue;
-        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
-        if (!rows.length) continue;
-        const header = rows[0] || [];
-        const distCol = header.findIndex(v => String(v).trim().toUpperCase() === 'DISTANCE');
-        const maxCol = header.findIndex(v => String(v).trim().toUpperCase() === 'MAX');
-        const minCol = header.findIndex(v => String(v).trim().toUpperCase() === 'MIN');
-        if (distCol < 0 || maxCol < 0 || minCol < 0) continue;
-        // Collect numeric data from row 1 onward
-        const data = [];
-        for (let r = 1; r < rows.length; r++) {
-          const row = rows[r] || [];
-          const d = toNum(row[distCol]);
-          if (d === null) continue; // skip blank rows
-          const mx = toNum(row[maxCol]);
-          const mn = toNum(row[minCol]);
-          data.push({ d, mx, mn });
-        }
-        if (!data.length) continue;
-        state.sheets.push({ name, distCol, maxCol, minCol, data });
-        state.selected.add(name);
-      }
-      detectedSummary.textContent = state.sheets.length
-        ? `${state.sheets.length}개 시트 감지: ${state.sheets.map(s => s.name).join(', ')}`
-        : '적합한 시트를 찾지 못했습니다. (1행 헤더에 DISTANCE/MAX/MIN 필요)';
-    }
 
     function toNum(v) {
       if (v === null || v === undefined || v === '') return null;
@@ -345,15 +380,20 @@
       sheetActions.classList.toggle('hidden', !has);
       sheetCount.textContent = state.sheets.length;
       if (!has) return;
+      const multipleFiles = state.files.length > 1;
       for (const s of state.sheets) {
         const row = document.createElement('label');
         row.className = 'flex items-center gap-2 p-2 rounded-lg border border-outline-variant hover:bg-surface-container cursor-pointer';
         const checked = state.selected.has(s.name);
+        const fileLabel = multipleFiles && s.fileName
+          ? `<p class="font-body-sm text-[10px] text-outline truncate">${s.fileName}</p>`
+          : '';
         row.innerHTML = `
           <input type="checkbox" class="accent-primary rounded" ${checked ? 'checked' : ''}/>
           <div class="flex-1 min-w-0">
             <p class="font-label-md text-on-surface text-[13px] truncate">${s.name}</p>
             <p class="font-body-sm text-[11px] text-secondary">${s.data.length}개 행</p>
+            ${fileLabel}
           </div>`;
         const cb = row.querySelector('input');
         cb.addEventListener('change', () => {
@@ -929,9 +969,9 @@
           ws.getColumn(3 + i * 2).width = 10;
         }
 
-        if (saveMode === 'with-source' && state.workbook) {
+        if (saveMode === 'with-source') {
           for (const s of result.sheets) {
-            const origWs = state.workbook.Sheets[s.name];
+            const origWs = s.originalWs;
             if (!origWs) continue;
             const safeName = s.name.slice(0, 31);
             const exWs = wb.addWorksheet(safeName);
