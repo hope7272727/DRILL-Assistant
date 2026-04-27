@@ -43,8 +43,11 @@
         </div>
       </div>
 
+      <!-- Main scroll area -->
+      <div class="flex-1 overflow-y-auto flex flex-col gap-lg pr-1">
+
       <!-- Main layout -->
-      <div class="flex-1 grid grid-cols-12 gap-lg min-h-0">
+      <div class="grid grid-cols-12 gap-lg" style="min-height:520px;">
 
         <!-- Left: input form -->
         <div class="col-span-4 bg-surface p-lg rounded-xl border border-outline-variant shadow-sm flex flex-col gap-md overflow-y-auto">
@@ -93,6 +96,38 @@
           </div>
         </div>
       </div>
+
+      <!-- 단연삭 수정 -->
+      <div class="bg-surface p-lg rounded-xl border border-outline-variant shadow-sm flex flex-col gap-md">
+        <h3 class="font-h3 text-[18px] text-on-surface flex items-center gap-2">
+          <span class="material-symbols-outlined text-secondary">build</span>
+          단연삭 수정
+        </h3>
+
+        <div class="grid grid-cols-12 gap-md items-start">
+          <div class="col-span-4">
+            <label for="in-grind" class="font-label-md text-on-surface-variant block mb-1">단연삭 입력</label>
+            <input id="in-grind" type="text" autocomplete="off" spellcheck="false"
+                   class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
+            <p class="font-body-sm text-secondary text-[12px] mt-1">예: <code class="font-code">L2-0.20 * 4.9-1P L2B</code></p>
+          </div>
+          <div class="col-span-8">
+            <label class="font-label-md text-on-surface-variant block mb-1">변환 결과</label>
+            <div class="flex items-stretch gap-2">
+              <div id="out-grind" class="flex-1 px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest font-code text-body-md text-on-surface flex items-center min-h-[42px]">
+                <span class="text-outline">단연삭을 입력하면 [단가공] 형식으로 변환됩니다.</span>
+              </div>
+              <button id="btn-copy-grind" disabled class="px-3 py-2 border border-outline-variant rounded-lg text-secondary hover:bg-surface-variant disabled:opacity-40 flex items-center gap-1">
+                <span class="material-symbols-outlined text-[18px]">content_copy</span>
+                복사
+              </button>
+            </div>
+          </div>
+        </div>
+        <p class="font-body-sm text-secondary text-[11px]">소재 코드 매핑: P→(N810A) · B→(AF806H) · Q→(AF209) · J→(AF308H) · Z→(ZK11SF) · 숫자→(소재공통) · 그 외→(확인요망)</p>
+      </div>
+
+      </div><!-- /flex-1 overflow scroll -->
     </div>
   </main>
 
@@ -269,6 +304,65 @@
         const orig = span.textContent;
         span.textContent = '복사됨!';
         setTimeout(() => { span.textContent = orig; }, 1500);
+      });
+    });
+
+    // ===== 단연삭 수정 =====
+    const SUFFIX_MAP = {
+      P: '(N810A)', B: '(AF806H)', Q: '(AF209)',
+      J: '(AF308H)', Z: '(ZK11SF)',
+    };
+    function compute단연삭(input) {
+      if (!input) return '';
+      const m = String(input).trim().match(/^([A-Za-z0-9]+)-(\d+(?:\.\d+)?)\s*\*\s*(\d+(?:\.\d+)?)-(.+)$/);
+      if (!m) return '';
+      const prefix = m[1];
+      const dia    = parseFloat(m[2]);
+      const length = parseFloat(m[3]);
+      const rest   = m[4].trim();
+      const dia4   = pad(Math.round(dia * 1000), 4);
+      const len4   = pad(Math.round(length * 100), 4);
+      const lastWord = rest.split(/\s+/).pop() || '';
+      const lastChar = lastWord.slice(-1).toUpperCase();
+      let mat;
+      if (/^\d$/.test(lastChar)) mat = '(소재공통)';
+      else if (SUFFIX_MAP[lastChar]) mat = SUFFIX_MAP[lastChar];
+      else mat = '(확인요망)';
+      return `[단가공] ${prefix}-${dia4}-${len4}-${rest} ${mat}`;
+    }
+
+    const inGrind  = document.getElementById('in-grind');
+    const outGrind = document.getElementById('out-grind');
+    const btnCopyGrind = document.getElementById('btn-copy-grind');
+
+    function recalcGrind() {
+      const v = inGrind.value;
+      const out = compute단연삭(v);
+      if (!v.trim()) {
+        outGrind.innerHTML = '<span class="text-outline">단연삭을 입력하면 [단가공] 형식으로 변환됩니다.</span>';
+        btnCopyGrind.disabled = true;
+        outGrind.dataset.value = '';
+        return;
+      }
+      if (!out) {
+        outGrind.innerHTML = '<span class="text-error">패턴을 인식하지 못했습니다. 예: L2-0.20 * 4.9-1P L2B</span>';
+        btnCopyGrind.disabled = true;
+        outGrind.dataset.value = '';
+        return;
+      }
+      outGrind.textContent = out;
+      btnCopyGrind.disabled = false;
+      outGrind.dataset.value = out;
+    }
+    inGrind.addEventListener('input', recalcGrind);
+    btnCopyGrind.addEventListener('click', () => {
+      const v = outGrind.dataset.value;
+      if (!v) return;
+      navigator.clipboard.writeText(v).then(() => {
+        const span = btnCopyGrind.querySelector('span:last-child');
+        const orig = span.textContent;
+        span.textContent = '복사됨!';
+        setTimeout(() => { span.textContent = orig; }, 1100);
       });
     });
   </script>
