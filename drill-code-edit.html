@@ -108,18 +108,18 @@
     }
 
     // Parse "K1 NS 1.00 * 2.1 HE01" → { prefix:NS, dia:1.00, length:2.1, suffix:HE01 }
-    // Tolerates an optional leading "K?" word (or any prefix word) before NS.
+    // Also accepts trailing multi-word suffix (e.g. "CT1002 GJ").
     function parseSpec(pumbun) {
       if (!pumbun) return null;
       const m = String(pumbun).trim().match(
-        /(?:^|\s)([A-Za-z]+)\s+(\d+(?:\.\d+)?)\s*\*\s*(\d+(?:\.\d+)?)\s+(\S+)\s*$/
+        /(?:^|\s)([A-Za-z][A-Za-z0-9]*)\s+(\d+(?:\.\d+)?)\s*\*\s*(\d+(?:\.\d+)?)\s+(.+?)\s*$/
       );
       if (!m) return null;
       return {
         prefix: m[1].toUpperCase(),
         dia: parseFloat(m[2]),
         length: parseFloat(m[3]),
-        suffix: m[4],
+        suffix: m[4].trim(),
       };
     }
     function pad(n, len) { return String(n).padStart(len, '0'); }
