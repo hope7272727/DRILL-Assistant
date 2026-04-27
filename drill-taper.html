@@ -886,7 +886,7 @@
       }
     });
     document.querySelectorAll('input[name="taper-core"]').forEach(el => {
-      el.addEventListener('change', rebuildChart);
+      el.addEventListener('change', buildPreview);
     });
     function getTaperCore() {
       const el = document.querySelector('input[name="taper-core"]:checked');
