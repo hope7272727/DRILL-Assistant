@@ -48,20 +48,25 @@
             입력 항목
           </h3>
 
-          <div class="grid grid-cols-2 gap-md">
-            <div>
-              <label for="in-pumbun" class="font-label-md text-on-surface-variant block mb-1">품명</label>
-              <input id="in-pumbun" type="text" autocomplete="off" spellcheck="false"
-                     class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
-            </div>
-            <div>
-              <label for="in-finish" class="font-label-md text-on-surface-variant block mb-1">품번 (완제품 코드)</label>
-              <input id="in-finish" type="text" autocomplete="off" spellcheck="false"
-                     class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code uppercase tracking-wider focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
-            </div>
+          <div>
+            <label for="in-pumbun" class="font-label-md text-on-surface-variant block mb-1">품명</label>
+            <input id="in-pumbun" type="text" autocomplete="off" spellcheck="false"
+                   class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
+          </div>
+          <div>
+            <label for="in-finish" class="font-label-md text-on-surface-variant block mb-1">품번 (완제품 코드)</label>
+            <input id="in-finish" type="text" autocomplete="off" spellcheck="false"
+                   class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code uppercase tracking-wider focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
+          </div>
+          <div class="grid grid-cols-3 gap-md">
             <div>
               <label for="in-brtip" class="font-label-md text-on-surface-variant block mb-1">BR 팁 (선택)</label>
               <input id="in-brtip" type="text" autocomplete="off" spellcheck="false"
+                     class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
+            </div>
+            <div>
+              <label for="in-material" class="font-label-md text-on-surface-variant block mb-1">소재 (선택)</label>
+              <input id="in-material" type="text" autocomplete="off" spellcheck="false"
                      class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
             </div>
             <div>
@@ -253,11 +258,12 @@
     }
 
     // ===== UI wiring =====
-    const inPumbun = document.getElementById('in-pumbun');
-    const inFinish = document.getElementById('in-finish');
-    const inBrtip  = document.getElementById('in-brtip');
-    const inDanno  = document.getElementById('in-danno');
-    const inMemo   = document.getElementById('in-memo');
+    const inPumbun   = document.getElementById('in-pumbun');
+    const inFinish   = document.getElementById('in-finish');
+    const inBrtip    = document.getElementById('in-brtip');
+    const inMaterial = document.getElementById('in-material');
+    const inDanno    = document.getElementById('in-danno');
+    const inMemo     = document.getElementById('in-memo');
     const outList  = document.getElementById('out-list');
     const outEmpty = document.getElementById('out-empty');
     const btnCopyAll = document.getElementById('btn-copy-all');
@@ -355,7 +361,7 @@
       }[c]));
     }
 
-    [inPumbun, inFinish, inBrtip, inDanno].forEach(el => el.addEventListener('input', recalc));
+    [inPumbun, inFinish, inBrtip, inMaterial, inDanno].forEach(el => el.addEventListener('input', recalc));
 
     // Multi-cell Excel paste: if the pasted text contains a TAB, split into
     // [품번, 드릴 최종, BR 팁, 단번호] in column order. Single-cell pastes use
@@ -375,7 +381,7 @@
       recalc();
       refreshSaveButtonState();
     }
-    [inPumbun, inFinish, inBrtip, inDanno].forEach(el => el.addEventListener('paste', handleExcelPaste));
+    [inPumbun, inFinish, inBrtip, inMaterial, inDanno].forEach(el => el.addEventListener('paste', handleExcelPaste));
 
     btnCopyAll.addEventListener('click', () => {
       const lines = [];
@@ -398,10 +404,10 @@
     });
 
     btnClear.addEventListener('click', () => {
-      if (!inPumbun.value && !inFinish.value && !inBrtip.value && !inDanno.value && !inMemo.value) return;
+      if (!inPumbun.value && !inFinish.value && !inBrtip.value && !inMaterial.value && !inDanno.value && !inMemo.value) return;
       if (!confirm('입력 내용을 모두 비울까요?')) return;
       inPumbun.value = ''; inFinish.value = ''; inBrtip.value = '';
-      inDanno.value = ''; inMemo.value = '';
+      inMaterial.value = ''; inDanno.value = ''; inMemo.value = '';
       recalc();
       refreshSaveButtonState();
       DrillPersist.remove('drill-code/v1');
@@ -464,11 +470,12 @@
         card.addEventListener('click', (ev) => {
           if (ev.target.closest('.del-btn')) return;
           if (ev.target.classList.contains('memo-line')) return;
-          inPumbun.value = e.pumbun || '';
-          inFinish.value = e.finish || '';
-          inBrtip.value  = e.brtip  || '';
-          inDanno.value  = e.danno  || '';
-          inMemo.value   = e.memo   || '';
+          inPumbun.value   = e.pumbun || '';
+          inFinish.value   = e.finish || '';
+          inBrtip.value    = e.brtip  || '';
+          inMaterial.value = e.material || '';
+          inDanno.value    = e.danno  || '';
+          inMemo.value     = e.memo   || '';
           recalc();
           refreshSaveButtonState();
         });
@@ -513,17 +520,18 @@
       });
     }
     btnSave.addEventListener('click', () => {
-      const pumbun = inPumbun.value.trim();
-      const finish = inFinish.value.trim();
-      const brtip  = inBrtip.value.trim();
-      const danno  = inDanno.value.trim();
-      const memo   = inMemo.value.trim();
+      const pumbun   = inPumbun.value.trim();
+      const finish   = inFinish.value.trim();
+      const brtip    = inBrtip.value.trim();
+      const material = inMaterial.value.trim();
+      const danno    = inDanno.value.trim();
+      const memo     = inMemo.value.trim();
       if (!finish) {
         alert('품번 (완제품 코드)를 입력하세요.');
         return;
       }
       const entry = {
-        pumbun, finish, brtip, danno, memo,
+        pumbun, finish, brtip, material, danno, memo,
         outputs: {
           최종: finish,
           초도: compute초도(finish),
