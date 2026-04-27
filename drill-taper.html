@@ -12,6 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
 <body class="flex h-screen overflow-hidden antialiased text-on-surface">
   <div id="app-shell"></div>
@@ -903,30 +904,16 @@
       try {
         const wb = new ExcelJS.Workbook();
         const ws = wb.addWorksheet(sheetName);
-        // Write rows
         aoa.forEach(row => ws.addRow(row));
-        // Apply merges (ExcelJS uses 1-based + A1 ranges)
         for (const m of merges) {
           ws.mergeCells(m.s.r + 1, m.s.c + 1, m.e.r + 1, m.e.c + 1);
         }
-        // Column widths
         ws.getColumn(1).width = 10;
         for (let i = 0; i < result.sheets.length; i++) {
           ws.getColumn(2 + i * 2).width = 10;
           ws.getColumn(3 + i * 2).width = 10;
         }
-        // Embed chart image to the right of the last data column
-        const { dataUrl, width, height } = await buildChartPng(result);
-        const base64 = dataUrl.split(',')[1];
-        const imgId = wb.addImage({ base64, extension: 'png' });
-        const numCols = 1 + result.sheets.length * 2; // DISTANCE + (MAX, MIN) pairs
-        ws.addImage(imgId, {
-          tl: { col: numCols + 1, row: 0 },  // one blank col gap, top
-          ext: { width, height },
-          editAs: 'oneCell',
-        });
 
-        // Optional: copy source sheets (data only, not the original formatting)
         if (saveMode === 'with-source' && state.workbook) {
           for (const s of result.sheets) {
             const origWs = state.workbook.Sheets[s.name];
@@ -938,8 +925,16 @@
           }
         }
 
-        const buf = await wb.xlsx.writeBuffer();
-        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const baseBuf = await wb.xlsx.writeBuffer();
+        const finalBuf = await injectNativeChart(baseBuf, {
+          sheetName,
+          numSheets: result.sheets.length,
+          numDataRows: result.dataRows.length,
+          twoRowHeader: result.twoRowHeader,
+          sheetNames: result.sheets.map(s => s.name),
+        });
+
+        const blob = new Blob([finalBuf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -953,6 +948,259 @@
         btnDownload.disabled = false;
       }
     });
+
+    // ===== Native Excel chart injection =====
+    const CHART_COLORS = [
+      'E53935','FB8C00','43A047','1E88E5','5E35B1','D81B60','00ACC1','FDD835',
+      '6D4C41','546E7A','7CB342','039BE5','F4511E','AB47BC','0097A7','C0CA33',
+    ];
+
+    function xmlEscape(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    }
+    function colLetter(c) {
+      let s = '';
+      c++;
+      while (c > 0) {
+        const m = (c - 1) % 26;
+        s = String.fromCharCode(65 + m) + s;
+        c = Math.floor((c - 1) / 26);
+      }
+      return s;
+    }
+    function quoteSheetForFormula(name) {
+      // Excel formulas need single-quoted sheet names if the name contains
+      // anything other than letters/digits/underscore, or starts with a digit.
+      if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) return name;
+      return "'" + name.replace(/'/g, "''") + "'";
+    }
+
+    function buildChartXml(opts) {
+      const { sheetName, numSheets, numDataRows, twoRowHeader, sheetNames } = opts;
+      const dataStart = twoRowHeader ? 3 : 2;
+      const dataEnd = dataStart + numDataRows - 1;
+      const sn = quoteSheetForFormula(sheetName);
+      const distRange = `${sn}!$A$${dataStart}:$A$${dataEnd}`;
+
+      let series = '';
+      let colIdx = 1; // column B for first sheet's MAX
+      for (let i = 0; i < numSheets; i++) {
+        const sheetLabel = sheetNames[i];
+        const colMax = colLetter(colIdx);
+        const colMin = colLetter(colIdx + 1);
+        const colorMax = CHART_COLORS[(i * 2) % CHART_COLORS.length];
+        const colorMin = CHART_COLORS[(i * 2 + 1) % CHART_COLORS.length];
+        // Use the same colour for MAX and MIN of the same sheet
+        const sheetColor = CHART_COLORS[i % CHART_COLORS.length];
+        const valRangeMax = `${sn}!$${colMax}$${dataStart}:$${colMax}$${dataEnd}`;
+        const valRangeMin = `${sn}!$${colMin}$${dataStart}:$${colMin}$${dataEnd}`;
+        const labelMax = `${sheetLabel} MAX`;
+        const labelMin = `${sheetLabel} MIN`;
+
+        series += `
+          <c:ser>
+            <c:idx val="${i * 2}"/>
+            <c:order val="${i * 2}"/>
+            <c:tx><c:v>${xmlEscape(labelMax)}</c:v></c:tx>
+            <c:spPr>
+              <a:ln w="19050"><a:solidFill><a:srgbClr val="${sheetColor}"/></a:solidFill></a:ln>
+            </c:spPr>
+            <c:marker><c:symbol val="none"/></c:marker>
+            <c:cat><c:numRef><c:f>${xmlEscape(distRange)}</c:f></c:numRef></c:cat>
+            <c:val><c:numRef><c:f>${xmlEscape(valRangeMax)}</c:f></c:numRef></c:val>
+            <c:smooth val="0"/>
+          </c:ser>
+          <c:ser>
+            <c:idx val="${i * 2 + 1}"/>
+            <c:order val="${i * 2 + 1}"/>
+            <c:tx><c:v>${xmlEscape(labelMin)}</c:v></c:tx>
+            <c:spPr>
+              <a:ln w="19050"><a:solidFill><a:srgbClr val="${sheetColor}"/></a:solidFill></a:ln>
+            </c:spPr>
+            <c:marker><c:symbol val="none"/></c:marker>
+            <c:cat><c:numRef><c:f>${xmlEscape(distRange)}</c:f></c:numRef></c:cat>
+            <c:val><c:numRef><c:f>${xmlEscape(valRangeMin)}</c:f></c:numRef></c:val>
+            <c:smooth val="0"/>
+          </c:ser>`;
+        colIdx += 2;
+      }
+
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <c:chart>
+    <c:autoTitleDeleted val="1"/>
+    <c:plotArea>
+      <c:layout/>
+      <c:lineChart>
+        <c:grouping val="standard"/>
+        <c:varyColors val="0"/>${series}
+        <c:marker val="0"/>
+        <c:axId val="100"/>
+        <c:axId val="200"/>
+      </c:lineChart>
+      <c:catAx>
+        <c:axId val="100"/>
+        <c:scaling><c:orientation val="minMax"/></c:scaling>
+        <c:delete val="0"/>
+        <c:axPos val="b"/>
+        <c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>DISTANCE</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:title>
+        <c:crossAx val="200"/>
+      </c:catAx>
+      <c:valAx>
+        <c:axId val="200"/>
+        <c:scaling><c:orientation val="minMax"/></c:scaling>
+        <c:delete val="0"/>
+        <c:axPos val="l"/>
+        <c:title><c:tx><c:rich><a:bodyPr rot="-5400000" vert="horz"/><a:lstStyle/><a:p><a:r><a:t>MAX / MIN</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:title>
+        <c:crossAx val="100"/>
+      </c:valAx>
+    </c:plotArea>
+    <c:legend>
+      <c:legendPos val="b"/>
+      <c:overlay val="0"/>
+    </c:legend>
+    <c:plotVisOnly val="1"/>
+    <c:dispBlanksAs val="gap"/>
+  </c:chart>
+</c:chartSpace>`;
+    }
+
+    function buildDrawingXml(numCols) {
+      const startCol = numCols + 1; // one blank column gap
+      const endCol = startCol + 16;
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+  <xdr:twoCellAnchor editAs="oneCell">
+    <xdr:from><xdr:col>${startCol}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>
+    <xdr:to><xdr:col>${endCol}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>28</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>
+    <xdr:graphicFrame macro="">
+      <xdr:nvGraphicFramePr>
+        <xdr:cNvPr id="2" name="Chart 1"/>
+        <xdr:cNvGraphicFramePr/>
+      </xdr:nvGraphicFramePr>
+      <xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm>
+      <a:graphic>
+        <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">
+          <c:chart r:id="rId1"/>
+        </a:graphicData>
+      </a:graphic>
+    </xdr:graphicFrame>
+    <xdr:clientData/>
+  </xdr:twoCellAnchor>
+</xdr:wsDr>`;
+    }
+
+    function buildDrawingRels() {
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart1.xml"/>
+</Relationships>`;
+    }
+
+    // Add a new Relationship to an existing rels file (or create one).
+    function addRelationship(existingXml, type, target) {
+      // Find existing rIds, pick a free one
+      const ids = [];
+      const re = /Id="rId(\d+)"/g;
+      let m;
+      while ((m = re.exec(existingXml || '')) !== null) ids.push(parseInt(m[1], 10));
+      const newId = (ids.length ? Math.max(...ids) : 0) + 1;
+      const rel = `  <Relationship Id="rId${newId}" Type="${type}" Target="${target}"/>\n`;
+      if (existingXml && /Relationships/.test(existingXml)) {
+        return { xml: existingXml.replace(/<\/Relationships>/, rel + '</Relationships>'), id: 'rId' + newId };
+      }
+      const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+${rel}</Relationships>`;
+      return { xml, id: 'rId' + newId };
+    }
+
+    function injectDrawingRefIntoSheet(sheetXml, rId) {
+      // Insert <drawing r:id="..."/> just before </worksheet>.
+      // Watch out: the worksheet XML may already have a <drawing> tag (it shouldn't).
+      if (/<drawing\b/.test(sheetXml)) return sheetXml; // skip if present
+      return sheetXml.replace(/<\/worksheet>/, `<drawing r:id="${rId}"/></worksheet>`);
+    }
+
+    function ensureContentTypes(ctXml, parts) {
+      // parts: [{ part, contentType }]
+      let xml = ctXml;
+      for (const p of parts) {
+        if (xml.includes('PartName="' + p.part + '"')) continue;
+        const rel = `<Override PartName="${p.part}" ContentType="${p.contentType}"/>`;
+        xml = xml.replace(/<\/Types>/, rel + '</Types>');
+      }
+      return xml;
+    }
+
+    async function injectNativeChart(buffer, opts) {
+      const zip = await JSZip.loadAsync(buffer);
+
+      // Find the merged sheet (the one named opts.sheetName) — it's
+      // typically sheet1 since we add it first, but let's confirm via workbook.xml.
+      const wbXml = await zip.file('xl/workbook.xml').async('text');
+      // Sheets are in order of <sheet>; first is sheet1 etc.
+      const sheetEntries = [];
+      const sheetRe = /<sheet[^>]*name="([^"]+)"[^>]*sheetId="(\d+)"[^>]*r:id="(rId\d+)"[^>]*\/>/g;
+      let m;
+      while ((m = sheetRe.exec(wbXml)) !== null) {
+        sheetEntries.push({ name: m[1], sheetId: m[2], rId: m[3] });
+      }
+      // Workbook rels map rId to xl/worksheets/sheetN.xml
+      const wbRels = await zip.file('xl/_rels/workbook.xml.rels').async('text');
+      const targetMap = {};
+      const relRe = /<Relationship[^>]*Id="(rId\d+)"[^>]*Target="([^"]+)"/g;
+      let r2;
+      while ((r2 = relRe.exec(wbRels)) !== null) {
+        targetMap[r2[1]] = r2[2];
+      }
+      const targetEntry = sheetEntries.find(s => s.name === opts.sheetName);
+      if (!targetEntry) throw new Error('통합 시트를 찾지 못했습니다.');
+      const sheetTarget = targetMap[targetEntry.rId];
+      if (!sheetTarget) throw new Error('워크북 관계를 찾지 못했습니다.');
+      // Normalize path (e.g., 'worksheets/sheet1.xml' under xl/)
+      const sheetXmlPath = sheetTarget.startsWith('/') ? sheetTarget.slice(1) : 'xl/' + sheetTarget;
+      const sheetBaseName = sheetXmlPath.split('/').pop().replace('.xml', '');
+      const sheetRelsPath = `xl/worksheets/_rels/${sheetBaseName}.xml.rels`;
+
+      // Add chart and drawing files
+      const numCols = 1 + opts.numSheets * 2;
+      zip.file('xl/charts/chart1.xml', buildChartXml(opts));
+      zip.file('xl/drawings/drawing1.xml', buildDrawingXml(numCols));
+      zip.file('xl/drawings/_rels/drawing1.xml.rels', buildDrawingRels());
+
+      // Update sheet rels: add a relationship to the new drawing
+      let existingRels = '';
+      const relsFile = zip.file(sheetRelsPath);
+      if (relsFile) existingRels = await relsFile.async('text');
+      const addedRel = addRelationship(
+        existingRels,
+        'http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing',
+        '../drawings/drawing1.xml'
+      );
+      zip.file(sheetRelsPath, addedRel.xml);
+
+      // Update sheet xml to reference the drawing
+      let sheetXml = await zip.file(sheetXmlPath).async('text');
+      sheetXml = injectDrawingRefIntoSheet(sheetXml, addedRel.id);
+      zip.file(sheetXmlPath, sheetXml);
+
+      // Update [Content_Types].xml
+      const ctPath = '[Content_Types].xml';
+      let ctXml = await zip.file(ctPath).async('text');
+      ctXml = ensureContentTypes(ctXml, [
+        { part: '/xl/charts/chart1.xml', contentType: 'application/vnd.openxmlformats-officedocument.drawingml.chart+xml' },
+        { part: '/xl/drawings/drawing1.xml', contentType: 'application/vnd.openxmlformats-officedocument.drawing+xml' },
+      ]);
+      zip.file(ctPath, ctXml);
+
+      return zip.generateAsync({ type: 'arraybuffer' });
+    }
   </script>
 </body>
 </html>
