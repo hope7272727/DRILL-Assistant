@@ -118,7 +118,13 @@
               저장 버튼으로 현재 코드를 추가하세요.
             </div>
           </div>
-          <button id="btn-saved-clear" disabled class="mt-2 px-3 py-1.5 border border-outline-variant rounded text-body-sm text-secondary hover:bg-error-container hover:text-on-error-container disabled:opacity-40">전체 삭제</button>
+          <div class="flex gap-1 mt-2">
+            <button id="btn-saved-copy-sel" disabled class="flex-1 px-2 py-1.5 bg-primary text-on-primary rounded text-body-sm hover:bg-primary-container disabled:opacity-40 flex items-center justify-center gap-1" title="선택한 항목을 '품명 / 품번' 형식으로 복사">
+              <span class="material-symbols-outlined text-[14px]">content_copy</span>
+              선택 복사 (<span id="saved-sel-count">0</span>)
+            </button>
+            <button id="btn-saved-clear" disabled class="px-2 py-1.5 border border-outline-variant rounded text-body-sm text-secondary hover:bg-error-container hover:text-on-error-container disabled:opacity-40">전체 삭제</button>
+          </div>
         </div>
       </div>
     </div>
@@ -400,7 +406,11 @@
     const savedEmpty = document.getElementById('saved-empty');
     const savedCount = document.getElementById('saved-count');
     const btnSavedClear = document.getElementById('btn-saved-clear');
+    const btnSavedCopySel = document.getElementById('btn-saved-copy-sel');
+    const savedSelCount = document.getElementById('saved-sel-count');
     let savedEntries = [];
+    const savedSelectedKeys = new Set();
+    function savedKey(e) { return e.finish || JSON.stringify(e); }
 
     async function loadSaved() {
       try {
@@ -429,13 +439,17 @@
         return;
       }
       savedEntries.forEach((e, idx) => {
+        const key = savedKey(e);
+        const isSel = savedSelectedKeys.has(key);
         const card = document.createElement('div');
-        card.className = 'border border-outline-variant rounded-lg p-2 hover:border-primary hover:bg-surface-container transition-colors';
+        card.className = 'border rounded-lg p-2 hover:bg-surface-container transition-colors '
+          + (isSel ? 'border-primary ring-1 ring-primary/30' : 'border-outline-variant hover:border-primary');
         const memoLine = e.memo
           ? `<p class="memo-line font-body-sm text-on-surface-variant text-[11px] mt-0.5 whitespace-pre-wrap break-words" title="더블클릭하여 편집">📝 ${escapeHtml(e.memo)}</p>`
           : `<p class="memo-line font-body-sm text-outline italic text-[11px] mt-0.5" title="더블클릭하여 비고 추가">+ 비고</p>`;
         card.innerHTML = `
           <div class="flex justify-between items-start gap-1 mb-1">
+            <input type="checkbox" class="sel-cb mt-0.5 accent-primary rounded shrink-0" ${isSel ? 'checked' : ''}/>
             <p class="font-label-sm text-on-surface text-[12px] truncate flex-1" title="${escapeHtml(e.pumbun || '')}">${escapeHtml(e.pumbun || '(품번 없음)')}</p>
             <button class="del-btn text-secondary hover:text-error shrink-0" title="삭제">
               <span class="material-symbols-outlined text-[16px]">close</span>
@@ -463,8 +477,16 @@
           ev.stopPropagation();
           if (!confirm(`"${e.finish || e.pumbun || ''}" 항목을 삭제할까요?`)) return;
           savedEntries.splice(idx, 1);
+          savedSelectedKeys.delete(key);
           persistSaved();
           renderSaved();
+        });
+        const cb = card.querySelector('.sel-cb');
+        cb.addEventListener('click', (ev) => ev.stopPropagation());
+        cb.addEventListener('change', () => {
+          if (cb.checked) savedSelectedKeys.add(key);
+          else savedSelectedKeys.delete(key);
+          refreshSavedSelectionUI();
         });
         const memoEl = card.querySelector('.memo-line');
         memoEl.addEventListener('dblclick', (ev) => {
@@ -474,7 +496,34 @@
         });
         savedList.appendChild(card);
       });
+      refreshSavedSelectionUI();
     }
+
+    function refreshSavedSelectionUI() {
+      const valid = new Set(savedEntries.map(savedKey));
+      for (const k of Array.from(savedSelectedKeys)) {
+        if (!valid.has(k)) savedSelectedKeys.delete(k);
+      }
+      const n = savedSelectedKeys.size;
+      savedSelCount.textContent = String(n);
+      btnSavedCopySel.disabled = n === 0;
+    }
+
+    btnSavedCopySel.addEventListener('click', () => {
+      if (savedSelectedKeys.size === 0) return;
+      const lines = savedEntries
+        .filter(e => savedSelectedKeys.has(savedKey(e)))
+        .map(e => {
+          const p = (e.pumbun || '').trim();
+          const f = (e.finish || '').trim();
+          return p ? `${p} / ${f}` : f;
+        });
+      navigator.clipboard.writeText(lines.join('\n')).then(() => {
+        const orig = btnSavedCopySel.innerHTML;
+        btnSavedCopySel.innerHTML = '<span class="material-symbols-outlined text-[14px]">check</span> 복사됨!';
+        setTimeout(() => { btnSavedCopySel.innerHTML = orig; refreshSavedSelectionUI(); }, 1100);
+      });
+    });
 
     function startMemoEdit(memoEl, idx) {
       const cur = savedEntries[idx] && savedEntries[idx].memo || '';

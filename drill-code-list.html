@@ -22,7 +22,7 @@
           <h2 class="font-h3 text-on-surface">코드 저장소</h2>
           <span id="count-chip" class="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-sm">0개</span>
         </div>
-        <div class="flex items-center gap-sm flex-1 max-w-[480px]">
+        <div class="flex items-center gap-sm flex-1 max-w-[420px]">
           <div class="relative flex-1">
             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
             <input id="search-input" type="text" placeholder="품명 / 품번 / BR / 소재 / 비고 검색"
@@ -30,7 +30,15 @@
           </div>
         </div>
         <div class="flex gap-sm">
-          <a href="drill-code.html" class="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md hover:bg-primary-container transition-colors flex items-center gap-2">
+          <button id="btn-select-all" class="px-3 py-2 border border-outline-variant text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-1 text-body-sm">
+            <span class="material-symbols-outlined text-[18px]">check_box</span>
+            전체 선택
+          </button>
+          <button id="btn-copy-selected" disabled class="px-3 py-2 bg-primary text-on-primary rounded-lg font-label-md hover:bg-primary-container disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1">
+            <span class="material-symbols-outlined text-[18px]">content_copy</span>
+            선택 복사 (<span id="sel-count">0</span>)
+          </button>
+          <a href="drill-code.html" class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2">
             <span class="material-symbols-outlined text-[18px]">add</span>
             새 코드 만들기
           </a>
@@ -65,6 +73,13 @@
     const countChip = document.getElementById('count-chip');
     const searchInput = document.getElementById('search-input');
     const btnClearAll = document.getElementById('btn-clear-all');
+    const btnSelectAll = document.getElementById('btn-select-all');
+    const btnCopySelected = document.getElementById('btn-copy-selected');
+    const selCountEl = document.getElementById('sel-count');
+
+    // selectedKeys uses each entry's finish (assumed unique) as the identity.
+    const selectedKeys = new Set();
+    function entryKey(e) { return e.finish || JSON.stringify(e); }
 
     function escapeHtml(s) {
       return String(s).replace(/[&<>"']/g, c => ({
@@ -124,8 +139,11 @@
 
       for (const e of filtered) {
         const idx = entries.indexOf(e);
+        const key = entryKey(e);
+        const isSel = selectedKeys.has(key);
         const card = document.createElement('div');
-        card.className = 'bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col gap-2 hover:border-primary hover:shadow-md transition-all';
+        card.className = 'bg-surface-container-lowest border rounded-xl p-lg flex flex-col gap-2 hover:shadow-md transition-all '
+          + (isSel ? 'border-primary ring-2 ring-primary/30' : 'border-outline-variant hover:border-primary');
         const out = e.outputs || {};
         const memoLine = e.memo
           ? `<p class="font-body-sm text-on-surface-variant text-[12px] whitespace-pre-wrap break-words mt-1">📝 ${escapeHtml(e.memo)}</p>`
@@ -137,6 +155,7 @@
         ].filter(Boolean).join(' · ');
         card.innerHTML = `
           <div class="flex justify-between items-start gap-2">
+            <input type="checkbox" class="sel-cb mt-1 accent-primary rounded shrink-0" ${isSel ? 'checked' : ''}/>
             <div class="min-w-0 flex-1">
               <p class="font-label-md text-on-surface text-[14px] truncate" title="${escapeHtml(e.pumbun || '')}">${escapeHtml(e.pumbun || '(품명 없음)')}</p>
               <p class="font-code text-h3 text-primary truncate mt-0.5">${escapeHtml(e.finish || '')}</p>
@@ -165,6 +184,7 @@
           ev.stopPropagation();
           if (!confirm(`"${e.finish || e.pumbun || ''}" 항목을 삭제할까요?`)) return;
           entries.splice(idx, 1);
+          selectedKeys.delete(key);
           persist();
           render();
         });
@@ -173,9 +193,58 @@
           sessionStorage.setItem('drill-code:loadEntry', JSON.stringify(e));
           location.href = 'drill-code.html';
         });
+        const cb = card.querySelector('.sel-cb');
+        cb.addEventListener('click', (ev) => ev.stopPropagation());
+        cb.addEventListener('change', () => {
+          if (cb.checked) selectedKeys.add(key);
+          else selectedKeys.delete(key);
+          card.classList.toggle('border-primary', cb.checked);
+          card.classList.toggle('ring-2', cb.checked);
+          card.classList.toggle('ring-primary/30', cb.checked);
+          card.classList.toggle('border-outline-variant', !cb.checked);
+          refreshSelectionUI();
+        });
         wrap.appendChild(card);
       }
+      refreshSelectionUI();
     }
+
+    function refreshSelectionUI() {
+      // Drop selections that are no longer present in entries.
+      const validKeys = new Set(entries.map(entryKey));
+      for (const k of Array.from(selectedKeys)) {
+        if (!validKeys.has(k)) selectedKeys.delete(k);
+      }
+      selCountEl.textContent = String(selectedKeys.size);
+      btnCopySelected.disabled = selectedKeys.size === 0;
+    }
+
+    btnSelectAll.addEventListener('click', () => {
+      // Toggle: if everything visible is selected, clear; else select all.
+      const all = entries.map(entryKey);
+      const allSelected = all.length > 0 && all.every(k => selectedKeys.has(k));
+      if (allSelected) selectedKeys.clear();
+      else for (const k of all) selectedKeys.add(k);
+      render();
+    });
+
+    btnCopySelected.addEventListener('click', () => {
+      if (selectedKeys.size === 0) return;
+      const lines = entries
+        .filter(e => selectedKeys.has(entryKey(e)))
+        .map(e => {
+          const p = (e.pumbun || '').trim();
+          const f = (e.finish || '').trim();
+          return p ? `${p} / ${f}` : f;
+        });
+      navigator.clipboard.writeText(lines.join('\n')).then(() => {
+        const span = btnCopySelected.querySelector('span:not(.material-symbols-outlined)');
+        // Briefly flash count chip — keep it simple, just toggle text temporarily.
+        const orig = btnCopySelected.innerHTML;
+        btnCopySelected.innerHTML = '<span class="material-symbols-outlined text-[18px]">check</span> 복사됨!';
+        setTimeout(() => { btnCopySelected.innerHTML = orig; refreshSelectionUI(); }, 1100);
+      });
+    });
 
     searchInput.addEventListener('input', render);
 
