@@ -914,6 +914,17 @@
           ws.getColumn(3 + i * 2).width = 10;
         }
 
+        // Embed chart as PNG image to the right of the last data column.
+        const { dataUrl, width, height } = await buildChartPng(result);
+        const base64 = dataUrl.split(',')[1];
+        const imgId = wb.addImage({ base64, extension: 'png' });
+        const numCols = 1 + result.sheets.length * 2;
+        ws.addImage(imgId, {
+          tl: { col: numCols + 1, row: 0 },
+          ext: { width, height },
+          editAs: 'oneCell',
+        });
+
         if (saveMode === 'with-source' && state.workbook) {
           for (const s of result.sheets) {
             const origWs = state.workbook.Sheets[s.name];
@@ -925,16 +936,8 @@
           }
         }
 
-        const baseBuf = await wb.xlsx.writeBuffer();
-        const finalBuf = await injectNativeChart(baseBuf, {
-          sheetName,
-          numSheets: result.sheets.length,
-          numDataRows: result.dataRows.length,
-          twoRowHeader: result.twoRowHeader,
-          sheetNames: result.sheets.map(s => s.name),
-        });
-
-        const blob = new Blob([finalBuf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const buf = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
