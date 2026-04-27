@@ -479,6 +479,7 @@
         });
         card.querySelector('.del-btn').addEventListener('click', (ev) => {
           ev.stopPropagation();
+          if (!confirm(`"${e.finish || e.pumbun || ''}" 항목을 삭제할까요?`)) return;
           savedEntries.splice(idx, 1);
           persistSaved();
           renderSaved();
@@ -580,6 +581,24 @@
     [inFinish].forEach(el => el.addEventListener('input', refreshSaveButtonState));
     loadSaved();
     refreshSaveButtonState();
+
+    // Pick up an entry handed off from the 코드 저장소 page.
+    (function consumePendingLoad() {
+      try {
+        const raw = sessionStorage.getItem('drill-code:loadEntry');
+        if (!raw) return;
+        sessionStorage.removeItem('drill-code:loadEntry');
+        const e = JSON.parse(raw);
+        inPumbun.value   = e.pumbun || '';
+        inFinish.value   = e.finish || '';
+        inBrtip.value    = e.brtip  || '';
+        inMaterial.value = e.material || '';
+        inDanno.value    = e.danno  || '';
+        inMemo.value     = e.memo   || '';
+        recalc();
+        refreshSaveButtonState();
+      } catch (err) { console.warn('pending load failed', err); }
+    })();
 
     // No auto-fill: drill-code starts blank every visit.
     function schedulePersist() { /* intentionally no-op for drill-code */ }
