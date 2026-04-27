@@ -406,13 +406,12 @@
       const minLabel = (s) => headerMode === 'prefixed' ? s.name + '_MIN' : 'MIN';
 
       if (twoRowHeader) {
-        // Row 1: DISTANCE (rowspan=2) + sheet names (colspan=2 each)
+        // Row 1: blank (above DISTANCE) + sheet names (colspan=2 each)
         const tr1 = document.createElement('tr');
-        const thDist = document.createElement('th');
-        thDist.textContent = 'DISTANCE';
-        thDist.rowSpan = 2;
-        thDist.className = TH_CLS + ' text-center align-middle';
-        tr1.appendChild(thDist);
+        const thBlank = document.createElement('th');
+        thBlank.textContent = '';
+        thBlank.className = TH_CLS;
+        tr1.appendChild(thBlank);
         for (const s of sel) {
           const th = document.createElement('th');
           th.textContent = s.name;
@@ -421,8 +420,12 @@
           tr1.appendChild(th);
         }
         previewThead.appendChild(tr1);
-        // Row 2: MAX / MIN labels
+        // Row 2: DISTANCE + MAX / MIN labels
         const tr2 = document.createElement('tr');
+        const thDist = document.createElement('th');
+        thDist.textContent = 'DISTANCE';
+        thDist.className = TH_CLS + ' text-center';
+        tr2.appendChild(thDist);
         for (const s of sel) {
           const tMax = document.createElement('th');
           tMax.textContent = maxLabel(s);
@@ -487,13 +490,13 @@
       const aoa = [];
       const merges = [];
       if (twoRowHeader) {
-        const row0 = ['DISTANCE'];
+        const row0 = [''];
         for (const s of sel) row0.push(s.name, '');
         aoa.push(row0);
-        const row1 = [''];
+        const row1 = ['DISTANCE'];
         for (const s of sel) row1.push(maxLabel(s), minLabel(s));
         aoa.push(row1);
-        merges.push({ s: { r: 0, c: 0 }, e: { r: 1, c: 0 } });
+        // Merge each sheet name horizontally; DISTANCE stays in its own row.
         let c = 1;
         for (const s of sel) {
           merges.push({ s: { r: 0, c }, e: { r: 0, c: c + 1 } });
