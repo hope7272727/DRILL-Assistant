@@ -85,6 +85,11 @@
                       class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none"></textarea>
           </div>
 
+          <button id="btn-copy-summary" disabled class="px-3 py-2 border border-outline-variant rounded-lg text-on-surface text-body-sm hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center gap-1">
+            <span class="material-symbols-outlined text-[18px]">content_copy</span>
+            완제품 코드 복사 (품명 / 품번)
+          </button>
+
         </div>
 
         <!-- Center: outputs -->
@@ -553,8 +558,25 @@
       renderSaved();
     });
     function refreshSaveButtonState() {
-      btnSave.disabled = !inFinish.value.trim();
+      const has = !!inFinish.value.trim();
+      btnSave.disabled = !has;
+      const summaryBtn = document.getElementById('btn-copy-summary');
+      if (summaryBtn) summaryBtn.disabled = !has;
     }
+
+    document.getElementById('btn-copy-summary').addEventListener('click', () => {
+      const pumbun = inPumbun.value.trim();
+      const finish = inFinish.value.trim();
+      if (!finish) return;
+      const text = pumbun ? `${pumbun} / ${finish}` : finish;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('btn-copy-summary');
+        const span = btn.querySelector('span:last-child');
+        const orig = span.textContent;
+        span.textContent = '복사됨!';
+        setTimeout(() => { span.textContent = orig; }, 1200);
+      });
+    });
     [inFinish].forEach(el => el.addEventListener('input', refreshSaveButtonState));
     loadSaved();
     refreshSaveButtonState();
