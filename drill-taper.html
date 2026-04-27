@@ -69,12 +69,15 @@
             </h3>
             <div id="preview-meta" class="font-label-sm text-secondary"></div>
           </div>
+          <div id="preview-scroll-top" class="overflow-x-auto overflow-y-hidden scrollbar-thin border border-outline-variant border-b-0 rounded-t-lg bg-surface-container-lowest hidden" style="height:14px;">
+            <div id="preview-scroll-spacer" style="height:1px;"></div>
+          </div>
           <div id="preview-wrapper" class="flex-1 overflow-auto scrollbar-thin border border-outline-variant rounded-lg bg-surface-container-lowest">
-            <div id="preview-empty" class="absolute inset-0 flex flex-col items-center justify-center text-secondary pointer-events-none" style="position:relative;padding:48px;">
+            <div id="preview-empty" class="flex flex-col items-center justify-center text-secondary pointer-events-none" style="padding:48px;">
               <span class="material-symbols-outlined text-[64px] text-outline mb-2">table_view</span>
               <p class="font-body-md">엑셀을 업로드하면 여기에 통합 결과가 표시됩니다.</p>
             </div>
-            <table id="preview-table" class="w-full text-body-sm font-code hidden">
+            <table id="preview-table" class="text-body-sm font-code hidden" style="border-collapse:separate;border-spacing:0;table-layout:auto;">
               <thead id="preview-thead" class="sticky top-0 bg-surface-container z-10"></thead>
               <tbody id="preview-tbody"></tbody>
             </table>
@@ -340,8 +343,36 @@
       };
     }
 
-    const TH_CLS = 'px-3 py-1.5 text-left border-b border-r border-outline-variant font-label-md text-on-surface-variant bg-surface-container last:border-r-0';
-    const TD_CLS = 'px-3 py-1 border-b border-outline-variant text-on-surface';
+    const TH_CLS = 'px-3 py-1.5 text-left border-b border-r border-outline-variant font-label-md text-on-surface-variant bg-surface-container last:border-r-0 whitespace-nowrap';
+    const TD_CLS = 'px-3 py-1 border-b border-outline-variant text-on-surface whitespace-nowrap';
+
+    const previewScrollTop = $('preview-scroll-top');
+    const previewScrollSpacer = $('preview-scroll-spacer');
+    const previewWrapper = $('preview-wrapper');
+
+    let _suppressScroll = false;
+    previewScrollTop.addEventListener('scroll', () => {
+      if (_suppressScroll) return;
+      _suppressScroll = true;
+      previewWrapper.scrollLeft = previewScrollTop.scrollLeft;
+      _suppressScroll = false;
+    });
+    previewWrapper.addEventListener('scroll', () => {
+      if (_suppressScroll) return;
+      _suppressScroll = true;
+      previewScrollTop.scrollLeft = previewWrapper.scrollLeft;
+      _suppressScroll = false;
+    });
+    function syncTopScrollWidth() {
+      const w = previewTable.classList.contains('hidden') ? 0 : previewTable.scrollWidth;
+      if (w > 0) {
+        previewScrollSpacer.style.width = w + 'px';
+        previewScrollTop.classList.remove('hidden');
+      } else {
+        previewScrollTop.classList.add('hidden');
+      }
+    }
+    window.addEventListener('resize', syncTopScrollWidth);
 
     function buildPreview() {
       const result = consolidate();
@@ -350,6 +381,7 @@
         previewEmpty.style.display = 'flex';
         previewMeta.textContent = '';
         btnDownload.disabled = true;
+        syncTopScrollWidth();
         return;
       }
       previewEmpty.style.display = 'none';
@@ -433,6 +465,8 @@
         tr.appendChild(td);
         previewTbody.appendChild(tr);
       }
+      // Wait one frame so layout is settled before measuring scroll width.
+      requestAnimationFrame(syncTopScrollWidth);
     }
 
     // Build the AOA + merges for xlsx export
