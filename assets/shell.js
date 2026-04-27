@@ -6,6 +6,7 @@
     { id: 'drill-point', href: 'drill-point.html', label: '드릴 포인트 수정', icon: 'precision_manufacturing' },
     { id: 'drill-taper', href: 'drill-taper.html', label: '드릴 테이퍼 취합', icon: 'straighten' },
     { id: 'drill-code',  href: 'drill-code.html',  label: '드릴 코드 생성',   icon: 'terminal' },
+    { id: 'drill-code-edit', href: 'drill-code-edit.html', label: '드릴 코드 수정', icon: 'edit_note' },
     { id: 'code-list',   href: 'drill-code-list.html', label: '코드 저장소', icon: 'bookmarks' },
   ];
 
