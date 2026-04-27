@@ -157,8 +157,7 @@
     const detectedSummary = $('detected-summary');
 
     // --- File handling ---
-    fileInput.addEventListener('change', async (e) => {
-      const f = e.target.files && e.target.files[0];
+    async function loadExcelFile(f) {
       if (!f) return;
       state.fileName = f.name;
       outFileName.value = f.name.replace(/\.[^.]+$/, '') + '_통합.xlsx';
@@ -173,7 +172,64 @@
         console.warn(err);
         alert('엑셀 파일을 읽을 수 없습니다: ' + err.message);
       }
+    }
+
+    fileInput.addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      loadExcelFile(f);
       fileInput.value = '';
+    });
+
+    // Drag & drop anywhere on the page
+    const dropOverlay = document.createElement('div');
+    dropOverlay.className = 'fixed inset-0 z-50 hidden items-center justify-center pointer-events-none';
+    dropOverlay.innerHTML = `
+      <div class="absolute inset-0 bg-primary opacity-10"></div>
+      <div class="relative bg-surface-container-lowest border-2 border-dashed border-primary rounded-xl px-xl py-lg flex items-center gap-md shadow-lg">
+        <span class="material-symbols-outlined text-primary" style="font-size:32px;">upload_file</span>
+        <span class="font-h3 text-h3 text-primary">엑셀 파일을 드롭하세요</span>
+      </div>`;
+    document.body.appendChild(dropOverlay);
+
+    let dragDepth = 0;
+    function isExcelDrag(dt) {
+      if (!dt) return false;
+      if (dt.types && Array.from(dt.types).includes('Files')) return true;
+      return false;
+    }
+    window.addEventListener('dragenter', (e) => {
+      if (!isExcelDrag(e.dataTransfer)) return;
+      e.preventDefault();
+      dragDepth++;
+      dropOverlay.classList.remove('hidden');
+      dropOverlay.classList.add('flex');
+    });
+    window.addEventListener('dragover', (e) => {
+      if (!isExcelDrag(e.dataTransfer)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    });
+    window.addEventListener('dragleave', (e) => {
+      if (!isExcelDrag(e.dataTransfer)) return;
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) {
+        dropOverlay.classList.add('hidden');
+        dropOverlay.classList.remove('flex');
+      }
+    });
+    window.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dragDepth = 0;
+      dropOverlay.classList.add('hidden');
+      dropOverlay.classList.remove('flex');
+      const files = e.dataTransfer && e.dataTransfer.files;
+      if (!files || !files.length) return;
+      const f = Array.from(files).find(x => /\.(xlsx|xls|csv)$/i.test(x.name));
+      if (!f) {
+        alert('엑셀 파일(.xlsx, .xls, .csv)만 업로드 가능합니다.');
+        return;
+      }
+      loadExcelFile(f);
     });
 
     // Find DISTANCE/MAX/MIN columns in the first row of each sheet.
