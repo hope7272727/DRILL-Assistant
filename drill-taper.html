@@ -127,8 +127,6 @@
                 <input id="chart-x-max" type="number" step="0.1" placeholder="auto" class="w-16 px-2 py-0.5 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code"/>
               </label>
               <button id="btn-chart-reset" class="px-2 py-0.5 border border-outline-variant rounded text-secondary hover:bg-surface-variant text-body-sm">자동</button>
-              <span class="text-outline">·</span>
-              <span class="text-secondary text-[12px]">💡 그래프 클릭 → 그 위치의 모든 시트 값을 한 번에 편집</span>
             </div>
             <div class="flex-1 relative border border-outline-variant rounded-lg bg-surface-container-lowest p-md min-h-[400px]">
               <div id="chart-empty" class="absolute inset-0 flex flex-col items-center justify-center text-secondary pointer-events-none">
@@ -195,6 +193,21 @@
             <label class="flex items-center gap-2 font-body-sm text-on-surface">
               <input type="radio" name="taper-core" value="all" class="accent-primary"/> 모두
             </label>
+          </div>
+
+          <div class="border-t border-outline-variant pt-md">
+            <h3 class="font-label-md text-on-surface flex items-center gap-2 mb-sm">
+              <span class="material-symbols-outlined text-[18px]">functions</span>
+              MAX 구간 평균
+            </h3>
+            <div class="flex items-center gap-1 mb-2">
+              <input id="avg-start" type="number" step="0.01" placeholder="시작" class="w-full px-2 py-1 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary"/>
+              <span class="text-secondary">~</span>
+              <input id="avg-end" type="number" step="0.01" placeholder="끝" class="w-full px-2 py-1 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary"/>
+            </div>
+            <div id="avg-results" class="flex flex-col gap-1 max-h-[260px] overflow-y-auto scrollbar-thin">
+              <p class="font-body-sm text-secondary text-[11px]">시작 ~ 끝 거리를 입력하면 선택된 시트별 MAX 평균이 표시됩니다.</p>
+            </div>
           </div>
 
           <div class="mt-auto bg-surface-container rounded-lg p-md border border-outline-variant">
@@ -588,6 +601,7 @@
 
     function buildPreview() {
       rebuildChart(); // keep chart in sync
+      computeMaxAverages();
       const result = consolidate();
       if (!result) {
         previewTable.classList.add('hidden');
@@ -892,6 +906,59 @@
       const el = document.querySelector('input[name="taper-core"]:checked');
       return el ? el.value : 'double';
     }
+
+    // ===== MAX range average =====
+    const avgStart = $('avg-start');
+    const avgEnd = $('avg-end');
+    const avgResults = $('avg-results');
+    function computeMaxAverages() {
+      avgResults.innerHTML = '';
+      const sel = state.sheets.filter(s => state.selected.has(s.name));
+      if (!sel.length) {
+        avgResults.innerHTML = '<p class="font-body-sm text-secondary text-[11px]">선택된 시트가 없습니다.</p>';
+        return;
+      }
+      const startStr = avgStart.value.trim();
+      const endStr = avgEnd.value.trim();
+      if (startStr === '' || endStr === '') {
+        avgResults.innerHTML = '<p class="font-body-sm text-secondary text-[11px]">시작 ~ 끝 거리를 입력하면 선택된 시트별 MAX 평균이 표시됩니다.</p>';
+        return;
+      }
+      const start = parseFloat(startStr);
+      const end = parseFloat(endStr);
+      if (isNaN(start) || isNaN(end)) {
+        avgResults.innerHTML = '<p class="font-body-sm text-error text-[11px]">숫자만 입력하세요.</p>';
+        return;
+      }
+      const lo = Math.min(start, end);
+      const hi = Math.max(start, end);
+      for (const s of sel) {
+        const vals = s.data
+          .filter(r => r.d >= lo && r.d <= hi && r.mx != null)
+          .map(r => r.mx);
+        const color = SHEET_COLORS[state.sheets.indexOf(s) % SHEET_COLORS.length];
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between gap-2';
+        let valHtml;
+        if (!vals.length) {
+          valHtml = '<span class="font-body-sm text-secondary text-[11px]">데이터 없음</span>';
+        } else {
+          const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+          valHtml = `<div class="text-right">
+            <span class="font-code text-[12px] text-on-surface">${avg.toFixed(4)}</span>
+            <span class="font-body-sm text-outline text-[10px] ml-1">${vals.length}점</span>
+          </div>`;
+        }
+        row.innerHTML = `
+          <div class="flex items-center gap-1 min-w-0 flex-1">
+            <span style="display:inline-block;width:8px;height:8px;background:${color};border-radius:2px;flex-shrink:0;"></span>
+            <span class="text-on-surface text-[12px] truncate" title="${escapeHtml(s.name)}">${escapeHtml(s.name)}</span>
+          </div>
+          ${valHtml}`;
+        avgResults.appendChild(row);
+      }
+    }
+    [avgStart, avgEnd].forEach(el => el.addEventListener('input', computeMaxAverages));
     btnChartReset.addEventListener('click', () => {
       chartXMin.value = ''; chartXMax.value = '';
       chartYMin.value = ''; chartYMax.value = '';
