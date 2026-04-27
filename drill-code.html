@@ -325,7 +325,7 @@
             <p class="font-label-sm text-secondary">${o.label}</p>
             <p class="font-code text-h3 text-on-surface truncate">${v ? escapeHtml(v) : '<span class="text-outline text-body-md">(조건 미충족)</span>'}</p>
           </div>
-          <button class="copy-btn px-3 py-2 border border-outline-variant rounded-lg text-secondary hover:bg-surface-variant disabled:opacity-40 flex items-center gap-1 shrink-0" ${v ? '' : 'disabled'} data-value="${v}">
+          <button class="copy-btn px-3 py-2 border border-outline-variant rounded-lg text-secondary hover:bg-surface-variant disabled:opacity-40 flex items-center gap-1 shrink-0" ${v ? '' : 'disabled'} data-value="${v}" title="품번 셀에 붙여넣으면 규격/투입단위는 ERP가 자동 채우고, 소요량 분자·분모에는 1/1이 채워집니다">
             <span class="material-symbols-outlined text-[18px]">content_copy</span>
             코드 복사
           </button>
@@ -333,7 +333,10 @@
         const btn = card.querySelector('.copy-btn');
         btn.addEventListener('click', () => {
           if (!v) return;
-          navigator.clipboard.writeText(v).then(() => {
+          // Clipboard layout: 품번 [TAB] (규격 빈칸 → ERP 자동) [TAB]
+          // (투입단위 빈칸 → ERP 자동) [TAB] 분자=1 [TAB] 분모=1
+          const clipboard = v + '\t\t\t1\t1';
+          navigator.clipboard.writeText(clipboard).then(() => {
             const span = btn.querySelector('span:last-child');
             const orig = span.textContent;
             span.textContent = '복사됨!';
