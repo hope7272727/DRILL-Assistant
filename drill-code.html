@@ -235,10 +235,10 @@
     const btnClear   = document.getElementById('btn-clear');
 
     const OUTPUTS = [
-      { key: '초도', label: '드릴 초도검사', icon: 'verified' },
-      { key: '홈',   label: '드릴 홈가공',   icon: 'donut_small' },
-      { key: '단',   label: '드릴 단가공',   icon: 'stairs' },
-      { key: '센터', label: '센터 / 자재',   icon: 'inventory_2' },
+      { key: '초도', label: '드릴 초도검사', icon: 'verified',     wc: '릴 초\t1\tWC 드릴 초\t10' },
+      { key: '홈',   label: '드릴 홈가공',   icon: 'donut_small',  wc: '릴 홈\t1\tWC 드릴 홈\t10' },
+      { key: '단',   label: '드릴 단가공',   icon: 'stairs',       wc: '릴 단\t1\tWC 드릴 단\t10' },
+      { key: '센터', label: '센터 / 자재',   icon: 'inventory_2',  wc: null },
     ];
 
     function uppercaseTransform(el) {
@@ -272,6 +272,12 @@
         const card = document.createElement('div');
         card.className = 'border border-outline-variant rounded-xl p-md flex items-center gap-md '
           + (v ? 'bg-surface-container-lowest' : 'bg-surface-container opacity-60');
+        const wcBtnHtml = o.wc
+          ? `<button class="wc-btn px-3 py-2 border border-outline-variant rounded-lg text-secondary hover:bg-surface-variant disabled:opacity-40 flex items-center gap-1 shrink-0" ${v ? '' : 'disabled'} title="엑셀 워크센터 4셀(릴/숫자/WC명/숫자)을 한꺼번에 복사">
+              <span class="material-symbols-outlined text-[18px]">cell_tower</span>
+              WC 복사
+            </button>`
+          : '';
         card.innerHTML = `
           <div class="w-10 h-10 rounded-lg bg-primary-fixed text-primary flex items-center justify-center shrink-0">
             <span class="material-symbols-outlined">${o.icon}</span>
@@ -282,8 +288,9 @@
           </div>
           <button class="copy-btn px-3 py-2 border border-outline-variant rounded-lg text-secondary hover:bg-surface-variant disabled:opacity-40 flex items-center gap-1 shrink-0" ${v ? '' : 'disabled'} data-value="${v}">
             <span class="material-symbols-outlined text-[18px]">content_copy</span>
-            복사
-          </button>`;
+            코드 복사
+          </button>
+          ${wcBtnHtml}`;
         const btn = card.querySelector('.copy-btn');
         btn.addEventListener('click', () => {
           if (!v) return;
@@ -294,6 +301,18 @@
             setTimeout(() => { span.textContent = orig; }, 1200);
           });
         });
+        const wcBtn = card.querySelector('.wc-btn');
+        if (wcBtn) {
+          wcBtn.addEventListener('click', () => {
+            if (!v || !o.wc) return;
+            navigator.clipboard.writeText(o.wc).then(() => {
+              const span = wcBtn.querySelector('span:last-child');
+              const orig = span.textContent;
+              span.textContent = '복사됨!';
+              setTimeout(() => { span.textContent = orig; }, 1200);
+            });
+          });
+        }
         outList.appendChild(card);
       }
       schedulePersist();
