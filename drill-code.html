@@ -27,10 +27,6 @@
             <span class="material-symbols-outlined text-[18px]">bookmark_add</span>
             저장
           </button>
-          <button id="btn-copy-ratio" class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2" title="ERP의 소요량 분자 셀에 붙여넣기 위함 (분자=1, 분모=1)">
-            <span class="material-symbols-outlined text-[18px]">grid_on</span>
-            분자/분모 1/1 복사
-          </button>
           <button id="btn-copy-all" class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2">
             <span class="material-symbols-outlined text-[18px]">content_copy</span>
             전체 복사
@@ -388,29 +384,6 @@
       refreshSaveButtonState();
     }
     [inPumbun, inFinish, inBrtip, inMaterial, inDanno].forEach(el => el.addEventListener('paste', handleExcelPaste));
-
-    document.getElementById('btn-copy-ratio').addEventListener('click', async () => {
-      const tsv = '1\t1';
-      const html = '<table><tr><td>1</td><td>1</td></tr></table>';
-      try {
-        if (navigator.clipboard && window.ClipboardItem) {
-          const item = new ClipboardItem({
-            'text/plain': new Blob([tsv], { type: 'text/plain' }),
-            'text/html':  new Blob([html], { type: 'text/html' }),
-          });
-          await navigator.clipboard.write([item]);
-        } else {
-          await navigator.clipboard.writeText(tsv);
-        }
-      } catch (e) {
-        try { await navigator.clipboard.writeText(tsv); } catch (_) {}
-      }
-      const btn = document.getElementById('btn-copy-ratio');
-      const span = btn.querySelector('span:last-child');
-      const orig = span.textContent;
-      span.textContent = '복사됨!';
-      setTimeout(() => { span.textContent = orig; }, 1200);
-    });
 
     btnCopyAll.addEventListener('click', () => {
       const lines = [];
