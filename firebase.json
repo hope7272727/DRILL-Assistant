@@ -13,12 +13,20 @@
       "file_manager_1/**",
       "file_manager_2/**",
       "photo_editor/**",
+      "scripts/**",
       "README.md",
       "**/*.bat",
       "**/*.exe",
       "**/*.sh"
     ],
+    "predeploy": "node scripts/write-version.js",
     "headers": [
+      {
+        "source": "/version.json",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      },
       {
         "source": "**/*.@(js|css)",
         "headers": [

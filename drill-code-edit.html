@@ -9,6 +9,7 @@
   <link href="assets/styles.css" rel="stylesheet"/>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <script src="assets/theme.js"></script>
+  <script src="assets/persist.js"></script>
 </head>
 <body class="flex h-screen overflow-hidden antialiased text-on-surface">
   <div id="app-shell"></div>
@@ -43,24 +44,24 @@
         </div>
       </div>
 
-      <!-- Main scroll area -->
-      <div class="flex-1 overflow-y-auto flex flex-col gap-lg pr-1">
-
       <!-- Main layout -->
-      <div class="grid grid-cols-12 gap-lg" style="min-height:520px;">
+      <div class="grid grid-cols-12 gap-lg items-stretch">
 
         <!-- Left: input form -->
-        <div class="col-span-4 bg-surface p-lg rounded-xl border border-outline-variant shadow-sm flex flex-col gap-md overflow-y-auto">
+        <div class="col-span-4 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col gap-sm h-full">
           <h3 class="font-h3 text-[18px] text-on-surface flex items-center gap-2">
             <span class="material-symbols-outlined text-secondary">edit_note</span>
             입력 항목
           </h3>
 
+          <!-- Invisible spacer to match the column header on 생성된 행 panel so input tops align -->
+          <div class="px-3 py-1 font-label-sm text-[12px] invisible" aria-hidden="true">spacer</div>
+
           <div>
             <label for="in-pumbun" class="font-label-md text-on-surface-variant block mb-1">품명</label>
             <input id="in-pumbun" type="text" autocomplete="off" spellcheck="false"
                    class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
-            <p class="font-body-sm text-secondary text-[12px] mt-1">예: <code class="font-code">K1 NS 1.00 * 2.1 HE01</code> 또는 <code class="font-code">NS 0.105 * 1.5 NJ01</code></p>
+            <p class="font-body-sm text-secondary text-[11px] mt-1">예: <code class="font-code">K1 NS 1.00 * 2.1 HE01</code> 또는 <code class="font-code">NS 0.105 * 1.5 NJ01</code></p>
           </div>
 
           <div>
@@ -69,26 +70,36 @@
                    class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code uppercase tracking-wider focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
           </div>
 
+          <div class="flex-1"></div>
+
           <div>
             <label for="in-material" class="font-label-md text-on-surface-variant block mb-1">소재</label>
             <input id="in-material" type="text" autocomplete="off" spellcheck="false"
                    class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
           </div>
-
-          <div id="parse-info" class="bg-surface-container rounded-lg p-md border border-outline-variant text-body-sm text-secondary text-[12px] hidden">
-            <p class="font-label-sm text-on-surface mb-1">파싱된 규격 요소</p>
-            <p>접두 <code id="pi-prefix" class="font-code"></code> · 외경 <code id="pi-dia" class="font-code"></code> · 길이 <code id="pi-len" class="font-code"></code> · 접미 <code id="pi-suf" class="font-code"></code></p>
-          </div>
         </div>
 
         <!-- Right: generated rows -->
-        <div class="col-span-8 bg-surface p-lg rounded-xl border border-outline-variant shadow-sm flex flex-col gap-md overflow-y-auto">
+        <div class="col-span-8 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col gap-sm h-full">
           <h3 class="font-h3 text-[18px] text-on-surface flex items-center gap-2">
             <span class="material-symbols-outlined text-secondary">description</span>
             생성된 행
           </h3>
 
-          <div id="rows" class="flex flex-col gap-md"></div>
+          <!-- Wrapper so label-spacer + column-header are ONE flex child of the panel.
+               Hidden by default; shown only when rows are generated. -->
+          <div id="rows-header-wrap" class="hidden">
+            <div class="font-label-md mb-1 invisible" aria-hidden="true">spacer</div>
+            <div class="px-3 py-1 grid grid-cols-[80px_2fr_1fr_3fr_240px] gap-3 items-center font-label-md text-on-surface-variant">
+              <div></div>
+              <div>품명</div>
+              <div class="text-primary">품번</div>
+              <div>규격</div>
+              <div></div>
+            </div>
+          </div>
+
+          <div id="rows" class="flex-1 flex flex-col justify-between gap-2"></div>
 
           <div id="rows-empty" class="flex-1 flex flex-col items-center justify-center text-secondary text-center">
             <span class="material-symbols-outlined text-[64px] text-outline mb-2">description</span>
@@ -98,18 +109,27 @@
       </div>
 
       <!-- 단연삭 수정 -->
-      <div class="bg-surface p-lg rounded-xl border border-outline-variant shadow-sm flex flex-col gap-md">
+      <div class="bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col gap-sm">
         <h3 class="font-h3 text-[18px] text-on-surface flex items-center gap-2">
           <span class="material-symbols-outlined text-secondary">build</span>
           단연삭 수정
         </h3>
 
         <div class="grid grid-cols-12 gap-md items-start">
-          <div class="col-span-4">
-            <label for="in-grind" class="font-label-md text-on-surface-variant block mb-1">단연삭 입력</label>
-            <input id="in-grind" type="text" autocomplete="off" spellcheck="false"
-                   class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
-            <p class="font-body-sm text-secondary text-[12px] mt-1">예: <code class="font-code">L2-0.20 * 4.9-1P L2B</code></p>
+          <div class="col-span-4 flex flex-col gap-2">
+            <div>
+              <label for="in-grind" class="font-label-md text-on-surface-variant block mb-1">단연삭 입력</label>
+              <input id="in-grind" type="text" autocomplete="off" spellcheck="false"
+                     class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
+              <p class="font-body-sm text-secondary text-[12px] mt-1">예: <code class="font-code">L2-0.20 * 4.9-1P L2B</code></p>
+            </div>
+            <div>
+              <label for="in-grind-note" class="font-label-md text-on-surface-variant block mb-1">특이사항</label>
+              <input id="in-grind-note" type="text" autocomplete="off" spellcheck="false"
+                     class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                     placeholder="예: 특수공차 0.635-0.640"/>
+              <p class="font-body-sm text-secondary text-[12px] mt-1">입력하면 괄호 내 소재 뒤에 <code class="font-code">, 특이사항</code>으로 이어 붙습니다.</p>
+            </div>
           </div>
           <div class="col-span-8">
             <label class="font-label-md text-on-surface-variant block mb-1">변환 결과</label>
@@ -124,40 +144,73 @@
             </div>
           </div>
         </div>
-        <p class="font-body-sm text-secondary text-[11px]">소재 코드 매핑: P→(N810A) · B→(AF806H) · Q→(AF209) · J→(AF308H) · Z→(ZK11SF) · 숫자→(소재공통) · 그 외→(확인요망)</p>
-      </div>
 
-      <!-- 중복코드 행 생성 -->
-      <div class="bg-surface p-lg rounded-xl border border-outline-variant shadow-sm flex flex-col gap-md">
-        <h3 class="font-h3 text-[18px] text-on-surface flex items-center gap-2">
-          <span class="material-symbols-outlined text-secondary">content_copy</span>
-          중복코드 행 생성
-        </h3>
-
-        <div class="grid grid-cols-12 gap-md items-start">
-          <div class="col-span-3">
+        <div class="border-t border-outline-variant pt-md grid grid-cols-12 gap-md items-start">
+          <div class="col-span-4">
             <label for="in-dup-finish" class="font-label-md text-on-surface-variant block mb-1">중복 품번</label>
             <input id="in-dup-finish" type="text" autocomplete="off" spellcheck="false"
                    class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code uppercase focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
-            <p class="font-body-sm text-secondary text-[11px] mt-1">위 단연삭 입력값과 함께 사용됩니다.</p>
+            <p class="font-body-sm text-secondary text-[12px] mt-1">예: <code class="font-code">2D0340G075</code> · 위 단연삭 + 이 품번으로 중복코드 행을 만듭니다.</p>
           </div>
-          <div class="col-span-9">
-            <label class="font-label-md text-on-surface-variant block mb-1">변환 결과 (3셀, 탭 구분 복사)</label>
+          <div class="col-span-8">
+            <label class="font-label-md text-on-surface-variant block mb-1">중복코드 행 (3셀 한번에 복사)</label>
             <div class="flex items-stretch gap-2">
               <div id="out-dup" class="flex-1 px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest font-code text-body-md text-on-surface flex items-center min-h-[42px] overflow-x-auto">
-                <span class="text-outline">위에서 단연삭 입력 + 중복 품번을 입력하면 3셀 행이 생성됩니다.</span>
+                <span class="text-outline">단연삭 + 중복 품번을 입력하면 3셀 행이 생성됩니다.</span>
               </div>
               <button id="btn-copy-dup" disabled class="px-3 py-2 border border-outline-variant rounded-lg text-secondary hover:bg-surface-variant disabled:opacity-40 flex items-center gap-1">
                 <span class="material-symbols-outlined text-[18px]">content_copy</span>
                 행 복사
               </button>
             </div>
-            <p class="font-body-sm text-secondary text-[11px] mt-1">출력 셀: <code class="font-code">[구코드/미사용]</code> · <code class="font-code">중복 품번</code> · <code class="font-code">[중복코드] 규격...</code></p>
           </div>
+        </div>
+
+        <p class="font-body-sm text-secondary text-[11px]">소재 코드 매핑: P→N810A · B→AF806H · Q→AF209 · J→AF308H · Z→ZK11SF · 숫자→소재공통 · 그 외→확인요망</p>
+      </div>
+
+      <!-- 완제품 구코드 정리 -->
+      <div class="bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col gap-sm">
+        <div class="flex justify-between items-center gap-sm">
+          <h3 class="font-h3 text-[18px] text-on-surface flex items-center gap-2">
+            <span class="material-symbols-outlined text-secondary">history</span>
+            완제품 구코드 정리
+          </h3>
+          <button id="btn-copy-old-all" disabled class="px-3 py-1.5 bg-primary text-on-primary rounded-lg font-label-sm hover:bg-primary-container disabled:opacity-40 transition-colors flex items-center gap-1">
+            <span class="material-symbols-outlined text-[18px]">content_copy</span>
+            구코드 전체복사 (3행)
+          </button>
+        </div>
+        <p class="font-body-sm text-secondary text-[12px] -mt-1">기존 완제품 품명/품번을 입력하면 3행 ([구코드/미사용] · 8D 품번 · [완제품/초도검사/홈가공] 규격)이 생성됩니다.</p>
+
+        <div class="grid grid-cols-12 gap-md">
+          <div class="col-span-6">
+            <label for="in-old-pumbun" class="font-label-md text-on-surface-variant block mb-1">품명 (구)</label>
+            <input id="in-old-pumbun" type="text" autocomplete="off" spellcheck="false"
+                   class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
+          </div>
+          <div class="col-span-6">
+            <label for="in-old-finish" class="font-label-md text-on-surface-variant block mb-1">품번 (구)</label>
+            <input id="in-old-finish" type="text" autocomplete="off" spellcheck="false"
+                   class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code uppercase tracking-wider focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
+          </div>
+        </div>
+
+        <div id="old-rows-header-wrap" class="hidden">
+          <div class="px-3 py-1 grid grid-cols-[80px_2fr_1fr_3fr_240px] gap-3 items-center font-label-md text-on-surface-variant">
+            <div></div>
+            <div>품명</div>
+            <div class="text-primary">품번</div>
+            <div>규격</div>
+            <div></div>
+          </div>
+        </div>
+        <div id="old-rows" class="flex flex-col gap-2"></div>
+        <div id="old-rows-empty" class="text-secondary text-center py-md text-body-sm">
+          구코드로 정리할 품명/품번/소재를 입력하세요.
         </div>
       </div>
 
-      </div><!-- /flex-1 overflow scroll -->
     </div>
   </main>
 
@@ -208,13 +261,9 @@
     const inMaterial = document.getElementById('in-material');
     const btnClear   = document.getElementById('btn-clear');
     const btnCopyAll = document.getElementById('btn-copy-all');
-    const rowsEl     = document.getElementById('rows');
-    const rowsEmpty  = document.getElementById('rows-empty');
-    const parseInfo  = document.getElementById('parse-info');
-    const piPrefix   = document.getElementById('pi-prefix');
-    const piDia      = document.getElementById('pi-dia');
-    const piLen      = document.getElementById('pi-len');
-    const piSuf      = document.getElementById('pi-suf');
+    const rowsEl       = document.getElementById('rows');
+    const rowsHeaderWrap = document.getElementById('rows-header-wrap');
+    const rowsEmpty    = document.getElementById('rows-empty');
 
     let lastRows = []; // [{ cells: [a,b,c], label }]
 
@@ -234,26 +283,21 @@
       const material = inMaterial.value.trim();
 
       const spec = parseSpec(pumbun);
-      if (spec) {
-        parseInfo.classList.remove('hidden');
-        piPrefix.textContent = spec.prefix;
-        piDia.textContent = spec.dia + ' (→ ' + dia4(spec.dia) + ')';
-        piLen.textContent = spec.length + ' (→ ' + len3(spec.length) + ')';
-        piSuf.textContent = spec.suffix;
-      } else {
-        parseInfo.classList.add('hidden');
-      }
 
       // Need at least pumbun + finish + material for full output; partial is ok but mark cells empty.
       const hasAny = pumbun || finish || material;
       lastRows = [];
       if (!hasAny) {
         rowsEl.innerHTML = '';
+        rowsEl.classList.add('hidden');
         rowsEmpty.classList.remove('hidden');
+        rowsHeaderWrap.classList.add('hidden');
         btnCopyAll.disabled = true;
         return;
       }
+      rowsEl.classList.remove('hidden');
       rowsEmpty.classList.add('hidden');
+      rowsHeaderWrap.classList.remove('hidden');
 
       const specStr = spec ? specString(spec) : '';
       const finish초도 = transformFinish(finish, '1');
@@ -262,7 +306,7 @@
       const specWithMat   = specStr && material ? `${specStr} ${material}` : specStr;
 
       lastRows = [
-        { label: '주',       cells: [pumbun,        finish,    material] },
+        { label: '완제품',   cells: [pumbun,        finish,    material] },
         { label: '초도검사', cells: [pumbunWithMat, finish초도, specWithMat ? `[초도검사] ${specWithMat}` : ''] },
         { label: '홈가공',   cells: [pumbunWithMat, finish홈,  specWithMat ? `[홈가공] ${specWithMat}` : ''] },
       ];
@@ -270,28 +314,43 @@
       rowsEl.innerHTML = '';
       lastRows.forEach((r, i) => {
         const card = document.createElement('div');
-        card.className = 'border border-outline-variant rounded-xl p-md bg-surface-container-lowest';
+        card.className = 'border border-outline-variant rounded-xl px-3 py-2 bg-surface-container-lowest';
         const tsv = r.cells.map(c => c || '').join('\t');
-        const tag = i === 0
-          ? '<span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-[11px] font-label-sm">주</span>'
-          : `<span class="px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant text-[11px] font-label-sm">${escapeHtml(r.label)}</span>`;
+        const specCell = r.cells[2] || '';
+        const tagCls = i === 0
+          ? 'bg-secondary-container text-on-secondary-container'
+          : 'bg-primary-fixed text-on-primary-fixed-variant';
         card.innerHTML = `
-          <div class="flex justify-between items-center mb-2">
-            ${tag}
-            <button class="copy-btn px-3 py-1 border border-outline-variant rounded text-secondary hover:bg-surface-variant flex items-center gap-1 text-body-sm" title="이 행을 탭 구분으로 복사">
-              <span class="material-symbols-outlined text-[16px]">content_copy</span>
-              행 복사
-            </button>
-          </div>
-          <div class="grid grid-cols-[2fr_1fr_3fr] gap-md font-code text-body-md">
-            <div class="truncate" title="${escapeHtml(r.cells[0])}">${escapeHtml(r.cells[0]) || '<span class="text-outline">·</span>'}</div>
-            <div class="text-primary truncate" title="${escapeHtml(r.cells[1])}">${escapeHtml(r.cells[1]) || '<span class="text-outline">·</span>'}</div>
-            <div class="truncate" title="${escapeHtml(r.cells[2])}">${escapeHtml(r.cells[2]) || '<span class="text-outline">·</span>'}</div>
+          <div class="grid grid-cols-[80px_2fr_1fr_3fr_240px] gap-3 items-center text-body-md">
+            <span class="px-2 py-0.5 rounded-full ${tagCls} text-[11px] font-label-sm justify-self-start">${escapeHtml(r.label)}</span>
+            <div class="truncate font-code" title="${escapeHtml(r.cells[0])}">${escapeHtml(r.cells[0]) || '<span class="text-outline">·</span>'}</div>
+            <div class="text-primary truncate font-code" title="${escapeHtml(r.cells[1])}">${escapeHtml(r.cells[1]) || '<span class="text-outline">·</span>'}</div>
+            <div class="truncate font-code" title="${escapeHtml(r.cells[2])}">${escapeHtml(r.cells[2]) || '<span class="text-outline">·</span>'}</div>
+            <div class="flex gap-1">
+              <button class="copy-spec-btn px-3 py-2 border border-outline-variant rounded-lg text-secondary hover:bg-surface-variant disabled:opacity-40 flex items-center gap-1 shrink-0 whitespace-nowrap font-label-md" title="규격 셀만 복사" ${specCell ? '' : 'disabled'}>
+                <span class="material-symbols-outlined text-[18px]">content_copy</span>
+                규격 복사
+              </button>
+              <button class="copy-btn px-3 py-2 border border-outline-variant rounded-lg text-secondary hover:bg-surface-variant flex items-center gap-1 shrink-0 whitespace-nowrap font-label-md" title="이 행을 탭 구분으로 복사">
+                <span class="material-symbols-outlined text-[18px]">content_copy</span>
+                행 복사
+              </button>
+            </div>
           </div>`;
         const btn = card.querySelector('.copy-btn');
         btn.addEventListener('click', () => {
           navigator.clipboard.writeText(tsv).then(() => {
             const span = btn.querySelector('span:last-child');
+            const orig = span.textContent;
+            span.textContent = '복사됨!';
+            setTimeout(() => { span.textContent = orig; }, 1100);
+          });
+        });
+        const specBtn = card.querySelector('.copy-spec-btn');
+        specBtn.addEventListener('click', () => {
+          if (!specCell) return;
+          navigator.clipboard.writeText(specCell).then(() => {
+            const span = specBtn.querySelector('span:last-child');
             const orig = span.textContent;
             span.textContent = '복사됨!';
             setTimeout(() => { span.textContent = orig; }, 1100);
@@ -337,12 +396,134 @@
       });
     });
 
+    // ===== 완제품 구코드 정리 =====
+    const inOldPumbun   = document.getElementById('in-old-pumbun');
+    const inOldFinish   = document.getElementById('in-old-finish');
+    const oldRowsEl       = document.getElementById('old-rows');
+    const oldRowsHeaderWrap = document.getElementById('old-rows-header-wrap');
+    const oldRowsEmpty    = document.getElementById('old-rows-empty');
+    const btnCopyOldAll = document.getElementById('btn-copy-old-all');
+    let lastOldRows = [];
+
+    function transformOldFinish(finish, lastDigit) {
+      const t = String(finish || '').toUpperCase();
+      if (t.length < 10) return '';
+      return '8' + t.slice(1, 9) + lastDigit;
+    }
+
+    function recalcOld() {
+      uppercaseTransform(inOldFinish);
+      const pumbun = inOldPumbun.value.trim();
+      const finish = inOldFinish.value.trim();
+      const hasAny = pumbun || finish;
+      if (!hasAny) {
+        oldRowsEl.innerHTML = '';
+        oldRowsHeaderWrap.classList.add('hidden');
+        oldRowsEmpty.classList.remove('hidden');
+        lastOldRows = [];
+        btnCopyOldAll.disabled = true;
+        return;
+      }
+      oldRowsHeaderWrap.classList.remove('hidden');
+      oldRowsEmpty.classList.add('hidden');
+
+      const defs = [
+        { label: '완제품',   tag: '[완제품]',   last: '0' },
+        { label: '초도검사', tag: '[초도검사]', last: '1' },
+        { label: '홈가공',   tag: '[홈가공]',   last: '4' },
+      ];
+      const rows = defs.map(d => ({
+        label: d.label,
+        cells: [
+          '[구코드/미사용]',
+          transformOldFinish(finish, d.last),
+          pumbun ? `${d.tag} ${pumbun}` : '',
+        ],
+      }));
+      lastOldRows = rows;
+      btnCopyOldAll.disabled = rows.every(r => !r.cells.some(c => c && c.trim()));
+
+      oldRowsEl.innerHTML = '';
+      rows.forEach((r, i) => {
+        const card = document.createElement('div');
+        card.className = 'border border-outline-variant rounded-xl px-3 py-2 bg-surface-container-lowest';
+        const tsv = r.cells.map(c => c || '').join('\t');
+        const specCell = r.cells[2] || '';
+        const tagCls = i === 0
+          ? 'bg-secondary-container text-on-secondary-container'
+          : 'bg-primary-fixed text-on-primary-fixed-variant';
+        card.innerHTML = `
+          <div class="grid grid-cols-[80px_2fr_1fr_3fr_240px] gap-3 items-center text-body-md">
+            <span class="px-2 py-0.5 rounded-full ${tagCls} text-[11px] font-label-sm justify-self-start">${escapeHtml(r.label)}</span>
+            <div class="truncate text-secondary font-code" title="${escapeHtml(r.cells[0])}">${escapeHtml(r.cells[0])}</div>
+            <div class="text-primary truncate font-code" title="${escapeHtml(r.cells[1])}">${escapeHtml(r.cells[1]) || '<span class="text-outline">·</span>'}</div>
+            <div class="truncate font-code" title="${escapeHtml(r.cells[2])}">${escapeHtml(r.cells[2]) || '<span class="text-outline">·</span>'}</div>
+            <div class="flex gap-1">
+              <button class="copy-spec-btn px-3 py-2 border border-outline-variant rounded-lg text-secondary hover:bg-surface-variant disabled:opacity-40 flex items-center gap-1 shrink-0 whitespace-nowrap font-label-md" title="규격 셀만 복사" ${specCell ? '' : 'disabled'}>
+                <span class="material-symbols-outlined text-[18px]">content_copy</span>
+                규격 복사
+              </button>
+              <button class="copy-btn px-3 py-2 border border-outline-variant rounded-lg text-secondary hover:bg-surface-variant flex items-center gap-1 shrink-0 whitespace-nowrap font-label-md" title="이 행을 탭 구분으로 복사">
+                <span class="material-symbols-outlined text-[18px]">content_copy</span>
+                행 복사
+              </button>
+            </div>
+          </div>`;
+        const btn = card.querySelector('.copy-btn');
+        btn.addEventListener('click', () => {
+          navigator.clipboard.writeText(tsv).then(() => {
+            const span = btn.querySelector('span:last-child');
+            const orig = span.textContent;
+            span.textContent = '복사됨!';
+            setTimeout(() => { span.textContent = orig; }, 1100);
+          });
+        });
+        const specBtn = card.querySelector('.copy-spec-btn');
+        specBtn.addEventListener('click', () => {
+          if (!specCell) return;
+          navigator.clipboard.writeText(specCell).then(() => {
+            const span = specBtn.querySelector('span:last-child');
+            const orig = span.textContent;
+            span.textContent = '복사됨!';
+            setTimeout(() => { span.textContent = orig; }, 1100);
+          });
+        });
+        oldRowsEl.appendChild(card);
+      });
+    }
+
+    [inOldPumbun, inOldFinish].forEach(el => el.addEventListener('input', recalcOld));
+
+    function handleOldExcelPaste(e) {
+      const cd = e.clipboardData || window.clipboardData;
+      const raw = cd ? cd.getData('text') : '';
+      if (!raw || !raw.includes('\t')) return;
+      e.preventDefault();
+      const firstRow = raw.split(/\r?\n/).find(l => l.trim().length) || raw;
+      const parts = firstRow.split('\t').map(s => s.trim());
+      if (parts[0] !== undefined) inOldPumbun.value = parts[0];
+      if (parts[1] !== undefined) inOldFinish.value = parts[1].toUpperCase();
+      recalcOld();
+    }
+    [inOldPumbun, inOldFinish].forEach(el => el.addEventListener('paste', handleOldExcelPaste));
+
+    btnCopyOldAll.addEventListener('click', () => {
+      if (!lastOldRows.length) return;
+      const tsv = lastOldRows.map(r => r.cells.map(c => c || '').join('\t')).join('\n');
+      navigator.clipboard.writeText(tsv).then(() => {
+        const span = btnCopyOldAll.querySelector('span:last-child');
+        const orig = span.textContent;
+        span.textContent = '복사됨!';
+        setTimeout(() => { span.textContent = orig; }, 1500);
+      });
+    });
+
     // ===== 단연삭 수정 =====
     const SUFFIX_MAP = {
-      P: '(N810A)', B: '(AF806H)', Q: '(AF209)',
-      J: '(AF308H)', Z: '(ZK11SF)',
+      P: 'N810A', B: 'AF806H', Q: 'AF209',
+      J: 'AF308H', Z: 'ZK11SF',
     };
-    function compute단연삭Spec(input) {
+    function compute단연삭Spec(input, note) {
       if (!input) return '';
       const m = String(input).trim().match(/^([A-Za-z0-9]+)-(\d+(?:\.\d+)?)\s*\*\s*(\d+(?:\.\d+)?)-(.+)$/);
       if (!m) return '';
@@ -354,24 +535,28 @@
       const len4   = pad(Math.round(length * 100), 4);
       const lastWord = rest.split(/\s+/).pop() || '';
       const lastChar = lastWord.slice(-1).toUpperCase();
-      let mat;
-      if (/^\d$/.test(lastChar)) mat = '(소재공통)';
-      else if (SUFFIX_MAP[lastChar]) mat = SUFFIX_MAP[lastChar];
-      else mat = '(확인요망)';
-      return `${prefix}-${dia4}-${len4}-${rest} ${mat}`;
+      let matCore;
+      if (/^\d$/.test(lastChar)) matCore = '소재공통';
+      else if (SUFFIX_MAP[lastChar]) matCore = SUFFIX_MAP[lastChar];
+      else matCore = '확인요망';
+      const trimmedNote = (note || '').trim();
+      const matFull = trimmedNote ? `(${matCore}, ${trimmedNote})` : `(${matCore})`;
+      return `${prefix}-${dia4}-${len4}-${rest} ${matFull}`;
     }
-    function compute단연삭(input) {
-      const spec = compute단연삭Spec(input);
+    function compute단연삭(input, note) {
+      const spec = compute단연삭Spec(input, note);
       return spec ? `[단가공] ${spec}` : '';
     }
 
-    const inGrind  = document.getElementById('in-grind');
-    const outGrind = document.getElementById('out-grind');
-    const btnCopyGrind = document.getElementById('btn-copy-grind');
+    const inGrind     = document.getElementById('in-grind');
+    const inGrindNote = document.getElementById('in-grind-note');
+    const outGrind    = document.getElementById('out-grind');
+    const btnCopyGrind= document.getElementById('btn-copy-grind');
 
     function recalcGrind() {
       const v = inGrind.value;
-      const out = compute단연삭(v);
+      const note = inGrindNote.value;
+      const out = compute단연삭(v, note);
       if (!v.trim()) {
         outGrind.innerHTML = '<span class="text-outline">단연삭을 입력하면 [단가공] 형식으로 변환됩니다.</span>';
         btnCopyGrind.disabled = true;
@@ -389,6 +574,7 @@
       outGrind.dataset.value = out;
     }
     inGrind.addEventListener('input', () => { recalcGrind(); recalcDup(); });
+    inGrindNote.addEventListener('input', () => { recalcGrind(); });
     btnCopyGrind.addEventListener('click', () => {
       const v = outGrind.dataset.value;
       if (!v) return;
@@ -402,20 +588,21 @@
 
     // ===== 중복코드 행 생성 =====
     const inDupFinish = document.getElementById('in-dup-finish');
-    const outDup     = document.getElementById('out-dup');
-    const btnCopyDup = document.getElementById('btn-copy-dup');
+    const outDup      = document.getElementById('out-dup');
+    const btnCopyDup  = document.getElementById('btn-copy-dup');
 
     function recalcDup() {
       const dupFinish = inDupFinish.value.trim();
+      // 중복코드는 특이사항 영향 받지 않음 (단연삭 입력값만으로 규격 생성)
       const spec = compute단연삭Spec(inGrind.value);
-      if (!dupFinish && !spec) {
-        outDup.innerHTML = '<span class="text-outline">위에서 단연삭 입력 + 중복 품번을 입력하면 3셀 행이 생성됩니다.</span>';
+      if (!dupFinish && !inGrind.value.trim()) {
+        outDup.innerHTML = '<span class="text-outline">단연삭 + 중복 품번을 입력하면 3셀 행이 생성됩니다.</span>';
         outDup.dataset.value = '';
         btnCopyDup.disabled = true;
         return;
       }
       if (!spec) {
-        outDup.innerHTML = '<span class="text-error">단연삭 입력 패턴을 인식하지 못했습니다 (예: L1-0.34 * 3.7-1M L1J).</span>';
+        outDup.innerHTML = '<span class="text-error">위 단연삭 입력 패턴을 인식하지 못했습니다.</span>';
         outDup.dataset.value = '';
         btnCopyDup.disabled = true;
         return;
@@ -432,7 +619,6 @@
       btnCopyDup.disabled = !dupFinish;
     }
     inDupFinish.addEventListener('input', () => {
-      // Force uppercase for the finish code (matching other code inputs).
       const v = inDupFinish.value, u = v.toUpperCase();
       if (v !== u) {
         const pos = inDupFinish.selectionStart;
@@ -451,6 +637,74 @@
         setTimeout(() => { span.textContent = orig; }, 1100);
       });
     });
+
+    // Excel paste split: pasting "단연삭\t품번" into either field fills both
+    // (특이사항은 건너뜀).
+    function handleGrindExcelPaste(e) {
+      const cd = e.clipboardData || window.clipboardData;
+      const raw = cd ? cd.getData('text') : '';
+      if (!raw || !raw.includes('\t')) return;
+      e.preventDefault();
+      const firstRow = raw.split(/\r?\n/).find(l => l.trim().length) || raw;
+      const parts = firstRow.split('\t').map(s => s.trim());
+      if (parts[0] !== undefined) inGrind.value = parts[0];
+      if (parts[1] !== undefined) inDupFinish.value = parts[1].toUpperCase();
+      recalcGrind();
+      recalcDup();
+    }
+    inGrind.addEventListener('paste', handleGrindExcelPaste);
+    inDupFinish.addEventListener('paste', handleGrindExcelPaste);
+
+    // ===== Form state persistence (within drill-code group) =====
+    const FORM_KEY = 'drill-code-edit/form/v1';
+    const PERSIST_INPUTS = [inPumbun, inFinish, inMaterial, inGrind, inGrindNote, inDupFinish, inOldPumbun, inOldFinish];
+    function snapshotEditForm() {
+      return {
+        pumbun:    inPumbun.value,
+        finish:    inFinish.value,
+        material:  inMaterial.value,
+        grind:     inGrind.value,
+        grindNote: inGrindNote.value,
+        dupFinish: inDupFinish.value,
+        oldPumbun: inOldPumbun.value,
+        oldFinish: inOldFinish.value,
+      };
+    }
+    function persistEditForm() {
+      if (!window.DrillPersist || window.__drillSkipPersist) return;
+      DrillPersist.set(FORM_KEY, snapshotEditForm()).catch(() => {});
+    }
+    PERSIST_INPUTS.forEach(el => el.addEventListener('input', persistEditForm));
+    window.addEventListener('pagehide', persistEditForm);
+    async function restoreEditForm() {
+      if (!window.DrillPersist) return;
+      try {
+        const data = await DrillPersist.get(FORM_KEY);
+        if (!data) return;
+        inPumbun.value    = data.pumbun    || '';
+        inFinish.value    = data.finish    || '';
+        inMaterial.value  = data.material  || '';
+        inGrind.value     = data.grind     || '';
+        inGrindNote.value = data.grindNote || '';
+        inDupFinish.value = data.dupFinish || '';
+        inOldPumbun.value = data.oldPumbun || '';
+        inOldFinish.value = data.oldFinish || '';
+        recalc();
+        recalcGrind();
+        recalcDup();
+        recalcOld();
+      } catch (e) { console.warn('drill-code-edit form restore failed', e); }
+    }
+    restoreEditForm();
+    // Also clear persisted form when 입력 초기화 is used.
+    btnClear.addEventListener('click', () => {
+      if (window.DrillPersist) DrillPersist.remove(FORM_KEY).catch(() => {});
+    });
+
+    // Has-work check (read by shell.js nav guard).
+    window.__hasDrillWork = function () {
+      return PERSIST_INPUTS.some(el => el.value);
+    };
   </script>
 </body>
 </html>

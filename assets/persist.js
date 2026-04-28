@@ -60,6 +60,9 @@
     if (_timers.has(key)) clearTimeout(_timers.get(key));
     _timers.set(key, setTimeout(async () => {
       _timers.delete(key);
+      // shell.js sets this flag when a clear-and-navigate is in progress so
+      // a late-firing debounced write doesn't undo the clear.
+      if (typeof window !== 'undefined' && window.__drillSkipPersist) return;
       try {
         await set(key, await getValue());
       } catch (e) {

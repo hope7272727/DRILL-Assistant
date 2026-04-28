@@ -37,6 +37,11 @@
             <span class="material-symbols-outlined text-[18px]">add_photo_alternate</span>
             사진 업로드
           </label>
+          <label class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2 cursor-pointer" title="폴더(또는 폴더 안의 하위 폴더)를 통째로 업로드하면 폴더명으로 자동 그룹핑됩니다">
+            <input id="folder-input" type="file" webkitdirectory directory multiple class="hidden"/>
+            <span class="material-symbols-outlined text-[18px]">drive_folder_upload</span>
+            폴더 업로드
+          </label>
           <button id="btn-download" disabled class="px-4 py-2 border border-outline text-on-surface rounded-lg font-label-md hover:bg-surface-variant transition-colors flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
             <span class="material-symbols-outlined text-[18px]">download</span>
             <span>현재 다운로드</span>
@@ -92,6 +97,10 @@
                 <span class="material-symbols-outlined text-[18px]">touch_app</span>
                 <span id="pick-label">두 점으로 정렬 (Space)</span>
               </button>
+              <button id="btn-measure" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 min-w-[110px] justify-center" title="단축키: M">
+                <span class="material-symbols-outlined text-[18px]">straighten</span>
+                <span id="measure-label">측정 (M)</span>
+              </button>
             </div>
             <div id="meta" class="font-label-sm text-secondary truncate min-w-0"></div>
           </div>
@@ -105,24 +114,37 @@
         </div>
 
         <!-- Right: settings -->
-        <div class="col-span-3 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col gap-lg overflow-y-auto">
+        <div class="col-span-3 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col gap-md overflow-y-auto">
           <h3 class="font-label-md text-on-surface flex items-center gap-2">
             <span class="material-symbols-outlined text-[18px]">tune</span>
             정렬 설정
           </h3>
 
+          <!-- 회전 각도 -->
           <div>
-            <label class="font-label-sm text-on-surface block mb-1">회전 각도 (°)</label>
+            <div class="flex items-center justify-between mb-1">
+              <label class="font-label-sm text-on-surface">회전 각도</label>
+              <span class="font-body-sm text-secondary text-[11px]">슬라이더 / 입력</span>
+            </div>
             <input id="angle-slider" type="range" min="-45" max="45" step="0.1" value="0"
                    class="w-full h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary disabled:opacity-40" disabled/>
-            <input id="angle" type="number" step="0.05" value="0" placeholder="0.00"
-                   class="w-full mt-2 px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary disabled:opacity-40" disabled/>
-            <p class="font-body-sm text-secondary text-[11px] mt-1">슬라이더로 조절하거나 직접 입력 (Enter)</p>
+            <div class="relative mt-1.5">
+              <input id="angle" type="number" step="0.05" value="0" placeholder="0.00"
+                     class="w-full pl-2 pr-6 py-1.5 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary disabled:opacity-40" disabled/>
+              <span class="absolute right-2 top-1/2 -translate-y-1/2 text-secondary text-[11px] pointer-events-none">°</span>
+            </div>
           </div>
 
+          <!-- 사진 위치 -->
           <div>
-            <label class="font-label-sm text-on-surface block mb-1">사진 위치</label>
-            <svg id="dpad" class="dpad dpad-disabled" viewBox="0 0 100 100" aria-label="사진 위치 조정">
+            <div class="flex items-center justify-between mb-1">
+              <label class="font-label-sm text-on-surface">사진 위치</label>
+              <button id="btn-photo-center" disabled title="중앙으로 초기화"
+                      class="w-7 h-7 border border-outline-variant rounded text-secondary hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center">
+                <span class="material-symbols-outlined text-[16px]">filter_center_focus</span>
+              </button>
+            </div>
+            <svg id="dpad" class="dpad dpad-disabled" viewBox="0 0 100 100" style="width:140px;height:140px;margin:4px auto 6px;display:block;" aria-label="사진 위치 조정">
               <circle cx="50" cy="50" r="48" fill="#fbf9f8" stroke="#727784" stroke-width="1.2"/>
               <line x1="16" y1="16" x2="84" y2="84" stroke="#727784" stroke-width="1.2"/>
               <line x1="84" y1="16" x2="16" y2="84" stroke="#727784" stroke-width="1.2"/>
@@ -138,13 +160,28 @@
               </g>
               <circle id="dpad-center" class="dpad-center" cx="50" cy="50" r="7" fill="#eaecf0" stroke="#727784" stroke-width="1"><title>중앙으로 초기화</title></circle>
             </svg>
-            <button id="btn-photo-center" disabled class="px-3 py-2 border border-outline-variant rounded text-on-surface text-body-sm hover:bg-surface-variant disabled:opacity-40 w-full flex items-center justify-center gap-1">
-              <span class="material-symbols-outlined text-[18px]">filter_center_focus</span>
-              중앙으로 초기화
-            </button>
-            <p class="font-body-sm text-secondary text-[11px] mt-1">드래그 = 빠른 이동 · 방향키 = 1px(Shift=10px)</p>
+            <p class="font-body-sm text-secondary text-[10px] text-center leading-snug">드래그 / 방향키 1px · Shift+방향키 10px</p>
           </div>
 
+          <div class="border-t border-outline-variant pt-md">
+            <h3 class="font-label-md text-on-surface flex items-center gap-2 mb-sm">
+              <span class="material-symbols-outlined text-[18px]">straighten</span>
+              치수 측정
+            </h3>
+            <p id="measure-status" class="font-body-sm text-secondary text-[11px] mb-2">측정 모드(M)을 켜고 4점: 가로시작 → 가로끝 → 위 → 아래</p>
+            <label class="font-label-sm text-on-surface block mb-1">가로 치수 입력</label>
+            <div class="flex items-center gap-1 mb-2">
+              <input id="measure-width" type="number" step="any" placeholder="예: 5.0"
+                     class="flex-1 px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary disabled:opacity-40" disabled/>
+              <span class="font-label-sm text-secondary text-[11px]">mm</span>
+            </div>
+            <label class="font-label-sm text-on-surface block mb-1">계산된 세로 치수</label>
+            <div id="measure-height" class="px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest font-code text-body-sm text-center text-on-surface">--</div>
+            <button id="btn-measure-reset" disabled class="mt-2 w-full px-2 py-1.5 border border-outline-variant rounded text-secondary text-body-sm hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center gap-1">
+              <span class="material-symbols-outlined text-[16px]">refresh</span>
+              측정 초기화
+            </button>
+          </div>
 
           <div class="border-t border-outline-variant pt-md">
             <h3 class="font-label-md text-on-surface flex items-center gap-2 mb-sm">
@@ -208,6 +245,7 @@
       dxfColor: '#ff0000', // shared across photos — user preference
       photoDragging: false,
       photoDragStart: null,
+      measureMode: false,
     };
 
     function activeItem() {
@@ -244,6 +282,12 @@
     const crosshairLabel = $('crosshair-label');
     const btnPick = $('btn-pick');
     const pickLabel = $('pick-label');
+    const btnMeasure = $('btn-measure');
+    const measureLabel = $('measure-label');
+    const measureStatus = $('measure-status');
+    const measureWidthInput = $('measure-width');
+    const measureHeightOut = $('measure-height');
+    const btnMeasureReset = $('btn-measure-reset');
     const btnPickFolder = $('btn-pick-folder');
     const folderName = $('folder-name');
     const folderBtnLabel = $('folder-btn-label');
@@ -385,6 +429,7 @@
       drawCrosshair();
       drawDxfOverlay();
       drawPickedPoints();
+      drawMeasurement();
     }
 
     function renderActive() {
@@ -420,11 +465,37 @@
       return `rgb(${r},${g},${b})`;
     }
 
+    // Folder paths the user has explicitly expanded. Default = collapsed.
+    if (!state.expandedGroups) state.expandedGroups = new Set();
+
     function renderFileList() {
+      // Preserve scroll position across re-renders (e.g. when clicking a photo).
+      const savedScrollTop = fileList.scrollTop;
       emptyList.style.display = state.items.length ? 'none' : 'block';
-      // Remove all but the empty state element
       Array.from(fileList.children).forEach(c => { if (c !== emptyList) c.remove(); });
+
+      // Build a tree from item.groupPath chains. Items without a groupPath go
+      // directly under root and render without any folder header.
+      const root = { name: '', children: new Map(), items: [] };
       state.items.forEach((it, i) => {
+        const path = Array.isArray(it.groupPath) ? it.groupPath : (it.group ? [it.group] : []);
+        let node = root;
+        for (const seg of path) {
+          if (!node.children.has(seg)) {
+            node.children.set(seg, { name: seg, children: new Map(), items: [] });
+          }
+          node = node.children.get(seg);
+        }
+        node.items.push({ item: it, idx: i });
+      });
+
+      function countNode(node) {
+        let c = node.items.length;
+        for (const child of node.children.values()) c += countNode(child);
+        return c;
+      }
+
+      function renderRow(it, i) {
         const row = document.createElement('div');
         row.className = 'group flex items-center gap-2 p-2 rounded-lg border transition-colors '
           + (i === state.activeIdx
@@ -453,9 +524,49 @@
           e.stopPropagation();
           removeItem(i);
         });
-        fileList.appendChild(row);
-      });
+        return row;
+      }
+
+      function renderNode(node, depth, parentPath) {
+        const fullPath = parentPath ? `${parentPath}/${node.name}` : node.name;
+        // depth 0 is the synthetic root — skip its header.
+        if (depth > 0) {
+          const expanded = state.expandedGroups.has(fullPath);
+          const total = countNode(node);
+          const indent = (depth - 1) * 12;
+          const header = document.createElement('div');
+          header.className = 'flex items-center gap-1 px-2 py-1.5 mt-1 rounded text-secondary hover:text-on-surface hover:bg-surface-container cursor-pointer select-none';
+          header.style.paddingLeft = `${8 + indent}px`;
+          header.innerHTML = `
+            <span class="material-symbols-outlined text-[18px]">${expanded ? 'expand_more' : 'chevron_right'}</span>
+            <span class="material-symbols-outlined text-[18px]">${expanded ? 'folder_open' : 'folder'}</span>
+            <span class="font-label-sm text-[12px] flex-1 truncate" title="${escapeAttr(node.name)}">${escapeText(node.name)}</span>
+            <span class="font-code text-[11px] text-secondary">${total}</span>`;
+          header.addEventListener('click', () => {
+            if (state.expandedGroups.has(fullPath)) state.expandedGroups.delete(fullPath);
+            else state.expandedGroups.add(fullPath);
+            renderFileList();
+          });
+          fileList.appendChild(header);
+          if (!expanded) return;
+        }
+        // Render subfolders first (sorted descending by name, natural order),
+        // then direct file items.
+        const sortedChildren = Array.from(node.children.entries())
+          .sort((a, b) => b[0].localeCompare(a[0], undefined, { numeric: true, sensitivity: 'base' }));
+        for (const [, child] of sortedChildren) {
+          renderNode(child, depth + 1, fullPath);
+        }
+        for (const { item: it, idx: i } of node.items) {
+          fileList.appendChild(renderRow(it, i));
+        }
+      }
+      function escapeAttr(s) { return String(s).replace(/"/g, '&quot;'); }
+      function escapeText(s) { return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+      renderNode(root, 0, '');
       fileCount.textContent = state.items.length;
+      fileList.scrollTop = savedScrollTop;
     }
 
     function removeItem(idx) {
@@ -490,10 +601,147 @@
       return cv.toDataURL('image/jpeg', 0.6);
     }
 
+    // ===== Loading overlay (drag/drop progress for big folders) =====
+    let _loadingEl = null, _loadingMsgEl = null;
+    function ensureLoadingOverlay() {
+      if (_loadingEl) return;
+      _loadingEl = document.createElement('div');
+      _loadingEl.id = 'drill-loading-overlay';
+      _loadingEl.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;font-family:Inter,sans-serif;';
+      _loadingEl.innerHTML = `
+        <div style="background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.25);padding:24px 32px;display:flex;flex-direction:column;align-items:center;gap:14px;min-width:280px;max-width:420px;">
+          <div style="width:36px;height:36px;border:3px solid #e5e5e5;border-top-color:#003f87;border-radius:50%;animation:drill-spin 0.8s linear infinite;"></div>
+          <div id="drill-loading-msg" style="font-size:14px;color:#1d1b20;text-align:center;line-height:1.4;"></div>
+        </div>
+        <style>@keyframes drill-spin { to { transform: rotate(360deg); } }</style>`;
+      document.body.appendChild(_loadingEl);
+      _loadingMsgEl = document.getElementById('drill-loading-msg');
+    }
+    function showLoading(msg) {
+      ensureLoadingOverlay();
+      _loadingMsgEl.textContent = msg;
+      _loadingEl.style.display = 'flex';
+    }
+    function setLoadingMsg(msg) {
+      if (_loadingEl) _loadingMsgEl.textContent = msg;
+    }
+    function hideLoading() {
+      if (_loadingEl) _loadingEl.style.display = 'none';
+    }
+    // Yield to the browser so the overlay can paint between batches.
+    function nextFrame() { return new Promise(r => requestAnimationFrame(() => r())); }
+
     async function loadFiles(fileList) {
+      // FileList items from a webkitdirectory input have webkitRelativePath
+      // like "Folder/Sub/img.jpg" — keep the full folder chain as the group path.
       const arr = Array.from(fileList).filter(f => f.type.startsWith('image/'));
-      for (const f of arr) {
-        await addItemFromBlob(f, f.name);
+      const showOverlay = arr.length > 3;
+      if (showOverlay) {
+        showLoading(`사진 처리 중... (0 / ${arr.length})`);
+        await nextFrame();
+      }
+      try {
+        for (let i = 0; i < arr.length; i++) {
+          if (showOverlay) {
+            setLoadingMsg(`사진 처리 중... (${i + 1} / ${arr.length})`);
+            if (i % 5 === 0) await nextFrame();
+          }
+          const f = arr[i];
+          const rel = f.webkitRelativePath || '';
+          const parts = rel.split('/').filter(Boolean);
+          const groupPath = parts.length >= 2 ? parts.slice(0, -1) : [];
+          const item = await addItemFromBlob(f, f.name);
+          item.groupPath = groupPath;
+        }
+      } finally {
+        if (showOverlay) hideLoading();
+      }
+      if (state.activeIdx < 0 && state.items.length > 0) state.activeIdx = 0;
+      syncUIForActive();
+      setEnabled();
+      renderFileList();
+      renderActive();
+      if (state.activeIdx >= 0 && !state.pickMode) canvas.style.cursor = 'grab';
+      schedulePersist();
+    }
+
+    // Recursively read a FileSystemEntry tree, returning [{file, path}, ...]
+    // where path is the full folder chain (array of folder names) leading to the file.
+    async function readDropEntries(entry, pathSoFar) {
+      if (entry.isFile) {
+        const file = await new Promise((res, rej) => entry.file(res, rej));
+        return [{ file, path: pathSoFar.slice() }];
+      }
+      if (entry.isDirectory) {
+        const reader = entry.createReader();
+        const all = [];
+        // readEntries() returns entries in batches; loop until empty.
+        while (true) {
+          const batch = await new Promise((res, rej) => reader.readEntries(res, rej));
+          if (!batch.length) break;
+          all.push(...batch);
+        }
+        const out = [];
+        const newPath = [...pathSoFar, entry.name];
+        for (const child of all) {
+          const nested = await readDropEntries(child, newPath);
+          out.push(...nested);
+        }
+        return out;
+      }
+      return [];
+    }
+    async function loadDroppedItems(items) {
+      // Snapshot entries SYNCHRONOUSLY (DataTransferItemList goes stale after the first await).
+      const snapshot = [];
+      let hasFolder = false;
+      for (const it of Array.from(items)) {
+        if (it.kind !== 'file') continue;
+        const entry = it.webkitGetAsEntry ? it.webkitGetAsEntry() : null;
+        if (entry) {
+          if (entry.isDirectory) hasFolder = true;
+          snapshot.push({ entry });
+        } else {
+          const f = it.getAsFile();
+          if (f) snapshot.push({ file: f });
+        }
+      }
+      // Show overlay early so the user gets feedback even before counting files.
+      const showOverlay = hasFolder || snapshot.length > 3;
+      if (showOverlay) {
+        showLoading(hasFolder ? '폴더 구조를 읽는 중...' : '파일을 분석하는 중...');
+        await nextFrame();
+      }
+      try {
+        const collected = [];
+        for (const s of snapshot) {
+          if (s.entry) {
+            collected.push(...await readDropEntries(s.entry, []));
+          } else if (s.file) {
+            collected.push({ file: s.file, path: [] });
+          }
+        }
+        const images = collected.filter(({ file }) => file && file.type.startsWith('image/'));
+        if (showOverlay) {
+          if (images.length === 0) {
+            setLoadingMsg('이미지 파일을 찾지 못했습니다.');
+            await new Promise(r => setTimeout(r, 1000));
+            return;
+          }
+          setLoadingMsg(`사진 처리 중... (0 / ${images.length})`);
+          await nextFrame();
+        }
+        for (let i = 0; i < images.length; i++) {
+          if (showOverlay) {
+            setLoadingMsg(`사진 처리 중... (${i + 1} / ${images.length})`);
+            if (i % 5 === 0) await nextFrame();
+          }
+          const { file, path } = images[i];
+          const item = await addItemFromBlob(file, file.name);
+          item.groupPath = path;
+        }
+      } finally {
+        if (showOverlay) hideLoading();
       }
       if (state.activeIdx < 0 && state.items.length > 0) state.activeIdx = 0;
       syncUIForActive();
@@ -530,8 +778,12 @@
         dxfVisible: false,
         dxfScaleUser: 100,
         dxfFitScale: 1,
+        dxfLibName: '',
         photoOffsetX: 0,
         photoOffsetY: 0,
+        groupPath: [],
+        measurePoints: [],
+        measureWidth: '',
         fileBlob: blob,
       };
       if (restore) Object.assign(item, restore);
@@ -636,13 +888,42 @@
     }
 
     canvas.addEventListener('mousemove', (e) => {
+      if (state.measureMode && state.activeIdx >= 0) {
+        state.measureMouse = getCanvasCoord(e);
+        blitAndOverlay();
+        return;
+      }
       if (!state.pickMode || state.pickedPoints.length !== 1) return;
       state.lastMouse = getCanvasCoord(e);
       // Only the overlay needs updating — image is cached and stays still.
       blitAndOverlay();
     });
+    canvas.addEventListener('mouseleave', () => {
+      if (state.measureMode) {
+        state.measureMouse = null;
+        blitAndOverlay();
+      }
+    });
 
     canvas.addEventListener('click', (e) => {
+      if (state.measureMode) {
+        const it = state.items[state.activeIdx]; if (!it) return;
+        if (!Array.isArray(it.measurePoints)) it.measurePoints = [];
+        if (it.measurePoints.length >= 4) return;
+        const raw = getCanvasCoord(e);
+        // Force P2 to share P1's Y so the 가로 기준선 stays strictly horizontal.
+        const p = (it.measurePoints.length === 1)
+          ? { x: raw.x, y: it.measurePoints[0].y }
+          : raw;
+        it.measurePoints.push(p);
+        if (it.measurePoints.length === 4) {
+          setMeasureMode(false);
+        }
+        syncMeasureUI();
+        blitAndOverlay();
+        schedulePersist();
+        return;
+      }
       if (!state.pickMode) return;
       const it = state.items[state.activeIdx]; if (!it) return;
       const p = getCanvasCoord(e);
@@ -663,8 +944,267 @@
       renderActive();
     });
 
+    // ===== Measurement (4-point rectangle, width input → height calc) =====
+    const MEASURE_PROMPTS = [
+      '측정: 1/4 가로선 시작점을 클릭',
+      '측정: 2/4 가로선 끝점을 클릭',
+      '측정: 3/4 위쪽 점을 클릭',
+      '측정: 4/4 아래쪽 점을 클릭',
+    ];
+    function setMeasureMode(on) {
+      // Mutually exclusive with pick mode.
+      if (on && state.pickMode) setPickMode(false);
+      if (!on) {
+        state.measureMouse = null;
+        // Discard partial measurements when leaving the mode mid-way so the
+        // next attempt starts fresh.
+        const it = activeItem();
+        if (it && Array.isArray(it.measurePoints) && it.measurePoints.length > 0 && it.measurePoints.length < 4) {
+          it.measurePoints = [];
+          it.measureWidth = '';
+          schedulePersist();
+        }
+      }
+      state.measureMode = on;
+      measureLabel.textContent = on ? '측정 취소' : '측정 (M)';
+      btnMeasure.classList.toggle('bg-secondary-container', on);
+      btnMeasure.classList.toggle('text-on-surface', on);
+      btnMeasure.classList.toggle('border', !on);
+      btnMeasure.classList.toggle('text-secondary', !on);
+      canvas.style.cursor = on ? 'crosshair' : (state.activeIdx >= 0 ? 'grab' : '');
+      syncMeasureUI();
+    }
+    function computeMeasureHeight(it) {
+      const pts = it && it.measurePoints;
+      const w = parseFloat(it && it.measureWidth);
+      if (!pts || pts.length !== 4 || !isFinite(w) || w <= 0) return null;
+      const [p1, p2, p3, p4] = pts;
+      const dx = p2.x - p1.x, dy = p2.y - p1.y;
+      const len = Math.hypot(dx, dy);
+      if (len < 1) return null;
+      // Perpendicular unit vector (rotate 90° in screen coords)
+      const vx = -dy / len, vy = dx / len;
+      const proj = (p) => (p.x - p1.x) * vx + (p.y - p1.y) * vy;
+      const heightPx = Math.abs(proj(p3) - proj(p4));
+      return heightPx * (w / len);
+    }
+    function rectFromPoints(pts) {
+      if (!pts || pts.length !== 4) return null;
+      const [p1, p2, p3, p4] = pts;
+      const dx = p2.x - p1.x, dy = p2.y - p1.y;
+      const len = Math.hypot(dx, dy);
+      if (len < 1) return null;
+      const vx = -dy / len, vy = dx / len;
+      const proj = (p) => (p.x - p1.x) * vx + (p.y - p1.y) * vy;
+      const d3 = proj(p3), d4 = proj(p4);
+      return {
+        tl: { x: p1.x + vx * d3, y: p1.y + vy * d3 },
+        tr: { x: p2.x + vx * d3, y: p2.y + vy * d3 },
+        bl: { x: p1.x + vx * d4, y: p1.y + vy * d4 },
+        br: { x: p2.x + vx * d4, y: p2.y + vy * d4 },
+      };
+    }
+    function drawMeasurement() {
+      const it = activeItem();
+      if (!it || !Array.isArray(it.measurePoints)) return;
+      const pts = it.measurePoints;
+      const mouse = state.measureMouse;
+      const previewing = state.measureMode && mouse && pts.length < 4;
+      if (!previewing && pts.length === 0) return;
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+
+      // Crosshair under the cursor — blue dashed, same look as the other guides.
+      if (previewing) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(59,130,246,0.85)';
+        ctx.lineWidth = 1.5 * dpr;
+        ctx.setLineDash([6 * dpr, 4 * dpr]);
+        ctx.beginPath();
+        ctx.moveTo(0, mouse.y);  ctx.lineTo(canvas.width, mouse.y);
+        ctx.moveTo(mouse.x, 0);  ctx.lineTo(mouse.x, canvas.height);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Stage 2 preview (after P1): candidate 가로 기준선 P1 → (mouse.x, P1.y).
+      // Y is locked to P1.y so the line is always strictly horizontal.
+      if (previewing && pts.length === 1) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(249,115,22,0.85)';
+        ctx.lineWidth = 1.5 * dpr;
+        ctx.setLineDash([6 * dpr, 4 * dpr]);
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        ctx.lineTo(mouse.x, pts[0].y);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Confirmed 가로 기준선 P1-P2 (orange).
+      if (pts.length >= 2) {
+        ctx.save();
+        ctx.strokeStyle = '#f97316';
+        ctx.lineWidth = 1.5 * dpr;
+        ctx.setLineDash([6 * dpr, 4 * dpr]);
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        ctx.lineTo(pts[1].x, pts[1].y);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Stage 3/4 preview: edge line through mouse, parallel to P1-P2 (red — part of rectangle).
+      if (previewing && pts.length >= 2) {
+        const p1 = pts[0], p2 = pts[1];
+        const dx = p2.x - p1.x, dy = p2.y - p1.y;
+        const len = Math.hypot(dx, dy);
+        if (len >= 1) {
+          const vx = -dy / len, vy = dx / len; // perpendicular unit vector
+          const dm = (mouse.x - p1.x) * vx + (mouse.y - p1.y) * vy;
+          const ea = { x: p1.x + vx * dm, y: p1.y + vy * dm };
+          const eb = { x: p2.x + vx * dm, y: p2.y + vy * dm };
+          ctx.save();
+          ctx.strokeStyle = 'rgba(239,68,68,0.85)';
+          ctx.lineWidth = 1.8 * dpr;
+          ctx.setLineDash([6 * dpr, 4 * dpr]);
+          ctx.beginPath();
+          ctx.moveTo(ea.x, ea.y);
+          ctx.lineTo(eb.x, eb.y);
+          ctx.stroke();
+          // Perpendicular drop line from mouse to its projection on P1-P2 (faint red).
+          const dProj = (mouse.x - p1.x) * (dx / len) + (mouse.y - p1.y) * (dy / len);
+          const foot = { x: p1.x + (dx / len) * dProj, y: p1.y + (dy / len) * dProj };
+          ctx.strokeStyle = 'rgba(239,68,68,0.45)';
+          ctx.lineWidth = 1 * dpr;
+          ctx.beginPath();
+          ctx.moveTo(mouse.x, mouse.y);
+          ctx.lineTo(foot.x, foot.y);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      // Stage 4 preview: confirmed top edge through P3 + side connectors (red).
+      if (previewing && pts.length === 3) {
+        const p1 = pts[0], p2 = pts[1], p3 = pts[2];
+        const dx = p2.x - p1.x, dy = p2.y - p1.y;
+        const len = Math.hypot(dx, dy);
+        if (len >= 1) {
+          const vx = -dy / len, vy = dx / len;
+          const d3 = (p3.x - p1.x) * vx + (p3.y - p1.y) * vy;
+          const dm = (mouse.x - p1.x) * vx + (mouse.y - p1.y) * vy;
+          const tA = { x: p1.x + vx * d3, y: p1.y + vy * d3 };
+          const tB = { x: p2.x + vx * d3, y: p2.y + vy * d3 };
+          const bA = { x: p1.x + vx * dm, y: p1.y + vy * dm };
+          const bB = { x: p2.x + vx * dm, y: p2.y + vy * dm };
+          ctx.save();
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 1.5 * dpr;
+          ctx.beginPath();
+          ctx.moveTo(tA.x, tA.y); ctx.lineTo(tB.x, tB.y);
+          ctx.stroke();
+          ctx.strokeStyle = 'rgba(239,68,68,0.45)';
+          ctx.beginPath();
+          ctx.moveTo(tA.x, tA.y); ctx.lineTo(bA.x, bA.y);
+          ctx.moveTo(tB.x, tB.y); ctx.lineTo(bB.x, bB.y);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      // Confirmed rectangle outline once all 4 points are placed (red).
+      const rect = rectFromPoints(pts);
+      if (rect) {
+        ctx.save();
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 2 * dpr;
+        ctx.beginPath();
+        ctx.moveTo(rect.tl.x, rect.tl.y);
+        ctx.lineTo(rect.tr.x, rect.tr.y);
+        ctx.lineTo(rect.br.x, rect.br.y);
+        ctx.lineTo(rect.bl.x, rect.bl.y);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Point markers + numbering.
+      pts.forEach((p, i) => {
+        ctx.save();
+        ctx.fillStyle = '#ef4444';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2 * dpr;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 6 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${11 * dpr}px Inter, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(i + 1), p.x, p.y);
+        ctx.restore();
+      });
+    }
+    function syncMeasureUI() {
+      const it = activeItem();
+      const has = !!it;
+      const pts = (it && it.measurePoints) || [];
+      const complete = pts.length === 4;
+      measureWidthInput.disabled = !complete;
+      btnMeasureReset.disabled = !has || pts.length === 0;
+      if (state.measureMode) {
+        measureStatus.textContent = MEASURE_PROMPTS[Math.min(pts.length, 3)];
+        measureStatus.classList.add('text-primary');
+        measureStatus.classList.remove('text-secondary');
+      } else if (complete) {
+        measureStatus.textContent = '4점 측정 완료. 가로 치수를 입력하면 세로가 계산됩니다.';
+        measureStatus.classList.remove('text-primary');
+        measureStatus.classList.add('text-secondary');
+      } else {
+        measureStatus.textContent = '측정 모드(M)을 켜고 4점: 가로시작 → 가로끝 → 위 → 아래';
+        measureStatus.classList.remove('text-primary');
+        measureStatus.classList.add('text-secondary');
+      }
+      measureWidthInput.value = (it && it.measureWidth) || '';
+      const heightVal = computeMeasureHeight(it);
+      measureHeightOut.textContent = heightVal != null ? heightVal.toFixed(3) + ' mm' : '--';
+    }
+    btnMeasure.addEventListener('click', () => {
+      if (state.activeIdx < 0) return;
+      // Clicking when complete restarts; otherwise toggle mode.
+      const it = activeItem();
+      if (!state.measureMode && it && it.measurePoints && it.measurePoints.length === 4) {
+        it.measurePoints = [];
+        it.measureWidth = '';
+        schedulePersist();
+      }
+      setMeasureMode(!state.measureMode);
+      blitAndOverlay();
+    });
+    btnMeasureReset.addEventListener('click', () => {
+      const it = activeItem(); if (!it) return;
+      it.measurePoints = [];
+      it.measureWidth = '';
+      if (state.measureMode) setMeasureMode(false);
+      syncMeasureUI();
+      blitAndOverlay();
+      schedulePersist();
+    });
+    measureWidthInput.addEventListener('input', () => {
+      const it = activeItem(); if (!it) return;
+      it.measureWidth = measureWidthInput.value;
+      const h = computeMeasureHeight(it);
+      measureHeightOut.textContent = h != null ? h.toFixed(3) + ' mm' : '--';
+      schedulePersist();
+    });
+
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && state.pickMode) { setPickMode(false); return; }
+      if (e.key === 'Escape') {
+        if (state.pickMode) { setPickMode(false); return; }
+        if (state.measureMode) { setMeasureMode(false); blitAndOverlay(); return; }
+      }
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       // Space toggles two-point pick mode
@@ -674,17 +1214,30 @@
         setPickMode(!state.pickMode);
         return;
       }
-      // D toggles DXF overlay
+      // D toggles DXF overlay (per active photo)
       if (e.key === 'd' || e.key === 'D' || e.key === 'ㅇ') {
-        if (!state.dxf) return;
+        const it = activeItem();
+        if (!it || !it.dxf) return;
         e.preventDefault();
-        setDxfVisible(!state.dxfVisible);
+        setDxfVisible(!it.dxfVisible);
         return;
       }
       // X toggles crosshair
       if (e.key === 'x' || e.key === 'X' || e.key === 'ㅌ') {
         e.preventDefault();
         setCrosshair(!state.showCrosshair);
+        return;
+      }
+      // M toggles measurement mode
+      if (e.key === 'm' || e.key === 'M' || e.key === 'ㅁ') {
+        if (state.activeIdx < 0) return;
+        e.preventDefault();
+        const it = activeItem();
+        if (!state.measureMode && it && it.measurePoints && it.measurePoints.length === 4) {
+          it.measurePoints = []; it.measureWidth = '';
+        }
+        setMeasureMode(!state.measureMode);
+        blitAndOverlay();
       }
     });
 
@@ -741,9 +1294,11 @@
       // Clear transient interaction state when switching
       state.pickedPoints = [];
       state.photoDragging = false;
+      if (state.measureMode) setMeasureMode(false);
       dxfLibSelect.value = '';
       btnDxfLibDel.disabled = true;
       refreshDxfControls();
+      syncMeasureUI();
     }
 
     dxfInput.addEventListener('change', async (e) => {
@@ -768,6 +1323,7 @@
           it.dxfName = f.name;
           it.dxfText = text;
           it.dxfScaleUser = 100;
+          it.dxfLibName = ''; // fresh upload — not bound to a library entry
           computeDxfFitScale();
           dxfFileName.textContent = `${f.name} (${dxf.entities.length}개 엔티티)`;
           dxfFileName.classList.remove('text-error');
@@ -816,12 +1372,13 @@
       const trimmed = name.trim();
       if (!trimmed) return;
       const lib = getDxfLib();
-      const exists = lib.findIndex(it => it.name === trimmed);
+      const currentScale = it.dxfScaleUser || 100;
+      const exists = lib.findIndex(e => e.name === trimmed);
       if (exists >= 0) {
         if (!confirm(`"${trimmed}"이(가) 이미 저장되어 있습니다. 덮어쓸까요?`)) return;
-        lib[exists] = { name: trimmed, text: it.dxfText, savedAt: Date.now() };
+        lib[exists] = { name: trimmed, text: it.dxfText, scale: currentScale, savedAt: Date.now() };
       } else {
-        lib.push({ name: trimmed, text: it.dxfText, savedAt: Date.now() });
+        lib.push({ name: trimmed, text: it.dxfText, scale: currentScale, savedAt: Date.now() });
       }
       try {
         setDxfLibStore(lib);
@@ -829,13 +1386,14 @@
         alert('저장 실패: 저장소 용량이 부족합니다.');
         return;
       }
+      it.dxfLibName = trimmed; // bind so future scale changes auto-update this entry
       refreshDxfLibSelect();
-      // Select the newly saved item
-      const idx = getDxfLib().findIndex(it => it.name === trimmed);
+      const idx = getDxfLib().findIndex(e => e.name === trimmed);
       if (idx >= 0) {
         dxfLibSelect.value = String(idx);
         btnDxfLibDel.disabled = false;
       }
+      schedulePersist();
     });
 
     btnDxfLibDel.addEventListener('click', () => {
@@ -880,7 +1438,8 @@
           active.dxf = dxf;
           active.dxfName = entry.name;
           active.dxfText = entry.text;
-          active.dxfScaleUser = 100;
+          active.dxfScaleUser = (typeof entry.scale === 'number' && entry.scale > 0) ? entry.scale : 100;
+          active.dxfLibName = entry.name; // remember so scale changes save back
           computeDxfFitScale();
           dxfFileName.textContent = `${entry.name} (${dxf.entities.length}개 엔티티) · 저장됨`;
           dxfFileName.classList.remove('text-error');
@@ -911,6 +1470,16 @@
       dxfScaleInput.value = s;
       dxfScaleNumInput.value = s.toFixed(2);
       dxfScaleVal.textContent = s.toFixed(2) + 'x';
+      // If this DXF came from the library, persist the new scale on its entry
+      // so the next "불러오기" uses the same size by default.
+      if (it.dxfLibName) {
+        const lib = getDxfLib();
+        const idx = lib.findIndex(e => e.name === it.dxfLibName);
+        if (idx >= 0) {
+          lib[idx].scale = s;
+          try { setDxfLibStore(lib); } catch (_) { /* quota — ignore */ }
+        }
+      }
       blitAndOverlay();
       schedulePersist();
     }
@@ -941,7 +1510,7 @@
     // pick mode so two-point clicks aren't misread as drags.
     canvas.addEventListener('mousedown', (e) => {
       const it = activeItem();
-      if (state.pickMode || !it) return;
+      if (state.pickMode || state.measureMode || !it) return;
       const p = getCanvasCoord(e);
       state.photoDragging = true;
       state.photoDragStart = {
@@ -1117,16 +1686,32 @@
       }
     });
 
-    // Drag & drop
+    // Drag & drop — supports both single files AND folders (recursive).
+    // Folder drops are auto-grouped by folder name in the sidebar.
     document.addEventListener('dragover', (e) => { e.preventDefault(); });
     document.addEventListener('drop', (e) => {
       e.preventDefault();
-      if (e.dataTransfer?.files?.length) loadFiles(e.dataTransfer.files);
+      const items = e.dataTransfer?.items;
+      if (items && items.length && typeof items[0].webkitGetAsEntry === 'function') {
+        loadDroppedItems(items);
+      } else if (e.dataTransfer?.files?.length) {
+        loadFiles(e.dataTransfer.files);
+      }
     });
+
+    // Folder upload button (click to pick a folder).
+    const folderInput = document.getElementById('folder-input');
+    if (folderInput) {
+      folderInput.addEventListener('change', (e) => {
+        loadFiles(e.target.files);
+        folderInput.value = '';
+      });
+    }
 
     window.addEventListener('resize', renderActive);
     setEnabled();
     fitCanvas();
+    syncMeasureUI();
 
     // ===== State persistence (IndexedDB) =====
     const PERSIST_KEY = 'drill-point/v1';
@@ -1145,6 +1730,10 @@
           dxfName: it.dxfName || '',
           dxfVisible: !!it.dxfVisible,
           dxfScaleUser: it.dxfScaleUser || 100,
+          dxfLibName: it.dxfLibName || '',
+          groupPath: Array.isArray(it.groupPath) ? it.groupPath : (it.group ? [it.group] : []),
+          measurePoints: Array.isArray(it.measurePoints) ? it.measurePoints : [],
+          measureWidth: it.measureWidth || '',
         })),
       };
     }
@@ -1165,6 +1754,10 @@
             dxfName: s.dxfName || '',
             dxfVisible: !!s.dxfVisible,
             dxfScaleUser: s.dxfScaleUser || 100,
+            dxfLibName: s.dxfLibName || '',
+            groupPath: Array.isArray(s.groupPath) ? s.groupPath : (s.group ? [s.group] : []),
+            measurePoints: Array.isArray(s.measurePoints) ? s.measurePoints : [],
+            measureWidth: s.measureWidth || '',
           });
         }
         state.activeIdx = (saved.activeIdx >= 0 && saved.activeIdx < state.items.length)
@@ -1210,6 +1803,11 @@
       DrillPersist.remove(PERSIST_KEY);
       canvas.style.cursor = '';
     });
+
+    // Has-work check (read by shell.js nav guard).
+    window.__hasDrillWork = function () {
+      return state.items.length > 0;
+    };
   </script>
 </body>
 </html>

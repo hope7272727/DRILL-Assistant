@@ -44,10 +44,10 @@
       </div>
 
       <!-- Main layout -->
-      <div class="flex-1 grid grid-cols-12 gap-lg min-h-0">
+      <div class="flex-1 grid grid-cols-12 gap-lg min-h-0 items-stretch">
 
         <!-- Left: input form -->
-        <div class="col-span-4 bg-surface p-lg rounded-xl border border-outline-variant shadow-sm flex flex-col gap-md overflow-y-auto">
+        <div class="col-span-4 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col gap-sm overflow-y-auto">
           <h3 class="font-h3 text-[18px] text-on-surface flex items-center gap-2">
             <span class="material-symbols-outlined text-secondary">edit_note</span>
             입력 항목
@@ -94,6 +94,13 @@
                       class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none"></textarea>
           </div>
 
+          <div>
+            <label for="in-grind" class="font-label-md text-on-surface-variant block mb-1">단연삭 입력 (규격 추출용)</label>
+            <input id="in-grind" type="text" autocomplete="off" spellcheck="false"
+                   class="w-full px-3 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-code focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
+            <p class="font-body-sm text-secondary text-[11px] mt-1">예: <code class="font-code">L1-0.115 * 2.5-1M L1J</code> · 입력 시 단가공 카드의 규격 복사 활성화</p>
+          </div>
+
           <button id="btn-copy-summary" disabled class="px-3 py-2 border border-outline-variant rounded-lg text-on-surface text-body-sm hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center gap-1">
             <span class="material-symbols-outlined text-[18px]">content_copy</span>
             완제품 코드 복사 (품명 / 품번)
@@ -102,7 +109,7 @@
         </div>
 
         <!-- Center: outputs -->
-        <div class="col-span-5 bg-surface p-lg rounded-xl border border-outline-variant shadow-sm flex flex-col gap-md overflow-y-auto">
+        <div class="col-span-5 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col gap-sm overflow-y-auto">
           <h3 class="font-h3 text-[18px] text-on-surface flex items-center gap-2">
             <span class="material-symbols-outlined text-secondary">account_tree</span>
             자동 생성 코드
@@ -133,7 +140,7 @@
           </div>
           <button id="btn-saved-copy-sel" disabled class="mt-2 px-2 py-1.5 bg-primary text-on-primary rounded text-body-sm hover:bg-primary-container disabled:opacity-40 flex items-center justify-center gap-1" title="선택한 항목을 '품명 / 품번' 형식으로 복사">
             <span class="material-symbols-outlined text-[14px]">content_copy</span>
-            선택 복사 (<span id="saved-sel-count">0</span>)
+            품명 / 품번 선택 복사 (<span id="saved-sel-count">0</span>)
           </button>
           <button id="btn-saved-clear" hidden></button>
         </div>
@@ -162,6 +169,49 @@
       const t = String(text ?? '');
       return t.slice(0, start - 1) + String(newText) + t.slice(start - 1 + numChars);
     };
+
+    // 품명 → 대시 규격 (예: "NS 0.50 * 7.0 03" → "NS-0500-070-03").
+    function parseSpec(pumbun) {
+      if (!pumbun) return null;
+      const m = String(pumbun).trim().match(
+        /(?:^|\s)([A-Za-z][A-Za-z0-9]*)\s+(\d+(?:\.\d+)?)\s*\*\s*(\d+(?:\.\d+)?)\s+(.+?)\s*$/
+      );
+      if (!m) return null;
+      return {
+        prefix: m[1].toUpperCase(),
+        dia: parseFloat(m[2]),
+        length: parseFloat(m[3]),
+        suffix: m[4].trim(),
+      };
+    }
+    function pad(n, len) { return String(n).padStart(len, '0'); }
+    function specString(p) {
+      return `${p.prefix}-${pad(Math.round(p.dia * 1000), 4)}-${pad(Math.round(p.length * 10), 3)}-${p.suffix}`;
+    }
+
+    // 단연삭 → 단가공 규격 (drill-code-edit과 동일한 로직)
+    const GRIND_SUFFIX_MAP = {
+      P: 'N810A', B: 'AF806H', Q: 'AF209',
+      J: 'AF308H', Z: 'ZK11SF',
+    };
+    function compute단연삭Spec(input) {
+      if (!input) return '';
+      const m = String(input).trim().match(/^([A-Za-z0-9]+)-(\d+(?:\.\d+)?)\s*\*\s*(\d+(?:\.\d+)?)-(.+)$/);
+      if (!m) return '';
+      const prefix = m[1];
+      const dia    = parseFloat(m[2]);
+      const length = parseFloat(m[3]);
+      const rest   = m[4].trim();
+      const dia4   = pad(Math.round(dia * 1000), 4);
+      const len4   = pad(Math.round(length * 100), 4);
+      const lastWord = rest.split(/\s+/).pop() || '';
+      const lastChar = lastWord.slice(-1).toUpperCase();
+      let matCore;
+      if (/^\d$/.test(lastChar)) matCore = '소재공통';
+      else if (GRIND_SUFFIX_MAP[lastChar]) matCore = GRIND_SUFFIX_MAP[lastChar];
+      else matCore = '확인요망';
+      return `${prefix}-${dia4}-${len4}-${rest} (${matCore})`;
+    }
 
     // 드릴 최종 → 드릴 초도
     function compute초도(finish) {
@@ -287,6 +337,7 @@
     const inDanno      = document.getElementById('in-danno');
     const inDiaOverride= document.getElementById('in-dia-override');
     const inMemo       = document.getElementById('in-memo');
+    const inGrind      = document.getElementById('in-grind');
     const outList  = document.getElementById('out-list');
     const outEmpty = document.getElementById('out-empty');
     const btnClear   = document.getElementById('btn-clear');
@@ -324,15 +375,33 @@
         단:   compute단(finish, brtip, pumbun, danno, diaOver),
         센터: compute센터(finish, brtip, pumbun, material),
       };
+      // 규격 (대시 형식) — 초도/홈/단 카드의 "규격 복사" 버튼에 사용
+      const SPEC_TAGS = { '초도': true, '홈': true, '단': true };
+      const specObj = parseSpec(pumbun);
+      const specStr = specObj ? specString(specObj) : '';
+      const specWithMat = specStr && material ? `${specStr} ${material}` : specStr;
+      const grindSpec = compute단연삭Spec(inGrind.value);
+      const specs = {
+        초도: specStr ? `[초도검사] ${specWithMat}` : '',
+        홈:   specStr ? `[홈가공] ${specWithMat}` : '',
+        단:   grindSpec ? `[단가공] ${grindSpec}` : '',
+      };
       const hasAny = Object.values(values).some(v => v && v.trim());
       outEmpty.classList.toggle('hidden', hasAny);
       outList.innerHTML = '';
       if (!hasAny) return;
       for (const o of OUTPUTS) {
         const v = values[o.key] || '';
+        const specVal = specs[o.key] || '';
         const card = document.createElement('div');
         card.className = 'border border-outline-variant rounded-xl p-md flex items-center gap-md '
           + (v ? 'bg-surface-container-lowest' : 'bg-surface-container opacity-60');
+        const specBtnHtml = SPEC_TAGS[o.key]
+          ? `<button class="spec-btn px-3 py-2 border border-outline-variant rounded-lg text-secondary hover:bg-surface-variant disabled:opacity-40 flex items-center gap-1 shrink-0" ${specVal ? '' : 'disabled'} title="${escapeHtml(specVal || (o.key === '단' ? '단연삭 입력 시 활성화됩니다' : '품명을 입력하면 규격이 생성됩니다'))}">
+              <span class="material-symbols-outlined text-[18px]">content_copy</span>
+              규격 복사
+            </button>`
+          : '';
         const wcBtnHtml = o.wc
           ? `<button class="wc-btn px-3 py-2 border border-outline-variant rounded-lg text-secondary hover:bg-surface-variant disabled:opacity-40 flex items-center gap-1 shrink-0" ${v ? '' : 'disabled'} title="엑셀 워크센터 4셀(릴/숫자/WC명/숫자)을 한꺼번에 복사">
               <span class="material-symbols-outlined text-[18px]">cell_tower</span>
@@ -351,6 +420,7 @@
             <span class="material-symbols-outlined text-[18px]">content_copy</span>
             코드 복사
           </button>
+          ${specBtnHtml}
           ${wcBtnHtml}`;
         const btn = card.querySelector('.copy-btn');
         btn.addEventListener('click', () => {
@@ -362,6 +432,18 @@
             setTimeout(() => { span.textContent = orig; }, 1200);
           });
         });
+        const specBtn = card.querySelector('.spec-btn');
+        if (specBtn) {
+          specBtn.addEventListener('click', () => {
+            if (!specVal) return;
+            navigator.clipboard.writeText(specVal).then(() => {
+              const span = specBtn.querySelector('span:last-child');
+              const orig = span.textContent;
+              span.textContent = '복사됨!';
+              setTimeout(() => { span.textContent = orig; }, 1200);
+            });
+          });
+        }
         const wcBtn = card.querySelector('.wc-btn');
         if (wcBtn) {
           wcBtn.addEventListener('click', () => {
@@ -385,7 +467,7 @@
       }[c]));
     }
 
-    [inPumbun, inFinish, inBrtip, inMaterial, inDanno, inDiaOverride].forEach(el => el.addEventListener('input', recalc));
+    [inPumbun, inFinish, inBrtip, inMaterial, inDanno, inDiaOverride, inGrind].forEach(el => el.addEventListener('input', recalc));
 
     // Multi-cell Excel paste: if the pasted text contains a TAB, split into
     // [품번, 드릴 최종, BR 팁, 단번호] in column order. Single-cell pastes use
@@ -408,13 +490,14 @@
     [inPumbun, inFinish, inBrtip, inMaterial, inDanno, inDiaOverride].forEach(el => el.addEventListener('paste', handleExcelPaste));
 
     btnClear.addEventListener('click', () => {
-      if (!inPumbun.value && !inFinish.value && !inBrtip.value && !inMaterial.value && !inDanno.value && !inDiaOverride.value && !inMemo.value) return;
+      if (!inPumbun.value && !inFinish.value && !inBrtip.value && !inMaterial.value && !inDanno.value && !inDiaOverride.value && !inMemo.value && !inGrind.value) return;
       if (!confirm('입력 내용을 모두 비울까요?')) return;
       inPumbun.value = ''; inFinish.value = ''; inBrtip.value = '';
       inMaterial.value = ''; inDanno.value = ''; inDiaOverride.value = ''; inMemo.value = '';
+      inGrind.value = '';
       recalc();
       refreshSaveButtonState();
-      DrillPersist.remove('drill-code/v1');
+      DrillPersist.remove(FORM_KEY).catch(() => {});
     });
 
     // ===== Saved list =====
@@ -634,7 +717,48 @@
     loadSaved();
     refreshSaveButtonState();
 
+    // ===== Form state persistence (within drill-code group) =====
+    // Defined BEFORE consumePendingLoad so recalc() inside that IIFE can
+    // call schedulePersist without hitting a TDZ on FORM_KEY.
+    const FORM_KEY = 'drill-code/form/v1';
+    function snapshotForm() {
+      return {
+        pumbun:   inPumbun.value,
+        finish:   inFinish.value,
+        brtip:    inBrtip.value,
+        material: inMaterial.value,
+        danno:    inDanno.value,
+        diaOver:  inDiaOverride.value,
+        memo:     inMemo.value,
+        grind:    inGrind.value,
+      };
+    }
+    function schedulePersist() {
+      if (window.__drillSkipPersist) return;
+      DrillPersist.set(FORM_KEY, snapshotForm()).catch(() => {});
+    }
+    inMemo.addEventListener('input', schedulePersist);
+    window.addEventListener('pagehide', schedulePersist);
+    async function restoreForm() {
+      try {
+        const data = await DrillPersist.get(FORM_KEY);
+        if (!data) return;
+        inPumbun.value      = data.pumbun   || '';
+        inFinish.value      = data.finish   || '';
+        inBrtip.value       = data.brtip    || '';
+        inMaterial.value    = data.material || '';
+        inDanno.value       = data.danno    || '';
+        inDiaOverride.value = data.diaOver  || '';
+        inMemo.value        = data.memo     || '';
+        inGrind.value       = data.grind    || '';
+        recalc();
+        refreshSaveButtonState();
+      } catch (e) { console.warn('drill-code form restore failed', e); }
+    }
+    DrillPersist.remove('drill-code/v1').catch(() => {}); // legacy cleanup
+
     // Pick up an entry handed off from the 코드 저장소 page.
+    let didConsumePending = false;
     (function consumePendingLoad() {
       try {
         const raw = sessionStorage.getItem('drill-code:loadEntry');
@@ -650,12 +774,19 @@
         inMemo.value        = e.memo   || '';
         recalc();
         refreshSaveButtonState();
+        didConsumePending = true;
       } catch (err) { console.warn('pending load failed', err); }
     })();
+    if (!didConsumePending) restoreForm();
 
-    // No auto-fill: drill-code starts blank every visit.
-    function schedulePersist() { /* intentionally no-op for drill-code */ }
-    DrillPersist.remove('drill-code/v1').catch(() => {});
+    // Has-work check (read by shell.js nav guard).
+    window.__hasDrillWork = function () {
+      return Boolean(
+        inPumbun.value || inFinish.value || inBrtip.value ||
+        inMaterial.value || inDanno.value || inDiaOverride.value ||
+        inMemo.value || inGrind.value
+      );
+    };
   </script>
 </body>
 </html>
