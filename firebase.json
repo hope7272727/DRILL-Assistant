@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "drillassi",
     "public": ".",
     "ignore": [
       "firebase.json",
