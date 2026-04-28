@@ -106,54 +106,29 @@
     }
     flush();
 
-    // Collect representative (x,y) points per entity. Use 2 points per shape
-    // so that one-off entities (like a single huge construction arc) don't
-    // dominate the percentile statistics any more than a normal LINE would.
-    const xs = [], ys = [];
-    const push = (x, y) => {
-      if (Number.isFinite(x) && Number.isFinite(y)) { xs.push(x); ys.push(y); }
+    // Bounding box
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const upd = (x, y) => {
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
     };
     for (const e of entities) {
-      if (e.type === 'LINE') { push(e.x1, e.y1); push(e.x2, e.y2); }
+      if (e.type === 'LINE') { upd(e.x1, e.y1); upd(e.x2, e.y2); }
       else if (e.type === 'CIRCLE' || e.type === 'ARC') {
-        push(e.cx - e.r, e.cy - e.r); push(e.cx + e.r, e.cy + e.r);
+        upd(e.cx - e.r, e.cy - e.r); upd(e.cx + e.r, e.cy + e.r);
       } else if (e.type === 'LWPOLYLINE' || e.type === 'POLYLINE') {
         for (const v of (e.vertices || [])) {
-          if (v.y !== undefined) push(v.x, v.y);
+          if (v.y !== undefined) upd(v.x, v.y);
         }
       } else if (e.type === 'ELLIPSE') {
         const mag = Math.hypot(e.majorX || 0, e.majorY || 0);
-        push(e.cx - mag, e.cy - mag); push(e.cx + mag, e.cy + mag);
+        upd(e.cx - mag, e.cy - mag); upd(e.cx + mag, e.cy + mag);
       }
     }
-
-    // Robust bbox: drop coordinates outside [Q1 − 3·IQR, Q3 + 3·IQR] to ignore
-    // stray construction lines / hidden reference arcs that would otherwise
-    // explode the bbox and shrink the auto-fit scale to nothing.
-    const robustRange = (arr) => {
-      if (arr.length === 0) return null;
-      const sorted = arr.slice().sort((a, b) => a - b);
-      const q = (p) => {
-        const i = (sorted.length - 1) * p;
-        const lo = Math.floor(i), hi = Math.ceil(i);
-        return sorted[lo] + (sorted[hi] - sorted[lo]) * (i - lo);
-      };
-      const q1 = q(0.25), q3 = q(0.75), iqr = q3 - q1;
-      // Fall back to full range if everything is collinear (iqr === 0).
-      if (iqr === 0) return { lo: sorted[0], hi: sorted[sorted.length - 1] };
-      const lo = q1 - 3 * iqr, hi = q3 + 3 * iqr;
-      let mn = Infinity, mx = -Infinity;
-      for (const v of sorted) {
-        if (v >= lo && v <= hi) { if (v < mn) mn = v; if (v > mx) mx = v; }
-      }
-      // Safety net — if filter removed everything (shouldn't happen) use full.
-      if (mn === Infinity) return { lo: sorted[0], hi: sorted[sorted.length - 1] };
-      return { lo: mn, hi: mx };
-    };
-    const xr = robustRange(xs);
-    const yr = robustRange(ys);
-    const bbox = (xr && yr && xr.lo < xr.hi)
-      ? { minX: xr.lo, minY: yr.lo, maxX: xr.hi, maxY: yr.hi, w: xr.hi - xr.lo, h: yr.hi - yr.lo }
+    const bbox = (minX < maxX)
+      ? { minX, minY, maxX, maxY, w: maxX - minX, h: maxY - minY }
       : null;
 
     return { entities, bbox };
