@@ -169,7 +169,13 @@
 
             <div class="flex items-center justify-between mt-2 gap-2">
               <label class="font-label-sm text-on-surface">색상</label>
-              <input id="dxf-color" type="color" value="#ff0000" class="w-16 h-7 rounded border border-outline-variant cursor-pointer"/>
+              <input id="dxf-color" type="color" value="#00ff00" class="w-16 h-7 rounded border border-outline-variant cursor-pointer"/>
+            </div>
+
+            <div class="flex items-center justify-between mt-2 gap-2">
+              <label class="font-label-sm text-on-surface" for="dxf-line-width">선 굵기</label>
+              <input id="dxf-line-width" type="number" min="0.5" max="10" step="0.1" value="1.5"
+                     class="w-20 px-2 py-1 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary"/>
             </div>
 
             <p class="font-body-sm text-secondary text-[11px] mt-2">슬라이더로 조절하거나 직접 입력 (Enter) · 방향키 0.1</p>
@@ -264,7 +270,8 @@
       saveDir: null,     // FileSystemDirectoryHandle (Chromium only)
       pickMode: false,
       pickedPoints: [],  // up to 2 points in canvas pixel coords
-      dxfColor: '#ff0000', // shared across photos — user preference
+      dxfColor: '#00ff00', // shared across photos — user preference
+      dxfLineWidth: 1.5,   // shared across photos — user preference
       photoDragging: false,
       photoDragStart: null,
       measureMode: false,
@@ -337,7 +344,7 @@
       const ctx = canvas.getContext('2d');
       const W = canvas.width, H = canvas.height;
       ctx.save();
-      ctx.strokeStyle = '#ff0000';
+      ctx.strokeStyle = '#00ff00';
       ctx.lineWidth = Math.max(1, Math.round((window.devicePixelRatio || 1) * 1.2));
       ctx.beginPath();
       ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2);
@@ -442,7 +449,7 @@
         scale: it.dxfFitScale * it.dxfScaleUser,
         rotationRad: 0,
         color: state.dxfColor,
-        lineWidth: Math.max(1, 1.5 * dpr),
+        lineWidth: Math.max(0.5, (state.dxfLineWidth || 1.5) * dpr),
         alpha: 0.9,
       };
       DrillDXF.drawDXF(ctx, it.dxf, placement);
@@ -1510,6 +1517,8 @@
         dxfScaleVal.textContent = '1.00x';
       }
       dxfColorInput.value = state.dxfColor;
+      const lwInput = document.getElementById('dxf-line-width');
+      if (lwInput) lwInput.value = String(state.dxfLineWidth || 1.5);
     }
 
     function syncUIForActive() {
@@ -1742,6 +1751,17 @@
       schedulePersist();
     });
 
+    const dxfLineWidthInput = $('dxf-line-width');
+    dxfLineWidthInput.value = String(state.dxfLineWidth);
+    dxfLineWidthInput.addEventListener('input', (e) => {
+      const v = parseFloat(e.target.value);
+      if (Number.isFinite(v) && v > 0) {
+        state.dxfLineWidth = Math.min(20, Math.max(0.1, v));
+        blitAndOverlay();
+        schedulePersist();
+      }
+    });
+
     // Drag to shift the PHOTO (DXF stays at canvas centre). Disabled in
     // pick mode so two-point clicks aren't misread as drags.
     canvas.addEventListener('mousedown', (e) => {
@@ -1850,7 +1870,7 @@
             scale: dxfScaleExport,
             rotationRad: 0,
             color: state.dxfColor,
-            lineWidth: Math.max(1.5, 1.5 * dpr / sDisp),
+            lineWidth: Math.max(0.5, (state.dxfLineWidth || 1.5) * dpr / sDisp),
             alpha: 0.9,
           });
 
@@ -1996,6 +2016,7 @@
         activeIdx: state.activeIdx,
         showCrosshair: state.showCrosshair,
         dxfColor: state.dxfColor,
+        dxfLineWidth: state.dxfLineWidth,
         items: state.items.map(it => ({
           fileBlob: it.fileBlob || null,
           name: it.name,
@@ -2043,7 +2064,8 @@
         state.activeIdx = (saved.activeIdx >= 0 && saved.activeIdx < state.items.length)
           ? saved.activeIdx : (state.items.length ? 0 : -1);
         state.showCrosshair = !!saved.showCrosshair;
-        state.dxfColor = saved.dxfColor || '#ff0000';
+        state.dxfColor = saved.dxfColor || '#00ff00';
+        state.dxfLineWidth = (typeof saved.dxfLineWidth === 'number' && saved.dxfLineWidth > 0) ? saved.dxfLineWidth : 1.5;
         // Apply crosshair button visual
         if (state.showCrosshair) setCrosshair(true);
         syncUIForActive();
