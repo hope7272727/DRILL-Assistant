@@ -99,7 +99,11 @@
               </button>
               <button id="btn-measure" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 min-w-[110px] justify-center" title="단축키: M">
                 <span class="material-symbols-outlined text-[18px]">straighten</span>
-                <span id="measure-label">측정 (M)</span>
+                <span id="measure-label">사각 측정 (M)</span>
+              </button>
+              <button id="btn-circle-measure" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 min-w-[110px] justify-center" title="단축키: C">
+                <span class="material-symbols-outlined text-[18px]">radio_button_unchecked</span>
+                <span id="circle-measure-label">원 측정 (C)</span>
               </button>
             </div>
             <div id="meta" class="font-label-sm text-secondary truncate min-w-0"></div>
@@ -185,6 +189,26 @@
 
           <div class="border-t border-outline-variant pt-md">
             <h3 class="font-label-md text-on-surface flex items-center gap-2 mb-sm">
+              <span class="material-symbols-outlined text-[18px]">radio_button_unchecked</span>
+              원 측정
+            </h3>
+            <p id="circle-status" class="font-body-sm text-secondary text-[11px] mb-2">원 측정(C)을 켜고 4점: 가로시작 → 가로끝 → 중심 → 반지름 끝점</p>
+            <label class="font-label-sm text-on-surface block mb-1">가로 치수 입력</label>
+            <div class="flex items-center gap-1 mb-2">
+              <input id="circle-width" type="number" step="any" placeholder="예: 0.120"
+                     class="flex-1 px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary disabled:opacity-40" disabled/>
+              <span class="font-label-sm text-secondary text-[11px]">mm</span>
+            </div>
+            <label class="font-label-sm text-on-surface block mb-1">계산된 직경</label>
+            <div id="circle-diameter" class="px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest font-code text-body-sm text-center text-on-surface">--</div>
+            <button id="btn-circle-reset" disabled class="mt-2 w-full px-2 py-1.5 border border-outline-variant rounded text-secondary text-body-sm hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center gap-1">
+              <span class="material-symbols-outlined text-[16px]">refresh</span>
+              원 측정 초기화
+            </button>
+          </div>
+
+          <div class="border-t border-outline-variant pt-md">
+            <h3 class="font-label-md text-on-surface flex items-center gap-2 mb-sm">
               <span class="material-symbols-outlined text-[18px]">architecture</span>
               DXF 비교
             </h3>
@@ -256,6 +280,7 @@
       photoDragging: false,
       photoDragStart: null,
       measureMode: false,
+      circleMeasureMode: false,
     };
 
     function activeItem() {
@@ -299,6 +324,12 @@
     const measureWidthInput = $('measure-width');
     const measureHeightOut = $('measure-height');
     const btnMeasureReset = $('btn-measure-reset');
+    const btnCircleMeasure = $('btn-circle-measure');
+    const circleMeasureLabel = $('circle-measure-label');
+    const circleStatus = $('circle-status');
+    const circleWidthInput = $('circle-width');
+    const circleDiameterOut = $('circle-diameter');
+    const btnCircleReset = $('btn-circle-reset');
     const btnPickFolder = $('btn-pick-folder');
     const folderName = $('folder-name');
     const folderBtnLabel = $('folder-btn-label');
@@ -442,6 +473,7 @@
       drawDxfOverlay();
       drawPickedPoints();
       drawMeasurement();
+      drawCircleMeasurement();
     }
 
     function renderActive() {
@@ -796,6 +828,8 @@
         groupPath: [],
         measurePoints: [],
         measureWidth: '',
+        circlePoints: [],
+        circleWidth: '',
         fileBlob: blob,
       };
       if (restore) Object.assign(item, restore);
@@ -905,16 +939,21 @@
         blitAndOverlay();
         return;
       }
+      if (state.circleMeasureMode && state.activeIdx >= 0) {
+        state.circleMeasureMouse = getCanvasCoord(e);
+        blitAndOverlay();
+        return;
+      }
       if (!state.pickMode || state.pickedPoints.length !== 1) return;
       state.lastMouse = getCanvasCoord(e);
       // Only the overlay needs updating — image is cached and stays still.
       blitAndOverlay();
     });
     canvas.addEventListener('mouseleave', () => {
-      if (state.measureMode) {
-        state.measureMouse = null;
-        blitAndOverlay();
-      }
+      let dirty = false;
+      if (state.measureMode) { state.measureMouse = null; dirty = true; }
+      if (state.circleMeasureMode) { state.circleMeasureMouse = null; dirty = true; }
+      if (dirty) blitAndOverlay();
     });
 
     canvas.addEventListener('click', (e) => {
@@ -932,6 +971,23 @@
           setMeasureMode(false);
         }
         syncMeasureUI();
+        blitAndOverlay();
+        schedulePersist();
+        return;
+      }
+      if (state.circleMeasureMode) {
+        const it = state.items[state.activeIdx]; if (!it) return;
+        if (!Array.isArray(it.circlePoints)) it.circlePoints = [];
+        if (it.circlePoints.length >= 4) return;
+        const raw = getCanvasCoord(e);
+        const p = (it.circlePoints.length === 1)
+          ? { x: raw.x, y: it.circlePoints[0].y }
+          : raw;
+        it.circlePoints.push(p);
+        if (it.circlePoints.length === 4) {
+          setCircleMeasureMode(false);
+        }
+        syncCircleUI();
         blitAndOverlay();
         schedulePersist();
         return;
@@ -1212,10 +1268,205 @@
       schedulePersist();
     });
 
+    // ===== Circle Measurement (4-point: 2-pt horizontal ref + center + edge) =====
+    const CIRCLE_PROMPTS = [
+      '원 측정: 1/4 가로선 시작점을 클릭',
+      '원 측정: 2/4 가로선 끝점을 클릭',
+      '원 측정: 3/4 원의 중심을 클릭',
+      '원 측정: 4/4 원의 가장자리(반지름 끝점)를 클릭',
+    ];
+    function setCircleMeasureMode(on) {
+      // Mutually exclusive with pick mode and rectangle measure mode.
+      if (on && state.pickMode) setPickMode(false);
+      if (on && state.measureMode) setMeasureMode(false);
+      if (!on) {
+        state.circleMeasureMouse = null;
+        const it = activeItem();
+        if (it && Array.isArray(it.circlePoints) && it.circlePoints.length > 0 && it.circlePoints.length < 4) {
+          it.circlePoints = [];
+          it.circleWidth = '';
+          schedulePersist();
+        }
+      }
+      state.circleMeasureMode = on;
+      circleMeasureLabel.textContent = on ? '원 측정 취소' : '원 측정 (C)';
+      btnCircleMeasure.classList.toggle('bg-secondary-container', on);
+      btnCircleMeasure.classList.toggle('text-on-surface', on);
+      btnCircleMeasure.classList.toggle('border', !on);
+      btnCircleMeasure.classList.toggle('text-secondary', !on);
+      canvas.style.cursor = on ? 'crosshair' : (state.activeIdx >= 0 ? 'grab' : '');
+      syncCircleUI();
+    }
+    function computeCircleDiameter(it) {
+      const pts = it && it.circlePoints;
+      const w = parseFloat(it && it.circleWidth);
+      if (!pts || pts.length !== 4 || !isFinite(w) || w <= 0) return null;
+      const [p1, p2, p3, p4] = pts;
+      const refLen = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      if (refLen < 1) return null;
+      const radiusPx = Math.hypot(p4.x - p3.x, p4.y - p3.y);
+      return 2 * radiusPx * (w / refLen);
+    }
+    function drawCircleMeasurement() {
+      const it = activeItem();
+      if (!it || !Array.isArray(it.circlePoints)) return;
+      const pts = it.circlePoints;
+      const mouse = state.circleMeasureMouse;
+      const previewing = state.circleMeasureMode && mouse && pts.length < 4;
+      if (!previewing && pts.length === 0) return;
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+
+      // Crosshair
+      if (previewing) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(59,130,246,0.85)';
+        ctx.lineWidth = 1.5 * dpr;
+        ctx.setLineDash([6 * dpr, 4 * dpr]);
+        ctx.beginPath();
+        ctx.moveTo(0, mouse.y);  ctx.lineTo(canvas.width, mouse.y);
+        ctx.moveTo(mouse.x, 0);  ctx.lineTo(mouse.x, canvas.height);
+        ctx.stroke();
+        ctx.restore();
+      }
+      // Stage 2 preview: candidate horizontal ref P1 → (mouse.x, P1.y)
+      if (previewing && pts.length === 1) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(249,115,22,0.85)';
+        ctx.lineWidth = 1.5 * dpr;
+        ctx.setLineDash([6 * dpr, 4 * dpr]);
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        ctx.lineTo(mouse.x, pts[0].y);
+        ctx.stroke();
+        ctx.restore();
+      }
+      // Confirmed P1-P2 horizontal reference (orange)
+      if (pts.length >= 2) {
+        ctx.save();
+        ctx.strokeStyle = '#f97316';
+        ctx.lineWidth = 1.5 * dpr;
+        ctx.setLineDash([6 * dpr, 4 * dpr]);
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        ctx.lineTo(pts[1].x, pts[1].y);
+        ctx.stroke();
+        ctx.restore();
+      }
+      // Stage 4 preview: dashed candidate circle from P3 (center) with radius = dist(P3, mouse)
+      if (previewing && pts.length === 3) {
+        const c = pts[2];
+        const r = Math.hypot(mouse.x - c.x, mouse.y - c.y);
+        ctx.save();
+        ctx.strokeStyle = 'rgba(239,68,68,0.85)';
+        ctx.lineWidth = 1.8 * dpr;
+        ctx.setLineDash([6 * dpr, 4 * dpr]);
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
+        ctx.stroke();
+        // Radius line center → mouse
+        ctx.strokeStyle = 'rgba(239,68,68,0.6)';
+        ctx.lineWidth = 1 * dpr;
+        ctx.beginPath();
+        ctx.moveTo(c.x, c.y);
+        ctx.lineTo(mouse.x, mouse.y);
+        ctx.stroke();
+        ctx.restore();
+      }
+      // Final circle (4 points placed)
+      if (pts.length === 4) {
+        const c = pts[2], edge = pts[3];
+        const r = Math.hypot(edge.x - c.x, edge.y - c.y);
+        ctx.save();
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 2 * dpr;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(239,68,68,0.6)';
+        ctx.lineWidth = 1 * dpr;
+        ctx.beginPath();
+        ctx.moveTo(c.x, c.y);
+        ctx.lineTo(edge.x, edge.y);
+        ctx.stroke();
+        ctx.restore();
+      }
+      // Numbered markers
+      pts.forEach((p, i) => {
+        ctx.save();
+        ctx.fillStyle = '#ef4444';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2 * dpr;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 6 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${11 * dpr}px Inter, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(i + 1), p.x, p.y);
+        ctx.restore();
+      });
+    }
+    function syncCircleUI() {
+      const it = activeItem();
+      const has = !!it;
+      const pts = (it && it.circlePoints) || [];
+      const complete = pts.length === 4;
+      circleWidthInput.disabled = !complete;
+      btnCircleReset.disabled = !has || pts.length === 0;
+      if (state.circleMeasureMode) {
+        circleStatus.textContent = CIRCLE_PROMPTS[Math.min(pts.length, 3)];
+        circleStatus.classList.add('text-primary');
+        circleStatus.classList.remove('text-secondary');
+      } else if (complete) {
+        circleStatus.textContent = '4점 측정 완료. 가로 치수를 입력하면 직경이 계산됩니다.';
+        circleStatus.classList.remove('text-primary');
+        circleStatus.classList.add('text-secondary');
+      } else {
+        circleStatus.textContent = '원 측정(C)을 켜고 4점: 가로시작 → 가로끝 → 중심 → 반지름 끝점';
+        circleStatus.classList.remove('text-primary');
+        circleStatus.classList.add('text-secondary');
+      }
+      circleWidthInput.value = (it && it.circleWidth) || '';
+      const d = computeCircleDiameter(it);
+      circleDiameterOut.textContent = d != null ? d.toFixed(3) + ' mm' : '--';
+    }
+    btnCircleMeasure.addEventListener('click', () => {
+      if (state.activeIdx < 0) return;
+      const it = activeItem();
+      if (!state.circleMeasureMode && it && it.circlePoints && it.circlePoints.length === 4) {
+        it.circlePoints = [];
+        it.circleWidth = '';
+        schedulePersist();
+      }
+      setCircleMeasureMode(!state.circleMeasureMode);
+      blitAndOverlay();
+    });
+    btnCircleReset.addEventListener('click', () => {
+      const it = activeItem(); if (!it) return;
+      it.circlePoints = [];
+      it.circleWidth = '';
+      if (state.circleMeasureMode) setCircleMeasureMode(false);
+      syncCircleUI();
+      blitAndOverlay();
+      schedulePersist();
+    });
+    circleWidthInput.addEventListener('input', () => {
+      const it = activeItem(); if (!it) return;
+      it.circleWidth = circleWidthInput.value;
+      const d = computeCircleDiameter(it);
+      circleDiameterOut.textContent = d != null ? d.toFixed(3) + ' mm' : '--';
+      schedulePersist();
+    });
+
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         if (state.pickMode) { setPickMode(false); return; }
         if (state.measureMode) { setMeasureMode(false); blitAndOverlay(); return; }
+        if (state.circleMeasureMode) { setCircleMeasureMode(false); blitAndOverlay(); return; }
       }
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
@@ -1249,6 +1500,18 @@
           it.measurePoints = []; it.measureWidth = '';
         }
         setMeasureMode(!state.measureMode);
+        blitAndOverlay();
+        return;
+      }
+      // C toggles circle measurement mode
+      if (e.key === 'c' || e.key === 'C' || e.key === 'ㅊ') {
+        if (state.activeIdx < 0) return;
+        e.preventDefault();
+        const it = activeItem();
+        if (!state.circleMeasureMode && it && it.circlePoints && it.circlePoints.length === 4) {
+          it.circlePoints = []; it.circleWidth = '';
+        }
+        setCircleMeasureMode(!state.circleMeasureMode);
         blitAndOverlay();
       }
     });
@@ -1307,10 +1570,12 @@
       state.pickedPoints = [];
       state.photoDragging = false;
       if (state.measureMode) setMeasureMode(false);
+      if (state.circleMeasureMode) setCircleMeasureMode(false);
       dxfLibSelect.value = '';
       btnDxfLibDel.disabled = true;
       refreshDxfControls();
       syncMeasureUI();
+      syncCircleUI();
     }
 
     dxfInput.addEventListener('change', async (e) => {
@@ -1522,7 +1787,7 @@
     // pick mode so two-point clicks aren't misread as drags.
     canvas.addEventListener('mousedown', (e) => {
       const it = activeItem();
-      if (state.pickMode || state.measureMode || !it) return;
+      if (state.pickMode || state.measureMode || state.circleMeasureMode || !it) return;
       const p = getCanvasCoord(e);
       state.photoDragging = true;
       state.photoDragStart = {
@@ -1764,6 +2029,7 @@
     setEnabled();
     fitCanvas();
     syncMeasureUI();
+    syncCircleUI();
 
     // ===== State persistence (IndexedDB) =====
     const PERSIST_KEY = 'drill-point/v1';
@@ -1786,6 +2052,8 @@
           groupPath: Array.isArray(it.groupPath) ? it.groupPath : (it.group ? [it.group] : []),
           measurePoints: Array.isArray(it.measurePoints) ? it.measurePoints : [],
           measureWidth: it.measureWidth || '',
+          circlePoints: Array.isArray(it.circlePoints) ? it.circlePoints : [],
+          circleWidth: it.circleWidth || '',
         })),
       };
     }
@@ -1810,6 +2078,8 @@
             groupPath: Array.isArray(s.groupPath) ? s.groupPath : (s.group ? [s.group] : []),
             measurePoints: Array.isArray(s.measurePoints) ? s.measurePoints : [],
             measureWidth: s.measureWidth || '',
+            circlePoints: Array.isArray(s.circlePoints) ? s.circlePoints : [],
+            circleWidth: s.circleWidth || '',
           });
         }
         state.activeIdx = (saved.activeIdx >= 0 && saved.activeIdx < state.items.length)
