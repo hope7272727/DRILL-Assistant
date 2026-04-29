@@ -232,6 +232,10 @@
     </div>
   </main>
 
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <script src="assets/firebase-config.js"></script>
+  <script src="assets/dxf-lib.js"></script>
   <script src="assets/shell.js"></script>
   <script src="assets/persist.js"></script>
   <script src="assets/align.js"></script>
@@ -1350,72 +1354,79 @@
       schedulePersist();
     });
 
-    // ----- DXF library (localStorage) -----
-    const DXF_LIB_KEY = 'drill.dxfLib.v1';
-    function getDxfLib() {
-      try { return JSON.parse(localStorage.getItem(DXF_LIB_KEY) || '[]'); }
-      catch { return []; }
-    }
-    function setDxfLibStore(lib) {
-      localStorage.setItem(DXF_LIB_KEY, JSON.stringify(lib));
-    }
+    // ----- DXF library (Firestore — shared across all clients) -----
+    let _dxfLibCache = []; // [{ id, name, text, scale, savedAt }] sorted desc by savedAt
     function refreshDxfLibSelect() {
-      const lib = getDxfLib();
+      const prevValue = dxfLibSelect.value;
       while (dxfLibSelect.options.length > 1) dxfLibSelect.remove(1);
-      lib.forEach((it, i) => {
+      _dxfLibCache.forEach((it) => {
         const opt = document.createElement('option');
-        opt.value = String(i);
+        opt.value = it.id; // Firestore doc id (stable across clients)
         opt.textContent = it.name;
         dxfLibSelect.appendChild(opt);
       });
+      // Restore selection if still present
+      if (prevValue && _dxfLibCache.some(e => e.id === prevValue)) {
+        dxfLibSelect.value = prevValue;
+        btnDxfLibDel.disabled = false;
+      } else {
+        dxfLibSelect.value = '';
+        btnDxfLibDel.disabled = true;
+      }
     }
-    refreshDxfLibSelect();
+    // Subscribe to live changes — additions/deletions on other devices reflect here too.
+    if (window.DrillDxfLib) {
+      DrillDxfLib.onChange((entries) => {
+        _dxfLibCache = entries.slice().sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+        refreshDxfLibSelect();
+      });
+    }
 
-    btnDxfLibSave.addEventListener('click', () => {
+    btnDxfLibSave.addEventListener('click', async () => {
       const it = activeItem();
       if (!it || !it.dxfText) return;
+      if (!window.DrillDxfLib) { alert('Firestore가 아직 준비되지 않았습니다. 새로고침 후 다시 시도해주세요.'); return; }
       const suggested = it.dxfName || 'untitled.dxf';
-      const name = prompt('이 DXF의 이름 (자주쓰는 DXF 드롭다운에 표시됨)', suggested);
+      const name = prompt('이 DXF의 이름 (DXF 저장소 드롭다운에 표시됨)', suggested);
       if (!name) return;
       const trimmed = name.trim();
       if (!trimmed) return;
-      const lib = getDxfLib();
-      const currentScale = it.dxfScaleUser || 100;
-      const exists = lib.findIndex(e => e.name === trimmed);
-      if (exists >= 0) {
-        if (!confirm(`"${trimmed}"이(가) 이미 저장되어 있습니다. 덮어쓸까요?`)) return;
-        lib[exists] = { name: trimmed, text: it.dxfText, scale: currentScale, savedAt: Date.now() };
-      } else {
-        lib.push({ name: trimmed, text: it.dxfText, scale: currentScale, savedAt: Date.now() });
-      }
+      const exists = _dxfLibCache.some(e => e.name === trimmed);
+      if (exists && !confirm(`"${trimmed}"이(가) 이미 저장되어 있습니다. 덮어쓸까요?`)) return;
       try {
-        setDxfLibStore(lib);
+        await DrillDxfLib.save({
+          name: trimmed,
+          text: it.dxfText,
+          scale: it.dxfScaleUser || 100,
+        });
       } catch (err) {
-        alert('저장 실패: 저장소 용량이 부족합니다.');
+        alert('저장 실패: ' + err.message);
         return;
       }
-      it.dxfLibName = trimmed; // bind so future scale changes auto-update this entry
-      refreshDxfLibSelect();
-      const idx = getDxfLib().findIndex(e => e.name === trimmed);
-      if (idx >= 0) {
-        dxfLibSelect.value = String(idx);
-        btnDxfLibDel.disabled = false;
-      }
+      it.dxfLibName = trimmed;
+      // refreshDxfLibSelect will fire from onChange; pre-select for immediate feedback.
+      setTimeout(() => {
+        const entry = _dxfLibCache.find(e => e.name === trimmed);
+        if (entry) {
+          dxfLibSelect.value = entry.id;
+          btnDxfLibDel.disabled = false;
+        }
+      }, 100);
       schedulePersist();
     });
 
-    btnDxfLibDel.addEventListener('click', () => {
-      const val = dxfLibSelect.value;
-      if (val === '') return;
-      const idx = parseInt(val, 10);
-      const lib = getDxfLib();
-      const it = lib[idx]; if (!it) return;
-      if (!confirm(`"${it.name}"을(를) 즐겨찾기에서 삭제할까요?`)) return;
-      lib.splice(idx, 1);
-      setDxfLibStore(lib);
-      refreshDxfLibSelect();
-      dxfLibSelect.value = '';
-      btnDxfLibDel.disabled = true;
+    btnDxfLibDel.addEventListener('click', async () => {
+      const id = dxfLibSelect.value;
+      if (!id) return;
+      const entry = _dxfLibCache.find(e => e.id === id);
+      if (!entry) return;
+      if (!confirm(`"${entry.name}"을(를) DXF 저장소에서 삭제할까요? (모든 사용자에게 적용됨)`)) return;
+      try {
+        await DrillDxfLib.remove(entry.name);
+      } catch (err) {
+        alert('삭제 실패: ' + err.message);
+      }
+      // onChange will refresh the list
     });
 
     function _afterDxfLibLoad() { schedulePersist(); }
@@ -1431,9 +1442,7 @@
         dxfLibSelect.value = '';
         return;
       }
-      const idx = parseInt(val, 10);
-      const lib = getDxfLib();
-      const entry = lib[idx];
+      const entry = _dxfLibCache.find(e => e.id === val);
       if (!entry) return;
       try {
         const dxf = DrillDXF.parseDXF(entry.text);
@@ -1479,14 +1488,9 @@
       dxfScaleNumInput.value = s.toFixed(2);
       dxfScaleVal.textContent = s.toFixed(2) + 'x';
       // If this DXF came from the library, persist the new scale on its entry
-      // so the next "불러오기" uses the same size by default.
-      if (it.dxfLibName) {
-        const lib = getDxfLib();
-        const idx = lib.findIndex(e => e.name === it.dxfLibName);
-        if (idx >= 0) {
-          lib[idx].scale = s;
-          try { setDxfLibStore(lib); } catch (_) { /* quota — ignore */ }
-        }
+      // so the next "불러오기" uses the same size by default (across devices).
+      if (it.dxfLibName && window.DrillDxfLib) {
+        DrillDxfLib.updateScale(it.dxfLibName, s);
       }
       blitAndOverlay();
       schedulePersist();
