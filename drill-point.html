@@ -83,7 +83,7 @@
             <div class="flex items-center gap-2 shrink-0">
               <button id="btn-crosshair" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 min-w-[124px] justify-center" title="단축키: X">
                 <span class="material-symbols-outlined text-[18px]">add</span>
-                <span id="crosshair-label">십자선 켜기 (X)</span>
+                <span id="crosshair-label">십자선 OFF (X)</span>
               </button>
               <button id="btn-dxf-toggle" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 min-w-[104px] justify-center disabled:opacity-40 disabled:cursor-not-allowed" disabled title="단축키: D">
                 <span class="material-symbols-outlined text-[18px]">architecture</span>
@@ -485,7 +485,7 @@
       const picking = state.pickMode
         ? `· 두 점 선택 중 (${state.pickedPoints.length}/2)`
         : '';
-      meta.textContent = `${it.image.naturalWidth} × ${it.image.naturalHeight} · ${it.name} ${picking}`;
+      meta.textContent = picking.trim();
       angleInput.value = it.angle.toFixed(2);
       angleSlider.value = it.angle.toFixed(2);
     }
@@ -889,7 +889,7 @@
 
     function setCrosshair(on) {
       state.showCrosshair = on;
-      crosshairLabel.textContent = on ? '십자선 끄기 (X)' : '십자선 켜기 (X)';
+      crosshairLabel.textContent = on ? '십자선 ON (X)' : '십자선 OFF (X)';
       btnCrosshair.classList.toggle('bg-secondary-container', on);
       btnCrosshair.classList.toggle('text-on-surface', on);
       btnCrosshair.classList.toggle('border', !on);
