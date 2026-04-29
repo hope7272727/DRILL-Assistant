@@ -93,9 +93,9 @@
                 <span class="material-symbols-outlined text-[18px]">touch_app</span>
                 <span id="pick-label">두 점으로 정렬 (Space)</span>
               </button>
-              <button id="btn-measure" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 w-[185px] justify-center" title="단축키: M">
+              <button id="btn-measure" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 w-[185px] justify-center" title="단축키: W">
                 <span class="material-symbols-outlined text-[18px]">straighten</span>
-                <span id="measure-label">웹 측정 OFF (M)</span>
+                <span id="measure-label">웹 측정 OFF (W)</span>
               </button>
               <button id="btn-circle-measure" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 w-[170px] justify-center" title="단축키: C">
                 <span class="material-symbols-outlined text-[18px]">radio_button_unchecked</span>
@@ -168,7 +168,7 @@
               <span class="material-symbols-outlined text-[18px]">straighten</span>
               치수 측정
             </h3>
-            <p id="measure-status" class="font-body-sm text-secondary text-[11px] mb-2">웹 측정(M) 또는 코어 측정(C)을 켜고 4점을 클릭하세요</p>
+            <p id="measure-status" class="font-body-sm text-secondary text-[11px] mb-2">웹 측정(W) 또는 코어 측정(C)을 켜고 4점을 클릭하세요</p>
 
             <label class="font-label-sm text-on-surface block mb-1">가로 치수 입력</label>
             <div class="flex items-center gap-1 mb-2">
@@ -1005,7 +1005,7 @@
         }
       }
       state.measureMode = on;
-      measureLabel.textContent = on ? '웹 측정 ON (M)' : '웹 측정 OFF (M)';
+      measureLabel.textContent = on ? '웹 측정 ON (W)' : '웹 측정 OFF (W)';
       btnMeasure.classList.toggle('bg-secondary-container', on);
       btnMeasure.classList.toggle('text-on-surface', on);
       btnMeasure.classList.toggle('border', !on);
@@ -1214,7 +1214,7 @@
         measureStatus.classList.remove('text-primary');
         measureStatus.classList.add('text-secondary');
       } else {
-        measureStatus.textContent = '웹 측정(M) 또는 코어 측정(C)을 켜고 4점을 클릭하세요';
+        measureStatus.textContent = '웹 측정(W) 또는 코어 측정(C)을 켜고 4점을 클릭하세요';
         measureStatus.classList.remove('text-primary');
         measureStatus.classList.add('text-secondary');
       }
@@ -1446,7 +1446,7 @@
         return;
       }
       // M toggles measurement mode
-      if (e.key === 'm' || e.key === 'M' || e.key === 'ㅁ') {
+      if (e.key === 'w' || e.key === 'W' || e.key === 'ㅈ') {
         if (state.activeIdx < 0) return;
         e.preventDefault();
         const it = activeItem();
