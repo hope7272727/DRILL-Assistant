@@ -46,6 +46,7 @@
       id: d.id,
       name: data.name || d.id,
       scale: typeof data.scale === 'number' ? data.scale : 100,
+      refWidth: typeof data.refWidth === 'number' ? data.refWidth : null,
       savedAt: data.savedAt || 0,
     };
     if (data.textGz && typeof data.textGz.toUint8Array === 'function') {
@@ -114,6 +115,18 @@
     try { await ref.update({ scale: scale, savedAt: Date.now() }); } catch (_) {}
   }
 
+  async function updateRefWidth(name, refWidth) {
+    if (!name) return;
+    const ref = db().collection(COLLECTION).doc(safeId(name));
+    const payload = { savedAt: Date.now() };
+    if (refWidth === '' || refWidth == null || !isFinite(refWidth)) {
+      payload.refWidth = firebase.firestore.FieldValue.delete();
+    } else {
+      payload.refWidth = Number(refWidth);
+    }
+    try { await ref.update(payload); } catch (_) {}
+  }
+
   async function remove(name) {
     if (!name) return;
     await db().collection(COLLECTION).doc(safeId(name)).delete();
@@ -127,5 +140,5 @@
     }, err => console.warn('[DrillDxfLib] subscribe error', err));
   }
 
-  window.DrillDxfLib = { list, save, updateScale, remove, onChange };
+  window.DrillDxfLib = { list, save, updateScale, updateRefWidth, remove, onChange };
 })();

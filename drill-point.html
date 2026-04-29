@@ -211,10 +211,16 @@
 
           <!-- 4. 측정 -->
           <div class="border-t border-outline-variant pt-md">
-            <h3 class="font-label-md text-on-surface flex items-center gap-2 mb-sm">
-              <span class="material-symbols-outlined text-[18px]">straighten</span>
-              치수 측정
-            </h3>
+            <div class="flex items-center justify-between mb-sm">
+              <h3 class="font-label-md text-on-surface flex items-center gap-2">
+                <span class="material-symbols-outlined text-[18px]">straighten</span>
+                치수 측정
+              </h3>
+              <button id="btn-ref-width-help" title="DXF 품목 별 기준 가로 치수 표"
+                      class="w-7 h-7 border border-outline-variant rounded text-secondary hover:bg-surface-variant flex items-center justify-center">
+                <span class="material-symbols-outlined text-[16px]">help</span>
+              </button>
+            </div>
             <p id="measure-status" class="font-body-sm text-secondary text-[11px] mb-2">웹 측정(W) 또는 코어 측정(C)을 켜고 4점을 클릭하세요</p>
 
             <label class="font-label-sm text-on-surface block mb-1">가로 치수 입력</label>
@@ -1266,6 +1272,7 @@
       blitAndOverlay();
       schedulePersist();
     });
+    let _refWidthSaveTimer = null;
     measureWidthInput.addEventListener('input', () => {
       const it = activeItem(); if (!it) return;
       // Single input drives both — they share the same horizontal reference scale.
@@ -1273,7 +1280,59 @@
       it.circleWidth = measureWidthInput.value;
       syncMeasureUI();
       schedulePersist();
+      // Persist back to the active DXF library entry's refWidth (debounced).
+      if (it.dxfLibName && window.DrillDxfLib) {
+        clearTimeout(_refWidthSaveTimer);
+        _refWidthSaveTimer = setTimeout(() => {
+          const v = parseFloat(measureWidthInput.value);
+          DrillDxfLib.updateRefWidth(it.dxfLibName, isFinite(v) && v > 0 ? v : null);
+        }, 600);
+      }
     });
+
+    // Help button → DXF 품목 별 기준 가로 치수 표 popup
+    const btnRefWidthHelp = $('btn-ref-width-help');
+    btnRefWidthHelp.addEventListener('click', () => {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;font-family:Inter,sans-serif;';
+      const entries = (_dxfLibCache || []).slice().sort((a, b) =>
+        String(a.name || '').localeCompare(String(b.name || ''), undefined, { numeric: true, sensitivity: 'base' }));
+      const rows = entries.length === 0
+        ? '<tr><td colspan="2" style="padding:16px;text-align:center;color:#888;">저장된 DXF가 없습니다.</td></tr>'
+        : entries.map(e => {
+            const w = (e.refWidth != null && isFinite(e.refWidth)) ? Number(e.refWidth).toString() + ' mm' : '<span style="color:#aaa;">미설정</span>';
+            return `<tr><td style="padding:6px 12px;border-bottom:1px solid #f0f0f0;font-family:'Fira Code',monospace;font-size:12px;">${escapeHtml(e.name)}</td><td style="padding:6px 12px;border-bottom:1px solid #f0f0f0;text-align:right;font-family:'Fira Code',monospace;font-size:12px;">${w}</td></tr>`;
+          }).join('');
+      overlay.innerHTML = `
+        <div role="dialog" aria-modal="true" style="background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.25);min-width:420px;max-width:600px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;">
+          <div style="padding:14px 20px;border-bottom:1px solid #e5e5e5;font-weight:600;font-size:14px;color:#1d1b20;">DXF 품목 별 기준 가로 치수</div>
+          <div style="padding:0;overflow-y:auto;flex:1;">
+            <table style="width:100%;border-collapse:collapse;">
+              <thead>
+                <tr style="background:#f5f5f5;font-size:12px;color:#555;">
+                  <th style="padding:8px 12px;text-align:left;border-bottom:1px solid #e0e0e0;">DXF 이름</th>
+                  <th style="padding:8px 12px;text-align:right;border-bottom:1px solid #e0e0e0;">기준 가로 치수</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+          <div style="padding:10px 16px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #f0f0f0;background:#fafafa;font-size:12px;color:#666;">
+            <span style="margin-right:auto;">DXF 선택 후 가로 치수 입력칸에 값을 입력하면 자동 저장됩니다.</span>
+            <button data-act="ok" style="padding:6px 14px;border:none;border-radius:6px;background:#003f87;color:#fff;cursor:pointer;font-size:13px;font-weight:500;">닫기</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      function close() { document.removeEventListener('keydown', onKey, true); overlay.remove(); }
+      function onKey(e) { if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); close(); } }
+      overlay.querySelector('[data-act=ok]').addEventListener('click', close);
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+      document.addEventListener('keydown', onKey, true);
+    });
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
 
     // ===== Circle Measurement (4-point: 2-pt horizontal ref + center + edge) =====
     const CIRCLE_PROMPTS = [
@@ -1694,6 +1753,13 @@
           dxfFileName.textContent = `${entry.name} (${dxf.entities.length}개 엔티티) · 저장됨`;
           dxfFileName.classList.remove('text-error');
           setDxfVisible(true);
+          // Auto-fill 가로 치수 from this entry's saved reference width.
+          if (entry.refWidth != null && isFinite(entry.refWidth) && entry.refWidth > 0) {
+            const refStr = String(entry.refWidth);
+            active.measureWidth = refStr;
+            active.circleWidth = refStr;
+            syncMeasureUI();
+          }
         }
       } catch (err) {
         dxfFileName.textContent = '로드 실패: ' + err.message;
