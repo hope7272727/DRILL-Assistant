@@ -172,7 +172,7 @@
 
             <label class="font-label-sm text-on-surface block mb-1">가로 치수 입력</label>
             <div class="flex items-center gap-1 mb-2">
-              <input id="measure-width" type="number" step="any" placeholder="예: 0.120"
+              <input id="measure-width" type="text" inputmode="decimal" autocomplete="off" placeholder="예: 0.120"
                      class="flex-1 px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary disabled:opacity-40" disabled/>
               <span class="font-label-sm text-secondary text-[11px]">mm</span>
             </div>
@@ -1219,7 +1219,10 @@
         measureStatus.classList.add('text-secondary');
       }
       // Shared width — read from item.measureWidth (kept synced with circleWidth).
-      measureWidthInput.value = (it && (it.measureWidth || it.circleWidth)) || '';
+      // Only overwrite the input value when it differs to avoid cursor jumping
+      // mid-typing (e.g., when the user is in the middle of typing "0.").
+      const newWidthVal = (it && (it.measureWidth || it.circleWidth)) || '';
+      if (measureWidthInput.value !== newWidthVal) measureWidthInput.value = newWidthVal;
       const heightVal = computeMeasureHeight(it);
       measureHeightOut.textContent = heightVal != null ? heightVal.toFixed(3) + ' mm' : '--';
       const diaVal = computeCircleDiameter(it);
