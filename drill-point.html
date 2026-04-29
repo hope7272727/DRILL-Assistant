@@ -219,7 +219,13 @@
               <input id="dxf-color" type="color" value="#ff0000" class="w-16 h-7 rounded border border-outline-variant cursor-pointer"/>
             </div>
 
-            <p class="font-body-sm text-secondary text-[11px] mt-2">슬라이더로 조절하거나 직접 입력 (Enter) · 방향키 0.1</p>
+            <div class="flex items-center justify-between mt-2 gap-2">
+              <label class="font-label-sm text-on-surface" for="crop-margin">저장 시 여백 (%)</label>
+              <input id="crop-margin" type="number" min="0" max="200" step="1" value="15"
+                     class="w-20 px-2 py-1 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary"/>
+            </div>
+
+            <p class="font-body-sm text-secondary text-[11px] mt-2">슬라이더로 조절하거나 직접 입력 (Enter) · 방향키 0.1<br/>저장 시 DXF 외곽 + 여백%로 자동 크롭됩니다 (DXF 켜진 경우)</p>
           </div>
         </div>
       </div>
@@ -269,6 +275,7 @@
     const btnDownload = $('btn-download');
     const btnDownloadAll = $('btn-download-all');
     const downloadAllLabel = $('download-all-label');
+    const cropMarginInput = $('crop-margin');
     const btnPhotoCenter = $('btn-photo-center');
     const dpad = $('dpad');
     const dpadUp = $('dpad-up');
@@ -1595,12 +1602,10 @@
     }
 
     async function exportItem(it) {
-      const cv = DrillAlign.exportRotated(it.image, it.angle, it.bg);
+      let cv = DrillAlign.exportRotated(it.image, it.angle, it.bg);
+      // Tracks the DXF visual extent in canvas coords so we can auto-crop later.
+      let cropRect = null;
 
-      // Bake DXF overlay into the export when visible. Crosshair is NEVER
-      // baked (display-only). Photo offset is NOT applied to the exported
-      // image itself (rotation only), so we offset the DXF instead so that
-      // the DXF sits at the same image-relative location as seen on screen.
       if (it.dxfVisible && it.dxf) {
         const ctx = cv.getContext('2d');
         const iw = it.image.naturalWidth, ih = it.image.naturalHeight;
@@ -1620,6 +1625,48 @@
             lineWidth: Math.max(1.5, 1.5 * dpr / sDisp),
             alpha: 0.9,
           });
+
+          // Compute DXF visual rect in image-pixel coords (DXF y is flipped vs canvas y).
+          const bb = it.dxf.bbox;
+          if (bb) {
+            const left   = cxExport + bb.minX * dxfScaleExport;
+            const right  = cxExport + bb.maxX * dxfScaleExport;
+            const top    = cyExport - bb.maxY * dxfScaleExport;
+            const bottom = cyExport - bb.minY * dxfScaleExport;
+            cropRect = {
+              x: Math.min(left, right),
+              y: Math.min(top, bottom),
+              w: Math.abs(right - left),
+              h: Math.abs(bottom - top),
+            };
+          }
+        }
+      }
+
+      // Auto-crop around the DXF area + user margin. Skipped when DXF is off.
+      if (cropRect && cropRect.w > 0 && cropRect.h > 0) {
+        const marginPct = (() => {
+          const v = parseFloat(cropMarginInput && cropMarginInput.value);
+          if (Number.isFinite(v) && v >= 0) return v;
+          return 15;
+        })();
+        const baseSide = Math.max(cropRect.w, cropRect.h);
+        const m = baseSide * (marginPct / 100);
+        let cx = cropRect.x - m;
+        let cy = cropRect.y - m;
+        let cw = cropRect.w + 2 * m;
+        let ch = cropRect.h + 2 * m;
+        // Clamp to image bounds
+        if (cx < 0) { cw += cx; cx = 0; }
+        if (cy < 0) { ch += cy; cy = 0; }
+        if (cx + cw > cv.width)  cw = cv.width  - cx;
+        if (cy + ch > cv.height) ch = cv.height - cy;
+        if (cw > 1 && ch > 1) {
+          const out = document.createElement('canvas');
+          out.width = Math.round(cw);
+          out.height = Math.round(ch);
+          out.getContext('2d').drawImage(cv, cx, cy, cw, ch, 0, 0, cw, ch);
+          cv = out;
         }
       }
 
