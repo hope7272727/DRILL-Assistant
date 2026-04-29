@@ -1810,19 +1810,26 @@
       setDxfVisible(!it.dxfVisible);
     });
 
+    let _dxfScaleSaveTimer = null;
     function commitDxfScale(v) {
       const it = activeItem(); if (!it) return;
       let s = parseFloat(v);
       if (isNaN(s)) s = 1;
       s = Math.max(0, Math.min(200, s));
       it.dxfScaleUser = s;
-      dxfScaleInput.value = s;
-      dxfScaleNumInput.value = s.toFixed(2);
+      // Sync the OTHER controls only — never overwrite the input that triggered
+      // this call (causes cursor / drag jitter on the slider).
+      if (document.activeElement !== dxfScaleInput) dxfScaleInput.value = s;
+      if (document.activeElement !== dxfScaleNumInput) dxfScaleNumInput.value = s.toFixed(2);
       dxfScaleVal.textContent = s.toFixed(2) + 'x';
-      // If this DXF came from the library, persist the new scale on its entry
-      // so the next "불러오기" uses the same size by default (across devices).
+      // Debounce the Firestore write — slider drag fires the input event many
+      // times a second; one network call per drag end is plenty.
       if (it.dxfLibName && window.DrillDxfLib) {
-        DrillDxfLib.updateScale(it.dxfLibName, s);
+        clearTimeout(_dxfScaleSaveTimer);
+        const libName = it.dxfLibName;
+        _dxfScaleSaveTimer = setTimeout(() => {
+          DrillDxfLib.updateScale(libName, s);
+        }, 400);
       }
       blitAndOverlay();
       schedulePersist();
