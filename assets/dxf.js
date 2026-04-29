@@ -140,8 +140,8 @@
         const mag = Math.hypot(e.majorX || 0, e.majorY || 0);
         upd(e.cx - mag, e.cy - mag); upd(e.cx + mag, e.cy + mag);
       } else if (e.type === 'SPLINE') {
-        for (const p of (e.controlPts || [])) upd(p.x, p.y);
-        for (const p of (e.fitPts || [])) upd(p.x, p.y);
+        for (const p of (e.controlPts || [])) { if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) upd(p.x, p.y); }
+        for (const p of (e.fitPts || [])) { if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) upd(p.x, p.y); }
       }
     }
     const bbox = (minX < maxX)
@@ -173,26 +173,36 @@
     const tMin = knots[degree];
     const tMax = knots[knots.length - degree - 1];
     if (!(tMax > tMin)) return null;
+    const maxSpan = cps.length - 1; // clamp so cps[span - degree + j] is always in range
     const out = [];
     for (let i = 0; i <= samples; i++) {
-      const t = tMin + (tMax - tMin) * (i / samples);
-      // Find span
+      // Pull samples slightly inside [tMin, tMax) so the span search never lands past the last valid span.
+      let t = tMin + (tMax - tMin) * (i / samples);
+      if (t >= tMax) t = tMax - (tMax - tMin) * 1e-9;
       let span = degree;
-      while (span < knots.length - degree - 1 && knots[span + 1] <= t) span++;
+      while (span < maxSpan && knots[span + 1] <= t) span++;
       // de Boor recursion
       const d = [];
-      for (let j = 0; j <= degree; j++) d[j] = { x: cps[span - degree + j].x, y: cps[span - degree + j].y };
+      let valid = true;
+      for (let j = 0; j <= degree; j++) {
+        const cp = cps[span - degree + j];
+        if (!cp) { valid = false; break; }
+        d[j] = { x: cp.x, y: cp.y };
+      }
+      if (!valid) continue;
       for (let r = 1; r <= degree; r++) {
         for (let j = degree; j >= r; j--) {
           const i0 = span - degree + j;
-          const a = (t - knots[i0]) / (knots[i0 + degree - r + 1] - knots[i0]);
+          const denom = (knots[i0 + degree - r + 1] - knots[i0]);
+          if (denom === 0) continue;
+          const a = (t - knots[i0]) / denom;
           d[j].x = (1 - a) * d[j - 1].x + a * d[j].x;
           d[j].y = (1 - a) * d[j - 1].y + a * d[j].y;
         }
       }
       out.push({ x: d[degree].x, y: d[degree].y });
     }
-    return out;
+    return out.length >= 2 ? out : null;
   }
 
   // Render parsed DXF onto a canvas at the given placement.
