@@ -168,38 +168,24 @@
               <span class="material-symbols-outlined text-[18px]">straighten</span>
               치수 측정
             </h3>
-            <p id="measure-status" class="font-body-sm text-secondary text-[11px] mb-2">측정 모드(M)을 켜고 4점: 가로시작 → 가로끝 → 위 → 아래</p>
+            <p id="measure-status" class="font-body-sm text-secondary text-[11px] mb-2">사각 측정(M) 또는 원 측정(C)을 켜고 4점을 클릭하세요</p>
+
             <label class="font-label-sm text-on-surface block mb-1">가로 치수 입력</label>
             <div class="flex items-center gap-1 mb-2">
               <input id="measure-width" type="number" step="any" placeholder="예: 0.120"
                      class="flex-1 px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary disabled:opacity-40" disabled/>
               <span class="font-label-sm text-secondary text-[11px]">mm</span>
             </div>
-            <label class="font-label-sm text-on-surface block mb-1">계산된 세로 치수</label>
-            <div id="measure-height" class="px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest font-code text-body-sm text-center text-on-surface">--</div>
+
+            <label class="font-label-sm text-on-surface block mb-1">계산된 세로 치수 (사각)</label>
+            <div id="measure-height" class="px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest font-code text-body-sm text-center text-on-surface mb-2">--</div>
+
+            <label class="font-label-sm text-on-surface block mb-1">계산된 직경 (원)</label>
+            <div id="circle-diameter" class="px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest font-code text-body-sm text-center text-on-surface">--</div>
+
             <button id="btn-measure-reset" disabled class="mt-2 w-full px-2 py-1.5 border border-outline-variant rounded text-secondary text-body-sm hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center gap-1">
               <span class="material-symbols-outlined text-[16px]">refresh</span>
               측정 초기화
-            </button>
-          </div>
-
-          <div class="border-t border-outline-variant pt-md">
-            <h3 class="font-label-md text-on-surface flex items-center gap-2 mb-sm">
-              <span class="material-symbols-outlined text-[18px]">radio_button_unchecked</span>
-              원 측정
-            </h3>
-            <p id="circle-status" class="font-body-sm text-secondary text-[11px] mb-2">원 측정(C)을 켜고 4점: 가로시작 → 가로끝 → 중심 → 반지름 끝점</p>
-            <label class="font-label-sm text-on-surface block mb-1">가로 치수 입력</label>
-            <div class="flex items-center gap-1 mb-2">
-              <input id="circle-width" type="number" step="any" placeholder="예: 0.120"
-                     class="flex-1 px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary disabled:opacity-40" disabled/>
-              <span class="font-label-sm text-secondary text-[11px]">mm</span>
-            </div>
-            <label class="font-label-sm text-on-surface block mb-1">계산된 직경</label>
-            <div id="circle-diameter" class="px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest font-code text-body-sm text-center text-on-surface">--</div>
-            <button id="btn-circle-reset" disabled class="mt-2 w-full px-2 py-1.5 border border-outline-variant rounded text-secondary text-body-sm hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center gap-1">
-              <span class="material-symbols-outlined text-[16px]">refresh</span>
-              원 측정 초기화
             </button>
           </div>
 
@@ -320,10 +306,7 @@
     const btnMeasureReset = $('btn-measure-reset');
     const btnCircleMeasure = $('btn-circle-measure');
     const circleMeasureLabel = $('circle-measure-label');
-    const circleStatus = $('circle-status');
-    const circleWidthInput = $('circle-width');
     const circleDiameterOut = $('circle-diameter');
-    const btnCircleReset = $('btn-circle-reset');
     const btnPickFolder = $('btn-pick-folder');
     const folderName = $('folder-name');
     const folderBtnLabel = $('folder-btn-label');
@@ -975,7 +958,7 @@
         if (it.circlePoints.length === 4) {
           setCircleMeasureMode(false);
         }
-        syncCircleUI();
+        syncMeasureUI();
         blitAndOverlay();
         schedulePersist();
         return;
@@ -1206,26 +1189,41 @@
     function syncMeasureUI() {
       const it = activeItem();
       const has = !!it;
-      const pts = (it && it.measurePoints) || [];
-      const complete = pts.length === 4;
-      measureWidthInput.disabled = !complete;
-      btnMeasureReset.disabled = !has || pts.length === 0;
+      const rectPts = (it && it.measurePoints) || [];
+      const circPts = (it && it.circlePoints) || [];
+      const rectComplete = rectPts.length === 4;
+      const circComplete = circPts.length === 4;
+      // Input is enabled if EITHER measurement is complete (it serves both).
+      measureWidthInput.disabled = !(rectComplete || circComplete);
+      // Reset button enabled if any points or width on either measurement.
+      btnMeasureReset.disabled = !has || (rectPts.length === 0 && circPts.length === 0);
+      // Status: show whichever mode is currently being entered, then completion summary, else neutral.
       if (state.measureMode) {
-        measureStatus.textContent = MEASURE_PROMPTS[Math.min(pts.length, 3)];
+        measureStatus.textContent = MEASURE_PROMPTS[Math.min(rectPts.length, 3)];
         measureStatus.classList.add('text-primary');
         measureStatus.classList.remove('text-secondary');
-      } else if (complete) {
-        measureStatus.textContent = '4점 측정 완료. 가로 치수를 입력하면 세로가 계산됩니다.';
+      } else if (state.circleMeasureMode) {
+        measureStatus.textContent = CIRCLE_PROMPTS[Math.min(circPts.length, 3)];
+        measureStatus.classList.add('text-primary');
+        measureStatus.classList.remove('text-secondary');
+      } else if (rectComplete || circComplete) {
+        const parts = [];
+        if (rectComplete) parts.push('사각 ✓');
+        if (circComplete) parts.push('원 ✓');
+        measureStatus.textContent = parts.join(' · ') + ' — 가로 치수를 입력하면 결과가 계산됩니다.';
         measureStatus.classList.remove('text-primary');
         measureStatus.classList.add('text-secondary');
       } else {
-        measureStatus.textContent = '측정 모드(M)을 켜고 4점: 가로시작 → 가로끝 → 위 → 아래';
+        measureStatus.textContent = '사각 측정(M) 또는 원 측정(C)을 켜고 4점을 클릭하세요';
         measureStatus.classList.remove('text-primary');
         measureStatus.classList.add('text-secondary');
       }
-      measureWidthInput.value = (it && it.measureWidth) || '';
+      // Shared width — read from item.measureWidth (kept synced with circleWidth).
+      measureWidthInput.value = (it && (it.measureWidth || it.circleWidth)) || '';
       const heightVal = computeMeasureHeight(it);
       measureHeightOut.textContent = heightVal != null ? heightVal.toFixed(3) + ' mm' : '--';
+      const diaVal = computeCircleDiameter(it);
+      circleDiameterOut.textContent = diaVal != null ? diaVal.toFixed(3) + ' mm' : '--';
     }
     btnMeasure.addEventListener('click', () => {
       if (state.activeIdx < 0) return;
@@ -1241,18 +1239,23 @@
     });
     btnMeasureReset.addEventListener('click', () => {
       const it = activeItem(); if (!it) return;
+      // Unified reset: clears BOTH rectangle and circle measurements.
       it.measurePoints = [];
       it.measureWidth = '';
+      it.circlePoints = [];
+      it.circleWidth = '';
       if (state.measureMode) setMeasureMode(false);
+      if (state.circleMeasureMode) setCircleMeasureMode(false);
       syncMeasureUI();
       blitAndOverlay();
       schedulePersist();
     });
     measureWidthInput.addEventListener('input', () => {
       const it = activeItem(); if (!it) return;
+      // Single input drives both — they share the same horizontal reference scale.
       it.measureWidth = measureWidthInput.value;
-      const h = computeMeasureHeight(it);
-      measureHeightOut.textContent = h != null ? h.toFixed(3) + ' mm' : '--';
+      it.circleWidth = measureWidthInput.value;
+      syncMeasureUI();
       schedulePersist();
     });
 
@@ -1283,7 +1286,7 @@
       btnCircleMeasure.classList.toggle('border', !on);
       btnCircleMeasure.classList.toggle('text-secondary', !on);
       canvas.style.cursor = on ? 'crosshair' : (state.activeIdx >= 0 ? 'grab' : '');
-      syncCircleUI();
+      syncMeasureUI();
     }
     function computeCircleDiameter(it) {
       const pts = it && it.circlePoints;
@@ -1398,30 +1401,6 @@
         ctx.restore();
       });
     }
-    function syncCircleUI() {
-      const it = activeItem();
-      const has = !!it;
-      const pts = (it && it.circlePoints) || [];
-      const complete = pts.length === 4;
-      circleWidthInput.disabled = !complete;
-      btnCircleReset.disabled = !has || pts.length === 0;
-      if (state.circleMeasureMode) {
-        circleStatus.textContent = CIRCLE_PROMPTS[Math.min(pts.length, 3)];
-        circleStatus.classList.add('text-primary');
-        circleStatus.classList.remove('text-secondary');
-      } else if (complete) {
-        circleStatus.textContent = '4점 측정 완료. 가로 치수를 입력하면 직경이 계산됩니다.';
-        circleStatus.classList.remove('text-primary');
-        circleStatus.classList.add('text-secondary');
-      } else {
-        circleStatus.textContent = '원 측정(C)을 켜고 4점: 가로시작 → 가로끝 → 중심 → 반지름 끝점';
-        circleStatus.classList.remove('text-primary');
-        circleStatus.classList.add('text-secondary');
-      }
-      circleWidthInput.value = (it && it.circleWidth) || '';
-      const d = computeCircleDiameter(it);
-      circleDiameterOut.textContent = d != null ? d.toFixed(3) + ' mm' : '--';
-    }
     btnCircleMeasure.addEventListener('click', () => {
       if (state.activeIdx < 0) return;
       const it = activeItem();
@@ -1432,22 +1411,6 @@
       }
       setCircleMeasureMode(!state.circleMeasureMode);
       blitAndOverlay();
-    });
-    btnCircleReset.addEventListener('click', () => {
-      const it = activeItem(); if (!it) return;
-      it.circlePoints = [];
-      it.circleWidth = '';
-      if (state.circleMeasureMode) setCircleMeasureMode(false);
-      syncCircleUI();
-      blitAndOverlay();
-      schedulePersist();
-    });
-    circleWidthInput.addEventListener('input', () => {
-      const it = activeItem(); if (!it) return;
-      it.circleWidth = circleWidthInput.value;
-      const d = computeCircleDiameter(it);
-      circleDiameterOut.textContent = d != null ? d.toFixed(3) + ' mm' : '--';
-      schedulePersist();
     });
 
     document.addEventListener('keydown', (e) => {
@@ -1563,7 +1526,6 @@
       btnDxfLibDel.disabled = true;
       refreshDxfControls();
       syncMeasureUI();
-      syncCircleUI();
     }
 
     dxfInput.addEventListener('change', async (e) => {
@@ -2017,7 +1979,6 @@
     setEnabled();
     fitCanvas();
     syncMeasureUI();
-    syncCircleUI();
 
     // ===== State persistence (IndexedDB) =====
     const PERSIST_KEY = 'drill-point/v1';
