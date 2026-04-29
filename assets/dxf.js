@@ -61,6 +61,7 @@
         cur = { type: sv };
         if (sv === 'LWPOLYLINE') cur.vertices = [];
         if (sv === 'POLYLINE') polyVerts = [];
+        if (sv === 'SPLINE') { cur.controlPts = []; cur.fitPts = []; cur.knots = []; }
         idx++;
         continue;
       }
@@ -101,6 +102,19 @@
         else if (code === 40) cur.ratio = v;
         else if (code === 41) cur.startParam = v;
         else if (code === 42) cur.endParam = v;
+      } else if (cur.type === 'SPLINE') {
+        // 10/20 = control point, 11/21 = fit point, 71 = degree, 70 = flags (1=closed)
+        if (code === 10) cur._cpX = v;
+        else if (code === 20 && cur._cpX !== undefined) {
+          cur.controlPts.push({ x: cur._cpX, y: v });
+          cur._cpX = undefined;
+        } else if (code === 11) cur._fpX = v;
+        else if (code === 21 && cur._fpX !== undefined) {
+          cur.fitPts.push({ x: cur._fpX, y: v });
+          cur._fpX = undefined;
+        } else if (code === 40) cur.knots.push(v);
+        else if (code === 71) cur.degree = parseInt(value, 10);
+        else if (code === 70) cur.closed = (parseInt(value, 10) & 1) === 1;
       }
       idx++;
     }
@@ -125,6 +139,9 @@
       } else if (e.type === 'ELLIPSE') {
         const mag = Math.hypot(e.majorX || 0, e.majorY || 0);
         upd(e.cx - mag, e.cy - mag); upd(e.cx + mag, e.cy + mag);
+      } else if (e.type === 'SPLINE') {
+        for (const p of (e.controlPts || [])) upd(p.x, p.y);
+        for (const p of (e.fitPts || [])) upd(p.x, p.y);
       }
     }
     const bbox = (minX < maxX)
@@ -141,7 +158,41 @@
       return (e.vertices || []).filter(v => v.y !== undefined).length >= 2;
     }
     if (e.type === 'ELLIPSE') return e.cx !== undefined && e.majorX !== undefined;
+    if (e.type === 'SPLINE') return (e.controlPts && e.controlPts.length >= 2) || (e.fitPts && e.fitPts.length >= 2);
     return false;
+  }
+
+  // Approximate a SPLINE with line segments using de Boor's algorithm on the
+  // control points + knot vector. If knots/degree missing, fall back to the
+  // fit points (which the spline interpolates through).
+  function evalSpline(e, samples) {
+    const cps = e.controlPts || [];
+    const knots = e.knots || [];
+    const degree = e.degree || 3;
+    if (cps.length < degree + 1 || knots.length < cps.length + degree + 1) return null;
+    const tMin = knots[degree];
+    const tMax = knots[knots.length - degree - 1];
+    if (!(tMax > tMin)) return null;
+    const out = [];
+    for (let i = 0; i <= samples; i++) {
+      const t = tMin + (tMax - tMin) * (i / samples);
+      // Find span
+      let span = degree;
+      while (span < knots.length - degree - 1 && knots[span + 1] <= t) span++;
+      // de Boor recursion
+      const d = [];
+      for (let j = 0; j <= degree; j++) d[j] = { x: cps[span - degree + j].x, y: cps[span - degree + j].y };
+      for (let r = 1; r <= degree; r++) {
+        for (let j = degree; j >= r; j--) {
+          const i0 = span - degree + j;
+          const a = (t - knots[i0]) / (knots[i0 + degree - r + 1] - knots[i0]);
+          d[j].x = (1 - a) * d[j - 1].x + a * d[j].x;
+          d[j].y = (1 - a) * d[j - 1].y + a * d[j].y;
+        }
+      }
+      out.push({ x: d[degree].x, y: d[degree].y });
+    }
+    return out;
   }
 
   // Render parsed DXF onto a canvas at the given placement.
@@ -205,6 +256,18 @@
         if (e.closed) {
           const [xc, yc] = ws(vs[0].x, vs[0].y);
           ctx.lineTo(xc, yc);
+        }
+      } else if (e.type === 'SPLINE') {
+        // Try de Boor evaluation against control points + knots; fall back to
+        // straight-line interpolation through the fit points.
+        let pts = evalSpline(e, 64);
+        if (!pts && e.fitPts && e.fitPts.length >= 2) pts = e.fitPts;
+        if (!pts || pts.length < 2) continue;
+        const [x0, y0] = ws(pts[0].x, pts[0].y);
+        ctx.moveTo(x0, y0);
+        for (let i = 1; i < pts.length; i++) {
+          const [xi, yi] = ws(pts[i].x, pts[i].y);
+          ctx.lineTo(xi, yi);
         }
       }
     }
