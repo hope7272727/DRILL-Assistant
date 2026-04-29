@@ -2064,7 +2064,14 @@
         state.activeIdx = (saved.activeIdx >= 0 && saved.activeIdx < state.items.length)
           ? saved.activeIdx : (state.items.length ? 0 : -1);
         state.showCrosshair = !!saved.showCrosshair;
-        state.dxfColor = saved.dxfColor || '#00ff00';
+        // Migrate saved old red default (#ff0000) → new green default (#00ff00).
+        // Other user-picked colors are preserved.
+        const savedColor = saved.dxfColor;
+        if (!savedColor || (typeof savedColor === 'string' && savedColor.toLowerCase() === '#ff0000')) {
+          state.dxfColor = '#00ff00';
+        } else {
+          state.dxfColor = savedColor;
+        }
         state.dxfLineWidth = (typeof saved.dxfLineWidth === 'number' && saved.dxfLineWidth > 0) ? saved.dxfLineWidth : 1.5;
         // Apply crosshair button visual
         if (state.showCrosshair) setCrosshair(true);
