@@ -120,7 +120,7 @@
             정렬 설정
           </h3>
 
-          <!-- 회전 각도 -->
+          <!-- 1. 회전 -->
           <div>
             <div class="flex items-center justify-between mb-1">
               <label class="font-label-sm text-on-surface">회전 각도</label>
@@ -135,60 +135,7 @@
             </div>
           </div>
 
-          <!-- 사진 위치 -->
-          <div>
-            <div class="flex items-center justify-between mb-1">
-              <label class="font-label-sm text-on-surface">사진 위치</label>
-              <button id="btn-photo-center" disabled title="중앙으로 초기화"
-                      class="w-7 h-7 border border-outline-variant rounded text-secondary hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center">
-                <span class="material-symbols-outlined text-[16px]">filter_center_focus</span>
-              </button>
-            </div>
-            <svg id="dpad" class="dpad dpad-disabled" viewBox="0 0 100 100" style="width:140px;height:140px;margin:4px auto 6px;display:block;" aria-label="사진 위치 조정">
-              <circle cx="50" cy="50" r="48" fill="#fbf9f8" stroke="#727784" stroke-width="1.2"/>
-              <line x1="16" y1="16" x2="84" y2="84" stroke="#727784" stroke-width="1.2"/>
-              <line x1="84" y1="16" x2="16" y2="84" stroke="#727784" stroke-width="1.2"/>
-              <path id="dpad-up"    class="dpad-wedge" d="M50,50 L16,16 A48,48 0 0,1 84,16 Z" fill="transparent"><title>위로 이동 (Shift+클릭 = 10px)</title></path>
-              <path id="dpad-right" class="dpad-wedge" d="M50,50 L84,16 A48,48 0 0,1 84,84 Z" fill="transparent"><title>오른쪽으로 이동 (Shift+클릭 = 10px)</title></path>
-              <path id="dpad-down"  class="dpad-wedge" d="M50,50 L84,84 A48,48 0 0,1 16,84 Z" fill="transparent"><title>아래로 이동 (Shift+클릭 = 10px)</title></path>
-              <path id="dpad-left"  class="dpad-wedge" d="M50,50 L16,84 A48,48 0 0,1 16,16 Z" fill="transparent"><title>왼쪽으로 이동 (Shift+클릭 = 10px)</title></path>
-              <g stroke="#1b1c1c" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" pointer-events="none">
-                <path d="M50,34 L50,20 M44,26 L50,20 L56,26"/>
-                <path d="M50,66 L50,80 M44,74 L50,80 L56,74"/>
-                <path d="M34,50 L20,50 M26,44 L20,50 L26,56"/>
-                <path d="M66,50 L80,50 M74,44 L80,50 L74,56"/>
-              </g>
-              <circle id="dpad-center" class="dpad-center" cx="50" cy="50" r="7" fill="#eaecf0" stroke="#727784" stroke-width="1"><title>중앙으로 초기화</title></circle>
-            </svg>
-            <p class="font-body-sm text-secondary text-[10px] text-center leading-snug">드래그 / 방향키 1px · Shift+방향키 10px</p>
-          </div>
-
-          <div class="border-t border-outline-variant pt-md">
-            <h3 class="font-label-md text-on-surface flex items-center gap-2 mb-sm">
-              <span class="material-symbols-outlined text-[18px]">straighten</span>
-              치수 측정
-            </h3>
-            <p id="measure-status" class="font-body-sm text-secondary text-[11px] mb-2">웹 측정(W) 또는 코어 측정(C)을 켜고 4점을 클릭하세요</p>
-
-            <label class="font-label-sm text-on-surface block mb-1">가로 치수 입력</label>
-            <div class="flex items-center gap-1 mb-2">
-              <input id="measure-width" type="text" inputmode="decimal" autocomplete="off" placeholder="예: 0.120"
-                     class="flex-1 px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary disabled:opacity-40" disabled/>
-              <span class="font-label-sm text-secondary text-[11px]">mm</span>
-            </div>
-
-            <label class="font-label-sm text-on-surface block mb-1">계산된 세로 치수 (웹)</label>
-            <div id="measure-height" class="px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest font-code text-body-sm text-center text-on-surface mb-2">--</div>
-
-            <label class="font-label-sm text-on-surface block mb-1">계산된 직경 (코어)</label>
-            <div id="circle-diameter" class="px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest font-code text-body-sm text-center text-on-surface">--</div>
-
-            <button id="btn-measure-reset" disabled class="mt-2 w-full px-2 py-1.5 border border-outline-variant rounded text-secondary text-body-sm hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center gap-1">
-              <span class="material-symbols-outlined text-[16px]">refresh</span>
-              측정 초기화
-            </button>
-          </div>
-
+          <!-- 2. DXF -->
           <div class="border-t border-outline-variant pt-md">
             <h3 class="font-label-md text-on-surface flex items-center gap-2 mb-sm">
               <span class="material-symbols-outlined text-[18px]">architecture</span>
@@ -225,13 +172,72 @@
               <input id="dxf-color" type="color" value="#ff0000" class="w-16 h-7 rounded border border-outline-variant cursor-pointer"/>
             </div>
 
-            <div class="flex items-center justify-between mt-2 gap-2">
+            <p class="font-body-sm text-secondary text-[11px] mt-2">슬라이더로 조절하거나 직접 입력 (Enter) · 방향키 0.1</p>
+          </div>
+
+          <!-- 3. 위치 -->
+          <div class="border-t border-outline-variant pt-md">
+            <div class="flex items-center justify-between mb-1">
+              <label class="font-label-sm text-on-surface">사진 위치</label>
+              <button id="btn-photo-center" disabled title="중앙으로 초기화"
+                      class="w-7 h-7 border border-outline-variant rounded text-secondary hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center">
+                <span class="material-symbols-outlined text-[16px]">filter_center_focus</span>
+              </button>
+            </div>
+            <svg id="dpad" class="dpad dpad-disabled" viewBox="0 0 100 100" style="width:140px;height:140px;margin:4px auto 6px;display:block;" aria-label="사진 위치 조정">
+              <circle cx="50" cy="50" r="48" fill="#fbf9f8" stroke="#727784" stroke-width="1.2"/>
+              <line x1="16" y1="16" x2="84" y2="84" stroke="#727784" stroke-width="1.2"/>
+              <line x1="84" y1="16" x2="16" y2="84" stroke="#727784" stroke-width="1.2"/>
+              <path id="dpad-up"    class="dpad-wedge" d="M50,50 L16,16 A48,48 0 0,1 84,16 Z" fill="transparent"><title>위로 이동 (Shift+클릭 = 10px)</title></path>
+              <path id="dpad-right" class="dpad-wedge" d="M50,50 L84,16 A48,48 0 0,1 84,84 Z" fill="transparent"><title>오른쪽으로 이동 (Shift+클릭 = 10px)</title></path>
+              <path id="dpad-down"  class="dpad-wedge" d="M50,50 L84,84 A48,48 0 0,1 16,84 Z" fill="transparent"><title>아래로 이동 (Shift+클릭 = 10px)</title></path>
+              <path id="dpad-left"  class="dpad-wedge" d="M50,50 L16,84 A48,48 0 0,1 16,16 Z" fill="transparent"><title>왼쪽으로 이동 (Shift+클릭 = 10px)</title></path>
+              <g stroke="#1b1c1c" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" pointer-events="none">
+                <path d="M50,34 L50,20 M44,26 L50,20 L56,26"/>
+                <path d="M50,66 L50,80 M44,74 L50,80 L56,74"/>
+                <path d="M34,50 L20,50 M26,44 L20,50 L26,56"/>
+                <path d="M66,50 L80,50 M74,44 L80,50 L74,56"/>
+              </g>
+              <circle id="dpad-center" class="dpad-center" cx="50" cy="50" r="7" fill="#eaecf0" stroke="#727784" stroke-width="1"><title>중앙으로 초기화</title></circle>
+            </svg>
+            <p class="font-body-sm text-secondary text-[10px] text-center leading-snug">드래그 / 방향키 1px · Shift+방향키 10px</p>
+          </div>
+
+          <!-- 4. 측정 -->
+          <div class="border-t border-outline-variant pt-md">
+            <h3 class="font-label-md text-on-surface flex items-center gap-2 mb-sm">
+              <span class="material-symbols-outlined text-[18px]">straighten</span>
+              치수 측정
+            </h3>
+            <p id="measure-status" class="font-body-sm text-secondary text-[11px] mb-2">웹 측정(W) 또는 코어 측정(C)을 켜고 4점을 클릭하세요</p>
+
+            <label class="font-label-sm text-on-surface block mb-1">가로 치수 입력</label>
+            <div class="flex items-center gap-1 mb-2">
+              <input id="measure-width" type="text" inputmode="decimal" autocomplete="off" placeholder="예: 0.120"
+                     class="flex-1 px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary disabled:opacity-40" disabled/>
+              <span class="font-label-sm text-secondary text-[11px]">mm</span>
+            </div>
+
+            <label class="font-label-sm text-on-surface block mb-1">계산된 세로 치수 (웹)</label>
+            <div id="measure-height" class="px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest font-code text-body-sm text-center text-on-surface mb-2">--</div>
+
+            <label class="font-label-sm text-on-surface block mb-1">계산된 직경 (코어)</label>
+            <div id="circle-diameter" class="px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest font-code text-body-sm text-center text-on-surface">--</div>
+
+            <button id="btn-measure-reset" disabled class="mt-2 w-full px-2 py-1.5 border border-outline-variant rounded text-secondary text-body-sm hover:bg-surface-variant disabled:opacity-40 flex items-center justify-center gap-1">
+              <span class="material-symbols-outlined text-[16px]">refresh</span>
+              측정 초기화
+            </button>
+          </div>
+
+          <!-- 5. 여백 -->
+          <div class="border-t border-outline-variant pt-md">
+            <div class="flex items-center justify-between gap-2">
               <label class="font-label-sm text-on-surface" for="crop-margin">저장 시 여백 (%)</label>
               <input id="crop-margin" type="number" min="0" max="200" step="1" value="15"
                      class="w-20 px-2 py-1 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary"/>
             </div>
-
-            <p class="font-body-sm text-secondary text-[11px] mt-2">슬라이더로 조절하거나 직접 입력 (Enter) · 방향키 0.1<br/>저장 시 DXF 외곽 + 여백%로 자동 크롭됩니다 (DXF 켜진 경우)</p>
+            <p class="font-body-sm text-secondary text-[11px] mt-2">DXF 켜진 상태로 저장하면 DXF 외곽 + 여백%로 자동 크롭됩니다.</p>
           </div>
         </div>
       </div>
