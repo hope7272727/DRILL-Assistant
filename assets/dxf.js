@@ -147,13 +147,15 @@
   // Render parsed DXF onto a canvas at the given placement.
   // placement: { cx, cy (screen px, center), scale, rotationRad, color, lineWidth, alpha }
   function drawDXF(ctx, dxf, placement) {
-    if (!dxf || !dxf.bbox) return;
-    const { entities, bbox } = dxf;
+    if (!dxf || !dxf.entities || !dxf.entities.length) return;
+    const { entities } = dxf;
     const { cx, cy, scale, rotationRad, color, lineWidth, alpha } = placement;
     const cosR = Math.cos(rotationRad || 0);
     const sinR = Math.sin(rotationRad || 0);
-    const bx = bbox.minX + bbox.w / 2;
-    const by = bbox.minY + bbox.h / 2;
+    // Anchor at the DXF coordinate origin (0,0). Cleaned DXFs should have the
+    // drill center placed at (0,0); see DXF saving convention.
+    const bx = 0;
+    const by = 0;
 
     // world -> screen: translate bbox centre to origin, scale (with DXF y-up
     // -> canvas y-down flip), rotate, translate to placement.

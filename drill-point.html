@@ -396,12 +396,13 @@
 
     function computeDxfFitScale() {
       const it = activeItem();
-      if (!it || !it.dxf || !it.dxf.bbox) return;
-      const { w: bw, h: bh } = it.dxf.bbox;
-      const W = canvas.width, H = canvas.height;
-      // Fit DXF bbox to 70% of the smaller canvas dimension
-      const fit = 0.7 * Math.min(W / bw, H / bh);
-      it.dxfFitScale = isFinite(fit) && fit > 0 ? fit : 1;
+      if (!it || !it.dxf) return;
+      // Fixed pixel-per-mm so different DXFs display at proportional sizes
+      // regardless of file. (Cleaned DXFs are mm-units with drill at origin.)
+      // Slider 0.1x-200x then fine-tunes against this baseline.
+      const dpr = window.devicePixelRatio || 1;
+      const PX_PER_MM = 30;
+      it.dxfFitScale = PX_PER_MM * dpr;
     }
 
     function drawDxfOverlay() {
