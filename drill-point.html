@@ -162,9 +162,9 @@
               <label class="font-label-sm text-on-surface">크기</label>
               <span id="dxf-scale-val" class="font-code text-label-sm text-secondary">1.00x</span>
             </div>
-            <input id="dxf-scale" type="range" min="0.1" max="200" step="0.1" value="1" disabled
+            <input id="dxf-scale" type="range" min="0" max="200" step="0.1" value="50" disabled
                    class="w-full h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary disabled:opacity-40"/>
-            <input id="dxf-scale-num" type="number" step="0.1" min="0.1" max="200" value="1" placeholder="1.00" disabled
+            <input id="dxf-scale-num" type="number" step="0.1" min="0" max="200" value="50" placeholder="50.00" disabled
                    class="w-full mt-2 px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary disabled:opacity-40"/>
 
             <div class="flex items-center justify-between mt-2 gap-2">
@@ -439,7 +439,7 @@
       // regardless of file. (Cleaned DXFs are mm-units with drill at origin.)
       // Slider 0.1x-200x then fine-tunes against this baseline.
       const dpr = window.devicePixelRatio || 1;
-      const PX_PER_MM = 30;
+      const PX_PER_MM = 60;
       it.dxfFitScale = PX_PER_MM * dpr;
     }
 
@@ -816,7 +816,7 @@
         dxfName: '',
         dxfText: '',
         dxfVisible: false,
-        dxfScaleUser: 100,
+        dxfScaleUser: 50,
         dxfFitScale: 1,
         dxfLibName: '',
         photoOffsetX: 0,
@@ -1659,7 +1659,7 @@
           it.dxf = dxf;
           it.dxfName = f.name;
           it.dxfText = text;
-          it.dxfScaleUser = 100;
+          it.dxfScaleUser = 50;
           it.dxfLibName = ''; // fresh upload — not bound to a library entry
           computeDxfFitScale();
           dxfFileName.textContent = `${f.name} (${dxf.entities.length}개 엔티티)`;
@@ -1722,7 +1722,7 @@
         await DrillDxfLib.save({
           name: trimmed,
           text: it.dxfText,
-          scale: it.dxfScaleUser || 100,
+          scale: it.dxfScaleUser || 50,
         });
       } catch (err) {
         alert('저장 실패: ' + err.message);
@@ -1780,7 +1780,7 @@
           active.dxf = dxf;
           active.dxfName = entry.name;
           active.dxfText = entry.text;
-          active.dxfScaleUser = (typeof entry.scale === 'number' && entry.scale > 0) ? entry.scale : 100;
+          active.dxfScaleUser = (typeof entry.scale === 'number' && entry.scale > 0) ? entry.scale : 50;
           active.dxfLibName = entry.name; // remember so scale changes save back
           computeDxfFitScale();
           dxfFileName.textContent = `${entry.name} (${dxf.entities.length}개 엔티티) · 저장됨`;
@@ -1814,7 +1814,7 @@
       const it = activeItem(); if (!it) return;
       let s = parseFloat(v);
       if (isNaN(s)) s = 1;
-      s = Math.max(0.1, Math.min(200, s));
+      s = Math.max(0, Math.min(200, s));
       it.dxfScaleUser = s;
       dxfScaleInput.value = s;
       dxfScaleNumInput.value = s.toFixed(2);
@@ -2125,7 +2125,7 @@
           dxfText: it.dxfText || '',
           dxfName: it.dxfName || '',
           dxfVisible: !!it.dxfVisible,
-          dxfScaleUser: it.dxfScaleUser || 100,
+          dxfScaleUser: it.dxfScaleUser || 50,
           dxfLibName: it.dxfLibName || '',
           groupPath: Array.isArray(it.groupPath) ? it.groupPath : (it.group ? [it.group] : []),
           measurePoints: Array.isArray(it.measurePoints) ? it.measurePoints : [],
@@ -2151,7 +2151,7 @@
             dxfText: s.dxfText || '',
             dxfName: s.dxfName || '',
             dxfVisible: !!s.dxfVisible,
-            dxfScaleUser: s.dxfScaleUser || 100,
+            dxfScaleUser: s.dxfScaleUser || 50,
             dxfLibName: s.dxfLibName || '',
             groupPath: Array.isArray(s.groupPath) ? s.groupPath : (s.group ? [s.group] : []),
             measurePoints: Array.isArray(s.measurePoints) ? s.measurePoints : [],
