@@ -81,10 +81,6 @@
         <div class="col-span-7 bg-surface p-md rounded-xl border border-outline-variant shadow-sm flex flex-col">
           <div class="flex justify-between items-center mb-md pb-md border-b border-outline-variant gap-md">
             <div class="flex items-center gap-2 shrink-0">
-              <button id="btn-toggle" class="flex items-center gap-1 px-3 py-1.5 text-on-surface bg-secondary-container rounded font-label-sm whitespace-nowrap shrink-0 min-w-[92px] justify-center">
-                <span class="material-symbols-outlined text-[18px]">visibility</span>
-                <span id="toggle-label">정렬 후</span>
-              </button>
               <button id="btn-crosshair" class="flex items-center gap-1 px-3 py-1.5 text-secondary border border-outline-variant rounded font-label-sm hover:bg-surface-variant whitespace-nowrap shrink-0 min-w-[124px] justify-center" title="단축키: X">
                 <span class="material-symbols-outlined text-[18px]">add</span>
                 <span id="crosshair-label">십자선 켜기 (X)</span>
@@ -312,8 +308,6 @@
     const dpadLeft = $('dpad-left');
     const dpadRight = $('dpad-right');
     const dpadCenter = $('dpad-center');
-    const btnToggle = $('btn-toggle');
-    const toggleLabel = $('toggle-label');
     const btnCrosshair = $('btn-crosshair');
     const crosshairLabel = $('crosshair-label');
     const btnPick = $('btn-pick');
@@ -892,12 +886,6 @@
     });
 
 
-
-    btnToggle.addEventListener('click', () => {
-      state.showOriginal = !state.showOriginal;
-      toggleLabel.textContent = state.showOriginal ? '원본' : '정렬 후';
-      renderActive();
-    });
 
     function setCrosshair(on) {
       state.showCrosshair = on;
