@@ -1595,7 +1595,7 @@
     // Subscribe to live changes — additions/deletions on other devices reflect here too.
     if (window.DrillDxfLib) {
       DrillDxfLib.onChange((entries) => {
-        _dxfLibCache = entries.slice().sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+        _dxfLibCache = entries.slice().sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { numeric: true, sensitivity: 'base' }));
         refreshDxfLibSelect();
       });
     }
