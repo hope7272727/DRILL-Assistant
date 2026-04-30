@@ -168,17 +168,12 @@
                    class="w-full mt-2 px-2 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary disabled:opacity-40"/>
 
             <div class="flex items-center justify-between mt-2 gap-2">
-              <label class="font-label-sm text-on-surface">색상</label>
-              <input id="dxf-color" type="color" value="#00ff00" class="w-16 h-7 rounded border border-outline-variant cursor-pointer"/>
-            </div>
-
-            <div class="flex items-center justify-between mt-2 gap-2">
               <label class="font-label-sm text-on-surface" for="dxf-line-width">선 굵기</label>
               <input id="dxf-line-width" type="number" min="0.5" max="10" step="0.1" value="1.5"
                      class="w-20 px-2 py-1 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary"/>
             </div>
 
-            <p class="font-body-sm text-secondary text-[11px] mt-2">슬라이더로 조절하거나 직접 입력 (Enter) · 방향키 0.1</p>
+            <p class="font-body-sm text-secondary text-[11px] mt-2">슬라이더로 조절하거나 직접 입력 (Enter) · 방향키 0.1<br/>색상은 DXF 파일 내 정의된 값을 그대로 사용합니다.</p>
           </div>
 
           <!-- 3. 위치 -->
@@ -339,7 +334,6 @@
     const dxfToggleLabel = $('dxf-toggle-label');
     const dxfScaleInput = $('dxf-scale');
     const dxfScaleVal = $('dxf-scale-val');
-    const dxfColorInput = $('dxf-color');
     const dxfScaleNumInput = $('dxf-scale-num');
     const dxfLibSelect = $('dxf-lib-select');
     const btnDxfLibSave = $('btn-dxf-lib-save');
@@ -1607,7 +1601,6 @@
         dxfScaleNumInput.value = 1;
         dxfScaleVal.textContent = '1.00x';
       }
-      dxfColorInput.value = state.dxfColor;
       const lwInput = document.getElementById('dxf-line-width');
       if (lwInput) lwInput.value = String(state.dxfLineWidth || 1.5);
     }
@@ -1850,12 +1843,6 @@
       }
     });
 
-    dxfColorInput.addEventListener('input', (e) => {
-      state.dxfColor = e.target.value;
-      blitAndOverlay();
-      schedulePersist();
-    });
-
     const dxfLineWidthInput = $('dxf-line-width');
     dxfLineWidthInput.value = String(state.dxfLineWidth);
     dxfLineWidthInput.addEventListener('input', (e) => {
@@ -1959,7 +1946,9 @@
       // Tracks the DXF visual extent in canvas coords so we can auto-crop later.
       let cropRect = null;
 
-      if (it.dxfVisible && it.dxf) {
+      // Always bake the DXF when present, even if currently toggled OFF on screen.
+      // (User wanted save to include the overlay regardless of visibility state.)
+      if (it.dxf) {
         const ctx = cv.getContext('2d');
         const iw = it.image.naturalWidth, ih = it.image.naturalHeight;
         const Wd = canvas.width, Hd = canvas.height;
