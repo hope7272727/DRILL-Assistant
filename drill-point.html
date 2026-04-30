@@ -173,7 +173,12 @@
                      class="w-20 px-2 py-1 border border-outline-variant rounded bg-surface-container-lowest text-body-sm font-code text-center focus:outline-none focus:border-primary"/>
             </div>
 
-            <p class="font-body-sm text-secondary text-[11px] mt-2">슬라이더로 조절하거나 직접 입력 (Enter) · 방향키 0.1<br/>색상은 DXF 파일 내 정의된 값을 그대로 사용합니다.</p>
+            <label class="flex items-center justify-between mt-2 gap-2 cursor-pointer">
+              <span class="font-label-sm text-on-surface">저장 시 DXF 포함</span>
+              <input id="bake-dxf-on-save" type="checkbox" checked class="w-5 h-5 accent-primary cursor-pointer"/>
+            </label>
+
+            <p class="font-body-sm text-secondary text-[11px] mt-2">선 굵기는 0.1 단위 · 색상은 DXF 파일 내 정의값 사용<br/>"DXF 포함" 체크 해제 시 DXF 없는 사진으로 저장됩니다.</p>
           </div>
 
           <!-- 3. 위치 -->
@@ -273,6 +278,7 @@
       pickedPoints: [],  // up to 2 points in canvas pixel coords
       dxfColor: '#00ff00', // shared across photos — user preference
       dxfLineWidth: 1.5,   // shared across photos — user preference
+      bakeDxfOnSave: true, // include DXF overlay when saving the photo
       photoDragging: false,
       photoDragStart: null,
       measureMode: false,
@@ -1603,6 +1609,8 @@
       }
       const lwInput = document.getElementById('dxf-line-width');
       if (lwInput) lwInput.value = String(state.dxfLineWidth || 1.5);
+      const bakeCb = document.getElementById('bake-dxf-on-save');
+      if (bakeCb) bakeCb.checked = state.bakeDxfOnSave !== false;
     }
 
     function syncUIForActive() {
@@ -1844,6 +1852,12 @@
     });
 
     const dxfLineWidthInput = $('dxf-line-width');
+    const bakeDxfCheckbox = $('bake-dxf-on-save');
+    bakeDxfCheckbox.checked = state.bakeDxfOnSave !== false;
+    bakeDxfCheckbox.addEventListener('change', () => {
+      state.bakeDxfOnSave = bakeDxfCheckbox.checked;
+      schedulePersist();
+    });
     dxfLineWidthInput.value = String(state.dxfLineWidth);
     dxfLineWidthInput.addEventListener('input', (e) => {
       const v = parseFloat(e.target.value);
@@ -1946,9 +1960,10 @@
       // Tracks the DXF visual extent in canvas coords so we can auto-crop later.
       let cropRect = null;
 
-      // Always bake the DXF when present, even if currently toggled OFF on screen.
-      // (User wanted save to include the overlay regardless of visibility state.)
-      if (it.dxf) {
+      // Bake the DXF when present AND user has the "저장 시 DXF 포함" toggle on.
+      // Toggle defaults to checked; uncheck to save photo without the overlay.
+      const bakeDxf = bakeDxfCheckbox ? bakeDxfCheckbox.checked : true;
+      if (it.dxf && bakeDxf) {
         const ctx = cv.getContext('2d');
         const iw = it.image.naturalWidth, ih = it.image.naturalHeight;
         const Wd = canvas.width, Hd = canvas.height;
@@ -2111,6 +2126,7 @@
         showCrosshair: state.showCrosshair,
         dxfColor: state.dxfColor,
         dxfLineWidth: state.dxfLineWidth,
+        bakeDxfOnSave: state.bakeDxfOnSave !== false,
         items: state.items.map(it => ({
           fileBlob: it.fileBlob || null,
           name: it.name,
@@ -2167,6 +2183,7 @@
           state.dxfColor = savedColor;
         }
         state.dxfLineWidth = (typeof saved.dxfLineWidth === 'number' && saved.dxfLineWidth > 0) ? saved.dxfLineWidth : 1.5;
+        state.bakeDxfOnSave = saved.bakeDxfOnSave !== false;
         // Apply crosshair button visual
         if (state.showCrosshair) setCrosshair(true);
         syncUIForActive();
