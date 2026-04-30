@@ -1,8 +1,23 @@
 /* Minimal DXF parser + renderer for drill-point comparison.
- * Handles common 2D entities: LINE, CIRCLE, ARC, LWPOLYLINE, POLYLINE(+VERTEX).
- * Not a full DXF implementation — splines, blocks/inserts, text, etc. are skipped.
+ * Handles common 2D entities: LINE, CIRCLE, ARC, LWPOLYLINE, POLYLINE(+VERTEX),
+ * ELLIPSE, SPLINE. Per-entity color (AutoCAD Color Index) and per-layer color
+ * are extracted so each segment renders in its source color when present.
+ * Not a full DXF implementation — blocks/inserts, text, hatches, etc. are skipped.
  */
 (function () {
+  // AutoCAD Color Index → CSS color. 0=ByBlock and 256=ByLayer return null so
+  // the renderer can fall back to the layer or user-set default.
+  const ACI = {
+    1: '#ff0000', 2: '#ffff00', 3: '#00ff00', 4: '#00ffff',
+    5: '#0000ff', 6: '#ff00ff', 7: '#ffffff',
+    8: '#808080', 9: '#c0c0c0',
+  };
+  function aciToCss(aci) {
+    if (aci == null || aci === 0 || aci === 256) return null;
+    if (ACI[aci]) return ACI[aci];
+    return null; // unknown ACI → caller fallback
+  }
+
   function parseDXF(text) {
     const lines = text.split(/\r\n|\r|\n/);
     // Collect code/value pairs
@@ -11,6 +26,41 @@
       const code = parseInt(lines[i].trim(), 10);
       if (Number.isNaN(code)) continue;
       pairs.push({ code, value: lines[i + 1] });
+    }
+
+    // -------- LAYER table parsing (to resolve ByLayer entity colors) --------
+    const layerColors = {}; // name -> css color string
+    {
+      let i = 0;
+      // Find TABLES section
+      while (i < pairs.length - 1) {
+        if (pairs[i].code === 0 && pairs[i].value.trim() === 'SECTION' &&
+            pairs[i + 1].code === 2 && pairs[i + 1].value.trim() === 'TABLES') {
+          i += 2; break;
+        }
+        i++;
+      }
+      // Walk TABLES section, capture LAYER records
+      while (i < pairs.length) {
+        const p = pairs[i];
+        const sv = p.value.trim();
+        if (p.code === 0 && sv === 'ENDSEC') break;
+        if (p.code === 0 && sv === 'LAYER') {
+          let name = null, color = null;
+          i++;
+          while (i < pairs.length && pairs[i].code !== 0) {
+            if (pairs[i].code === 2) name = pairs[i].value.trim();
+            else if (pairs[i].code === 62) color = parseInt(pairs[i].value, 10);
+            i++;
+          }
+          if (name && color != null) {
+            const css = aciToCss(Math.abs(color));
+            if (css) layerColors[name] = css;
+          }
+          continue;
+        }
+        i++;
+      }
     }
 
     // Find start of ENTITIES section
@@ -67,6 +117,10 @@
       }
 
       if (!cur) { idx++; continue; }
+
+      // Common entity attributes (apply to every entity type).
+      if (code === 8) { cur.layer = value.trim(); idx++; continue; }
+      if (code === 62) { cur.color = parseInt(value, 10); idx++; continue; }
 
       const v = parseFloat(value);
       if (cur.type === 'LINE') {
@@ -148,7 +202,7 @@
       ? { minX, minY, maxX, maxY, w: maxX - minX, h: maxY - minY }
       : null;
 
-    return { entities, bbox };
+    return { entities, bbox, layerColors };
   }
 
   function isRenderable(e) {
@@ -228,35 +282,60 @@
       return [cx + rx, cy + ry];
     }
 
+    const layerColors = (dxf && dxf.layerColors) || {};
+    const defaultColor = color || '#00ff00';
+    function effectiveColor(e) {
+      // Per-entity ACI color wins (unless ByLayer / ByBlock).
+      const c = aciToCss(e.color);
+      if (c) return c;
+      // ByLayer fallback.
+      if (e.layer && layerColors[e.layer]) return layerColors[e.layer];
+      return defaultColor;
+    }
+
     ctx.save();
     ctx.globalAlpha = alpha != null ? alpha : 1;
-    ctx.strokeStyle = color || '#ff0000';
     ctx.lineWidth = lineWidth || 2;
-    ctx.beginPath();
+
+    // Issue one stroke per entity so per-entity colors take effect.
+    function startStroke(e) {
+      ctx.strokeStyle = effectiveColor(e);
+      ctx.beginPath();
+    }
+    function endStroke() { ctx.stroke(); }
 
     for (const e of entities) {
       if (e.type === 'LINE') {
+        startStroke(e);
         const [sx, sy] = ws(e.x1, e.y1);
         const [ex, ey] = ws(e.x2, e.y2);
         ctx.moveTo(sx, sy); ctx.lineTo(ex, ey);
+        endStroke();
       } else if (e.type === 'CIRCLE') {
+        startStroke(e);
         drawEllipseApprox(ctx, ws, e.cx, e.cy, e.r, e.r, 0, 0, Math.PI * 2);
+        endStroke();
       } else if (e.type === 'ARC') {
+        startStroke(e);
         const sa = (e.startAngle || 0) * Math.PI / 180;
         const ea = (e.endAngle || 360) * Math.PI / 180;
         let end = ea;
         if (end < sa) end += Math.PI * 2;
         drawEllipseApprox(ctx, ws, e.cx, e.cy, e.r, e.r, 0, sa, end);
+        endStroke();
       } else if (e.type === 'ELLIPSE') {
+        startStroke(e);
         const rMaj = Math.hypot(e.majorX, e.majorY);
         const rMin = rMaj * (e.ratio || 1);
         const rot = Math.atan2(e.majorY, e.majorX);
         const sp = e.startParam == null ? 0 : e.startParam;
         const ep = e.endParam == null ? Math.PI * 2 : e.endParam;
         drawEllipseApprox(ctx, ws, e.cx, e.cy, rMaj, rMin, rot, sp, ep);
+        endStroke();
       } else if (e.type === 'LWPOLYLINE' || e.type === 'POLYLINE') {
         const vs = (e.vertices || []).filter(v => v.y !== undefined);
         if (vs.length < 2) continue;
+        startStroke(e);
         const [x0, y0] = ws(vs[0].x, vs[0].y);
         ctx.moveTo(x0, y0);
         for (let i = 1; i < vs.length; i++) {
@@ -267,22 +346,24 @@
           const [xc, yc] = ws(vs[0].x, vs[0].y);
           ctx.lineTo(xc, yc);
         }
+        endStroke();
       } else if (e.type === 'SPLINE') {
         // Try de Boor evaluation against control points + knots; fall back to
         // straight-line interpolation through the fit points.
         let pts = evalSpline(e, 64);
         if (!pts && e.fitPts && e.fitPts.length >= 2) pts = e.fitPts;
         if (!pts || pts.length < 2) continue;
+        startStroke(e);
         const [x0, y0] = ws(pts[0].x, pts[0].y);
         ctx.moveTo(x0, y0);
         for (let i = 1; i < pts.length; i++) {
           const [xi, yi] = ws(pts[i].x, pts[i].y);
           ctx.lineTo(xi, yi);
         }
+        endStroke();
       }
     }
 
-    ctx.stroke();
     ctx.restore();
   }
 
