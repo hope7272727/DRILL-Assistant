@@ -547,8 +547,7 @@
               <img src="${it.thumb}" class="w-full h-full object-cover"/>
             </div>
             <div class="flex-1 min-w-0">
-              <p class="font-label-sm text-on-surface text-[12px] truncate">${it.name}</p>
-              <p class="font-code text-[11px] ${it.angle === 0 ? 'text-secondary' : 'text-primary'}">${it.angle.toFixed(2)}°</p>
+              <p class="font-label-sm text-on-surface text-[12px] leading-tight break-all line-clamp-2" title="${it.name.replace(/"/g,'&quot;')}">${it.name}</p>
             </div>
           </button>
           <button class="item-remove p-1 rounded text-secondary hover:bg-error-container hover:text-on-error-container opacity-0 group-hover:opacity-100 transition-opacity" title="목록에서 제거">
